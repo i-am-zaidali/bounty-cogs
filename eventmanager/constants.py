@@ -12,9 +12,9 @@ class Category(Enum):
     def emoji(self):
         return {
             "Tank": "<:tank:975467387203764246> ", #emoji edits here just edit the strings
-            "Melee": "<:healer:975467387073728563> ",
-            "Ranged": "<:melee:975467387535118406> ",
-            "Healer": "<:ranged:975467387505750116>"
+            "Healer": "<:healer:975467387073728563> ",
+            "Melee": "<:melee:975467387535118406> ",
+            "Ranged": "<:ranged:975467387505750116>"
         }[self.value]
 
 class_spec_dict: typing.Dict[str, typing.Union[str, typing.Dict[str, typing.Dict[str, typing.Union[typing.Tuple[Category], str]]]]] = {
