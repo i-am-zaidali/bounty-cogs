@@ -11,10 +11,10 @@ class Category(Enum):
     @property
     def emoji(self):
         return {
-            "Tank": "🛡", #emoji edits here just edit the strings
-            "Melee": "⚔",
-            "Ranged": "🏹",
-            "Healer": "⚕"
+            "Tank": "<:tank:975467387203764246> ", #emoji edits here just edit the strings
+            "Melee": "<:healer:975467387073728563> ",
+            "Ranged": "<:melee:975467387535118406> ",
+            "Healer": "<:ranged:975467387505750116>"
         }[self.value]
 
 class_spec_dict: typing.Dict[str, typing.Union[str, typing.Dict[str, typing.Dict[str, typing.Union[typing.Tuple[Category], str]]]]] = {
@@ -46,7 +46,11 @@ class_spec_dict: typing.Dict[str, typing.Union[str, typing.Dict[str, typing.Dict
                 "emoji": "<:balance:975436654091329576>"
             }, 
             'Feral': {
-                "categories": (Category.TANK, Category.MELEE, ), 
+                "categories": (Category.MELEE, ), 
+                "emoji": "<:feral:975436654246518845>"
+            },
+            'Feral (tank)': {
+                "categories": (Category.TANK, ), 
                 "emoji": "<:feral:975436654246518845>"
             }, 
             'Restoration': {

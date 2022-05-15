@@ -1,19 +1,14 @@
 
 {
-    "name": "DonationLogging",
-    "short": "Record user donations in server",
-    "description": "Helps server staff to log people donations in an easier way. Allows you to setup a channel to log actions in this cog, setup roles to be auto assigned on a certain donation amount, add donations, reduce donations, reset donations and check yours other's donations.",
+    "name": "EventManager",
+    "short": "Mange events",
+    "description": "Helps you to amange events",
     "end_user_data_statement": "This cog stores End User Data when storing the donations of a user. If a user requests data-deletion, all their donations will be removed from the bot.",
-    "install_msg": "Thanks for installing DonationLogging. Load the cog with `[p]load donationlogging` and see all its commands with `[p]help dono` and `[p]help donoset`.",
+    "install_msg": "Thanks for installing EventManager. Load the cog with `[p]load eventmanager` and see all its commands with `[p]help dono` and `[p]help donoset`.",
     "author": [
         "crayyy_zee"
     ],
     "required_cogs": {},
-    "requirements": ["emoji"],
-    "tags": [
-        "donations",
-        "donation",
-        "logging"
-    ],
+    "requirements": ["dateparser"],
     "type": "COG"
 }
