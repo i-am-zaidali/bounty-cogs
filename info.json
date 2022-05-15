@@ -1,0 +1,8 @@
+{
+    "author" : ["crayyy_zee"],
+    "install_msg" : "Thanks for adding my repo to your bot :D If you need help with any cogs, go to *#support_other-cogs* on the cog support server (<https://discord.gg/GET4DVk>) and ping me (@crayyy_zee) or create an issue on my repo.",
+    "name" : "cray-cogs.",
+    "short" : "Badly coded but awesome cogs.",
+    "description" : "Utility and fun cogs made by crayyy_zee. (Mostly targeted towards a dank memer audience).",
+    "tags" : ["utility", "fun", "economy"]
+}
