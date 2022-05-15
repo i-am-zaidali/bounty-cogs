@@ -191,6 +191,8 @@ class EventManager(commands.Cog):
                 event.remove_entrant(entrant)
             
                 await user.send("You have been removed from the event.")
+                
+                await message.edit(embed=event.embed)
             
             else:
                 await user.send("You weren't signed up to the event.")
