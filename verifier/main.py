@@ -28,7 +28,7 @@ class Verifier(commands.Cog):
         asyncio.create_task(self.to_config())
 
     @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
+    async def on_message_without_command(self, message: discord.Message):
         if message.author.bot:
             return
 
@@ -98,6 +98,8 @@ class Verifier(commands.Cog):
                 color=discord.Color.random()
             )
         )
+        
+        await message.delete()
 
     @commands.command(name="verified", aliases=["v"])
     @commands.mod_or_permissions(manage_guild=True)
@@ -105,6 +107,7 @@ class Verifier(commands.Cog):
         """
         Check how many users have been verifeid by the given user.
         """
+        await ctx.message.delete()
         has_verified = await self.config.member(user).has_verified()
         if not has_verified:
             return await ctx.maybe_send_embed(f"{user.mention} has not verified anyone.")
@@ -122,6 +125,7 @@ class Verifier(commands.Cog):
 
         If user is omitted, then the author of the command is used.
         """
+        await ctx.message.delete()
         user = user or ctx.author
         has_been_verified = await self.config.member(user).has_been_verified()
 
@@ -138,6 +142,7 @@ class Verifier(commands.Cog):
 
         If channel is omitted, then the current channel is used.
         """
+        await ctx.message.delete()
         if not channel:
             channel = ctx.channel
 
@@ -158,6 +163,9 @@ class Verifier(commands.Cog):
     @commands.command(name="verifysettings", aliases=["verifyset", "vs"])
     @commands.admin_or_permissions(administrator=True)
     async def verifysettings(self, ctx: commands.Context):
+        """
+        See your configured settings for verification."""
+        await ctx.message.delete()
         data = self.cache.get(ctx.guild.id)
 
         if not data:
