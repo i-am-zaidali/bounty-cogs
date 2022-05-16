@@ -98,7 +98,7 @@ class Verifier(commands.Cog):
                 color=discord.Color.random(),
             )
         )
-        
+
         await message.delete()
 
     @commands.command(name="verified", aliases=["v"])
