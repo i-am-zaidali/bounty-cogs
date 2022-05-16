@@ -53,6 +53,8 @@ class Verifier(commands.Cog):
         if message.author in message.mentions:
             await message.delete()
             return await message.channel.send("You cannot verify yourself.")
+        
+        await message.delete()
 
         role_id = data.get("role")
         role = message.guild.get_role(role_id)
@@ -75,7 +77,7 @@ class Verifier(commands.Cog):
         if not verified:
             return await message.channel.send(
                 embed=discord.Embed(
-                    description="No users were verified.\n"
+                    description="No users were verified by {message.author.mention}.\n"
                     f"{humanize_list([member.mention for member in  failed])} "
                     f"{'was' if len(failed) == 1 else 'were'} already verified.",
                     color=discord.Color.random(),
@@ -87,7 +89,7 @@ class Verifier(commands.Cog):
 
         await message.channel.send(
             embed=discord.Embed(
-                description="The following users were verified:\n"
+                description=f"The following users were verified by {message.author.mention}:\n"
                 + f"{humanize_list([member.mention for member in verified])}"
                 + (
                     "Following users were already verified:\n"
@@ -99,7 +101,7 @@ class Verifier(commands.Cog):
             )
         )
         
-        await message.delete()
+        
 
     @commands.command(name="verified", aliases=["v"])
     @commands.mod_or_permissions(manage_guild=True)
