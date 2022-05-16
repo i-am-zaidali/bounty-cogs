@@ -74,11 +74,11 @@ class Verifier(commands.Cog):
 
         if not verified:
             return await message.channel.send(
-                embed = discord.Embed(
+                embed=discord.Embed(
                     description="No users were verified.\n"
                     f"{humanize_list([member.mention for member in  failed])} "
                     f"{'was' if len(failed) == 1 else 'were'} already verified.",
-                    color=discord.Color.random()
+                    color=discord.Color.random(),
                 )
             )
 
@@ -86,7 +86,7 @@ class Verifier(commands.Cog):
             has_verified.extend([i.id for i in verified])
 
         await message.channel.send(
-            embed = discord.Embed(
+            embed=discord.Embed(
                 description="The following users were verified:\n"
                 + f"{humanize_list([member.mention for member in verified])}"
                 + (
@@ -95,7 +95,7 @@ class Verifier(commands.Cog):
                     if failed
                     else ""
                 ),
-                color=discord.Color.random()
+                color=discord.Color.random(),
             )
         )
         
@@ -132,7 +132,9 @@ class Verifier(commands.Cog):
         if not has_been_verified:
             return await ctx.maybe_send_embed(f"{user.mention} has not been verified by anyone.")
 
-        return await ctx.maybe_send_embed(f"{user.mention} has been verified by <@{has_been_verified}>.\n")
+        return await ctx.maybe_send_embed(
+            f"{user.mention} has been verified by <@{has_been_verified}>.\n"
+        )
 
     @commands.command(name="verifychannel", aliases=["vc"])
     @commands.admin_or_permissions(administrator=True)
@@ -169,7 +171,9 @@ class Verifier(commands.Cog):
         data = self.cache.get(ctx.guild.id)
 
         if not data:
-            return await ctx.maybe_send_embed("There are no verification settings for this server.")
+            return await ctx.maybe_send_embed(
+                "There are no verification settings for this server."
+            )
 
         channel = f"<#{data['channel']}>" if data["channel"] else "None"
         role = f"<@&{data['role']}>" if data["role"] else "None"
