@@ -59,6 +59,20 @@ class EventManager(commands.Cog):
         self.cache.setdefault(ctx.guild.id, {})[msg.id] = event
         
     @commands.Cog.listener()
+    async def on_member_leave(self, member: discord.Member):
+        if member.guild.id not in self.cache:
+            return
+        
+        for event in self.cache[member.guild.id].values():
+            if entrant:=event.get_entrant(member.id):
+                event.remove_entrant(entrant)
+                msg = await event.message()
+                if not msg:
+                    continue
+                
+                await msg.edit(embed=event.embed)
+        
+    @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if not payload.guild_id:
             return
@@ -140,8 +154,9 @@ class EventManager(commands.Cog):
                         pass
                     return
                 
-                if not msg.content.isdigit() or int(msg.content) not in [i for i in range(len(valid_specs))]:
-                    return await user.send(f"That's not a valid answer. You must write a number from 1 to {len(valid_specs)}")
+                if not msg.content.isdigit() or int(msg.content) not in [i + 1 for i in range(len(valid_specs))]:
+                    await user.send(f"That's not a valid answer. You must write a number from 1 to {len(valid_specs)}")
+                    continue
             
                 answer = int(msg.content)
             
