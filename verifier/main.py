@@ -49,15 +49,17 @@ class Verifier(commands.Cog):
         if not message.mentions:
             await message.delete()
             return
-        
+
         if not (await self.config.member(message.author).has_been_verified()):
             await message.delete()
-            return await message.channel.send("You have not been verified yet so you cannot verify others.", delete_after=25)
+            return await message.channel.send(
+                "You have not been verified yet so you cannot verify others.", delete_after=25
+            )
 
         if message.author in message.mentions:
             await message.delete()
             return await message.channel.send("You cannot verify yourself.", delete_after=25)
-        
+
         await message.delete()
 
         role_id = data.get("role")
@@ -104,8 +106,6 @@ class Verifier(commands.Cog):
                 color=discord.Color.random(),
             )
         )
-        
-        
 
     @commands.command(name="verified", aliases=["v"])
     @commands.mod_or_permissions(manage_guild=True)
