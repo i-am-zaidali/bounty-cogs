@@ -1,6 +1,6 @@
 import typing
 from argparse import ArgumentParser
-from datetime import datetime
+from datetime import datetime, timezone
 
 import dateparser
 import discord
@@ -35,7 +35,7 @@ class Event:
         self.channel_id = channel_id
         self.description = description
         self.description2 = description2
-        self.start_time = start_time or datetime.now()
+        self.start_time = start_time or datetime.now(tz=timezone.utc)
         self.end_time = end_time
         self.image_url = image_url
 
@@ -170,7 +170,7 @@ class Event:
             entrant.spec = spec
             entrant.joined_at = datetime.now()
             return entrant
-        entrant = Entrant(user_id, self, category, category_class, spec, datetime.now())
+        entrant = Entrant(user_id, self, category, category_class, spec, datetime.now(tz=timezone.utc))
         self.entrants.append(entrant)
 
     def remove_entrant(self, entrant: "Entrant"):

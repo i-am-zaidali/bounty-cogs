@@ -27,15 +27,13 @@ class EventManager(commands.Cog):
         for guild_id, guild_config in all_guilds.items():
             g = self.cache.setdefault(int(guild_id), {})
             for event in guild_config.values():
-                g.setdefault(event["message_id"], Event.from_json(self.bot, event))
+                g[event["message_id"]] = Event.from_json(self.bot, event)
 
     async def to_cache(self):
         for guild_config in self.cache.values():
             for event in guild_config.values():
                 json = event.json
-                await self.config.custom("events").set_raw(
-                    event.guild_id, event.message_id, value=json
-                )
+                await self.config.custom("events", event.guild_id, event.message_id).set(json)
 
     def cog_unload(self):
         asyncio.create_task(self.to_cache())
