@@ -49,10 +49,14 @@ class Verifier(commands.Cog):
         if not message.mentions:
             await message.delete()
             return
+        
+        if not (await self.config.member(message.author).has_been_verified()):
+            await message.delete()
+            return await message.channel.send("You have not been verified yet so you cannot verify others.", delete_after=25)
 
         if message.author in message.mentions:
             await message.delete()
-            return await message.channel.send("You cannot verify yourself.")
+            return await message.channel.send("You cannot verify yourself.", delete_after=25)
         
         await message.delete()
 
