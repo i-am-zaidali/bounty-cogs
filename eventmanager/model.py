@@ -303,7 +303,7 @@ class Flags(commands.Converter):
         if time.timestamp() < datetime.now().timestamp():
             raise commands.BadArgument("The end time must be in the future.")
 
-        flags["end_time"] = time
+        flags["end_time"] = time.replace(tzinfo=timezone.utc)
 
         flags["image_url"] = " ".join(flags["image"])
 
