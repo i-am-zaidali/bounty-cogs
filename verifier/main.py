@@ -11,8 +11,8 @@ from redbot.core.utils.chat_formatting import humanize_list, pagify
 class Verifier(commands.Cog):
     """
     Verify other users by mentioning gthem in a set channel."""
-    
-    __version__ = "1.0.0" # starting versioning now to keep track so starting from 1.0.0
+
+    __version__ = "1.0.0"  # starting versioning now to keep track so starting from 1.0.0
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -24,7 +24,7 @@ class Verifier(commands.Cog):
         self.config.register_global(schema=0)
 
         self.cache: typing.Dict[int, typing.Dict[str, int]] = {}
-        
+
     def format_help_for_context(self, ctx: commands.Context) -> str:
         pre_processed = super().format_help_for_context(ctx) or ""
         n = "\n" if "\n\n" not in pre_processed else ""

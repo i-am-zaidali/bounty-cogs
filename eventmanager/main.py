@@ -1,14 +1,14 @@
 import asyncio
-import time
 import logging
+import time
 from typing import Dict, Optional
 
 import discord
 from discord.ext import tasks
 from redbot.core import Config, commands
 from redbot.core.bot import Red
-from redbot.core.utils.menus import start_adding_reactions
 from redbot.core.utils.chat_formatting import humanize_list
+from redbot.core.utils.menus import start_adding_reactions
 
 from .constants import class_spec_dict, emoji_class_dict
 from .model import Event, Flags
@@ -18,8 +18,8 @@ log = logging.getLogger("red.misan-cogs.eventmanager")
 
 class EventManager(commands.Cog):
     """A cog to create and manage events."""
-    
-    __version__ = "1.0.0" # starting versioning now to keep track so starting from 1.0.0
+
+    __version__ = "1.0.0"  # starting versioning now to keep track so starting from 1.0.0
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -27,7 +27,7 @@ class EventManager(commands.Cog):
         self.config = Config.get_conf(self, identifier=0x352567829, force_registration=True)
         self.config.init_custom("events", 2)
         self.cache: Dict[int, Dict[int, Event]] = {}
-        
+
     def format_help_for_context(self, ctx: commands.Context) -> str:
         pre_processed = super().format_help_for_context(ctx) or ""
         n = "\n" if "\n\n" not in pre_processed else ""
@@ -246,22 +246,20 @@ class EventManager(commands.Cog):
 
     @tasks.loop(minutes=2)
     async def check_events(self):
-        
+
         await self.to_config()
-        
+
         await self.cache.clear()
-        
+
         await self.to_cache()
-        
+
         for guild_config in self.cache.copy().values():
             for event in guild_config.values():
                 if event.end_time.timestamp() <= time.time():
                     embed = event.end()
                     msg = await event.message()
-                    
+
                     if not msg:
                         continue
-                    
+
                     await msg.edit(embed=embed)
-                    
-                    

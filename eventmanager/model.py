@@ -170,9 +170,7 @@ class Event:
             entrant.spec = spec
             entrant.joined_at = datetime.now()
             return entrant
-        entrant = Entrant(
-            user_id, self, category, category_class, spec, datetime.now()
-        )
+        entrant = Entrant(user_id, self, category, category_class, spec, datetime.now())
         self.entrants.append(entrant)
 
     def remove_entrant(self, entrant: "Entrant"):
