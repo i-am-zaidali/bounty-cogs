@@ -1,6 +1,6 @@
 import typing
 from argparse import ArgumentParser
-from datetime import datetime, timezone
+from datetime import datetime
 
 import dateparser
 import discord
@@ -35,7 +35,7 @@ class Event:
         self.channel_id = channel_id
         self.description = description
         self.description2 = description2
-        self.start_time = start_time or datetime.now(tz=timezone.utc)
+        self.start_time = start_time or datetime.now()
         self.end_time = end_time
         self.image_url = image_url
 
@@ -171,7 +171,7 @@ class Event:
             entrant.joined_at = datetime.now()
             return entrant
         entrant = Entrant(
-            user_id, self, category, category_class, spec, datetime.now(tz=timezone.utc)
+            user_id, self, category, category_class, spec, datetime.now()
         )
         self.entrants.append(entrant)
 
@@ -217,12 +217,13 @@ class Entrant:
             "category": self.category.name,
             "category_class": self.category_class,
             "spec": self.spec,
-            "joined_at": self.joined_at,
+            "joined_at": self.joined_at.isoformat(),
         }
 
     @classmethod
     def from_json(cls, event: Event, json: dict):
-        json["category"] = Category(json["category"])
+        json["category"] = Category[json["category"]]
+        json["joined_at"] = datetime.fromisoformat(json["joined_at"])
         return cls(event=event, **json)
 
 
@@ -305,7 +306,7 @@ class Flags(commands.Converter):
         if time.timestamp() < datetime.now().timestamp():
             raise commands.BadArgument("The end time must be in the future.")
 
-        flags["end_time"] = time.replace(tzinfo=timezone.utc)
+        flags["end_time"] = time.replace()
 
         flags["image_url"] = " ".join(flags["image"])
 

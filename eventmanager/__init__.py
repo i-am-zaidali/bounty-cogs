@@ -10,4 +10,4 @@ with open(Path(__file__).parent / "info.json") as fp:
 async def setup(bot):
     cog = EventManager(bot)
     bot.add_cog(cog)
-    await cog.initialize()
+    await cog.to_cache()

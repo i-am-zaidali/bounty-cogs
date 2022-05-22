@@ -1,5 +1,6 @@
 import asyncio
 import time
+import logging
 from typing import Dict, Optional
 
 import discord
@@ -7,36 +8,55 @@ from discord.ext import tasks
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.menus import start_adding_reactions
-from redbot.core.utils.predicates import MessagePredicate
+from redbot.core.utils.chat_formatting import humanize_list
 
-from .constants import Category, class_spec_dict, emoji_class_dict
+from .constants import class_spec_dict, emoji_class_dict
 from .model import Event, Flags
+
+log = logging.getLogger("red.misan-cogs.eventmanager")
 
 
 class EventManager(commands.Cog):
     """A cog to create and manage events."""
+    
+    __version__ = "1.0.0" # starting versioning now to keep track so starting from 1.0.0
+    __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=0x352567829, force_registration=True)
         self.config.init_custom("events", 2)
         self.cache: Dict[int, Dict[int, Event]] = {}
+        
+    def format_help_for_context(self, ctx: commands.Context) -> str:
+        pre_processed = super().format_help_for_context(ctx) or ""
+        n = "\n" if "\n\n" not in pre_processed else ""
+        text = [
+            f"{pre_processed}{n}",
+            f"Cog Version: **{self.__version__}**",
+            f"Author: {humanize_list(self.__author__)}",
+        ]
+        return "\n".join(text)
 
-    async def initialize(self):
+    async def to_cache(self):
         all_guilds = await self.config.custom("events").all()
         for guild_id, guild_config in all_guilds.items():
             g = self.cache.setdefault(int(guild_id), {})
             for event in guild_config.values():
-                g[event["message_id"]] = Event.from_json(self.bot, event)
+                try:
+                    g[event["message_id"]] = Event.from_json(self.bot, event)
 
-    async def to_cache(self):
+                except Exception as e:
+                    log.exception("Error occurred when caching: ", exc_info=e)
+
+    async def to_config(self):
         for guild_config in self.cache.values():
             for event in guild_config.values():
                 json = event.json
                 await self.config.custom("events", event.guild_id, event.message_id).set(json)
 
     def cog_unload(self):
-        asyncio.create_task(self.to_cache())
+        asyncio.create_task(self.to_config())
 
     @commands.command(name="event")
     async def event(self, ctx: commands.Context, *, flags: Flags):
@@ -224,10 +244,24 @@ class EventManager(commands.Cog):
             else:
                 await user.send("You weren't signed up to the event.")
 
-    @tasks.loop(seconds=5)
+    @tasks.loop(minutes=2)
     async def check_events(self):
-        for guild_config in self.cache.values():
+        
+        await self.to_config()
+        
+        await self.cache.clear()
+        
+        await self.to_cache()
+        
+        for guild_config in self.cache.copy().values():
             for event in guild_config.values():
                 if event.end_time.timestamp() <= time.time():
                     embed = event.end()
-                    await event.message().edit(embed=embed)
+                    msg = await event.message()
+                    
+                    if not msg:
+                        continue
+                    
+                    await msg.edit(embed=embed)
+                    
+                    
