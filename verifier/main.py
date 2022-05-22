@@ -2,9 +2,10 @@ import asyncio
 import typing
 
 import discord
+from datetime import datetime
 from redbot.core import Config, commands
 from redbot.core.bot import Red
-from redbot.core.utils.chat_formatting import humanize_list
+from redbot.core.utils.chat_formatting import humanize_list, pagify
 
 
 class Verifier(commands.Cog):
@@ -14,10 +15,30 @@ class Verifier(commands.Cog):
         self.config = Config.get_conf(self, 563189763, True)
         self.config.register_member(has_verified=[], has_been_verified=False)
         self.config.register_guild(channel=None, role=None)
+        self.config.register_global(schema=0)
 
         self.cache: typing.Dict[int, typing.Dict[str, int]] = {}
 
+    async def schema_0_to_1(self):
+        if await self.config.schema() != 0:
+            return
+        
+        users = await self.config.all_members()
+        for guild_id, user_data in users.items():
+            for member_id, data in user_data.items():
+                
+                if data["has_been_verified"]:
+                    data["has_been_verified"] = (data["has_been_verified"], datetime.now().isoformat())
+                    await self.config.member_from_ids(guild_id, member_id).has_been_verified.set(data["has_been_verified"])
+                
+                if data["has_verified"]:
+                    data["has_verified"] = [(uid, datetime.now().isoformat()) for uid in data["has_verified"]]
+                    await self.config.member_from_ids(guild_id, member_id).has_verified.set(data["has_verified"])
+                
+        await self.config.set_raw("schema", value=1)
+
     async def build_cache(self):
+        await self.schema_0_to_1()
         self.cache = await self.config.all_guilds()
 
     async def to_config(self):
@@ -77,7 +98,7 @@ class Verifier(commands.Cog):
             else:
                 if role:
                     await member.add_roles(role, reason="Verification.")
-                await self.config.member(member).has_been_verified.set(message.author.id)
+                await self.config.member(member).has_been_verified.set((message.author.id, datetime.now().isoformat()))
                 verified.append(member)
 
         if not verified:
@@ -91,7 +112,7 @@ class Verifier(commands.Cog):
             )
 
         async with self.config.member(message.author).has_verified() as has_verified:
-            has_verified.extend([i.id for i in verified])
+            has_verified.extend([(i.id, datetime.now().isoformat()) for i in verified])
 
         await message.channel.send(
             embed=discord.Embed(
@@ -118,10 +139,18 @@ class Verifier(commands.Cog):
         if not has_verified:
             return await ctx.maybe_send_embed(f"{user.mention} has not verified anyone.")
 
-        await ctx.maybe_send_embed(
-            f"{user.mention} has verified {len(has_verified)} people.\n"
-            "They are mentioned below.\n" + "\n".join(f"<@{id}>" for id in has_verified)
+        string = "\n".join(
+            f"<@{id}> - <t:{int(datetime.fromisoformat(dt).timestamp())}:F>" for id, dt in has_verified
         )
+
+        for page in pagify(string, delims=["\n"], page_length=2000):
+            embed = discord.Embed(
+                description=f"{user.mention} has verified {len(has_verified)} people.\n"
+                            "They are mentioned below.\n" + 
+                            page,
+                color=await ctx.embed_color()
+            )
+            await ctx.send(embed=embed)
 
     @commands.command(name="verifiedby", aliases=["vb"])
     @commands.mod_or_permissions(manage_guild=True)
@@ -138,8 +167,10 @@ class Verifier(commands.Cog):
         if not has_been_verified:
             return await ctx.maybe_send_embed(f"{user.mention} has not been verified by anyone.")
 
+        uid, dt = has_been_verified
+        
         return await ctx.maybe_send_embed(
-            f"{user.mention} has been verified by <@{has_been_verified}>.\n"
+            f"{user.mention} has been verified by <@{uid}> <t:{int(datetime.fromisoformat(dt).timestamp())}:F>.\n"
         )
 
     @commands.command(name="verifychannel", aliases=["vc"])
