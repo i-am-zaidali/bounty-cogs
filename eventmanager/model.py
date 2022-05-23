@@ -186,6 +186,7 @@ class Event:
         self.entrants = [Entrant.from_json(self, i) for i in entrants]
         return self
 
+
 class Entrant:
     def __init__(
         self,
