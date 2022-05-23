@@ -94,7 +94,7 @@ class Event:
                     name=f"{category_emoji} **{category.value}**:  (**{len(ent)}**)",
                     value="\n".join(
                         [
-                            f"{class_spec_dict[i.category_class]['specs'][i.spec]['emoji']} {i.user.mention} - <t:{int(i.joined_at.timestamp())}:F>"
+                            f"{class_spec_dict[i.category_class]['specs'][i.spec]['emoji']} <@{i.user_id}> - <t:{int(i.joined_at.timestamp())}:F>"
                             for i in ent
                         ]
                     ),
@@ -160,7 +160,7 @@ class Event:
 
     def get_entrant(self, user_id: int) -> typing.Optional["Entrant"]:
         for entrant in self.entrants:
-            if entrant.user.id == user_id:
+            if entrant.user_id == user_id:
                 return entrant
 
     def add_entrant(self, user_id: int, category_class: str, category: Category, spec: str):
@@ -187,7 +187,6 @@ class Event:
         self = cls(bot, **json)
         self.entrants = [Entrant.from_json(self, i) for i in entrants]
         return self
-
 
 class Entrant:
     def __init__(

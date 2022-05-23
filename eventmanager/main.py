@@ -19,7 +19,7 @@ log = logging.getLogger("red.misan-cogs.eventmanager")
 class EventManager(commands.Cog):
     """A cog to create and manage events."""
     
-    __version__ = "1.0.0" # starting versioning now to keep track so starting from 1.0.0
+    __version__ = "1.1.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -113,7 +113,7 @@ class EventManager(commands.Cog):
         if not message:
             return  # idk what could be the reason message is none tbh.
 
-        user: Optional[discord.User] = self.bot.get_user(payload.user_id)
+        user: Optional[discord.User] = await self.bot.get_or_fetch_user(payload.user_id)
 
         if not user:
             return
@@ -243,6 +243,20 @@ class EventManager(commands.Cog):
 
             else:
                 await user.send("You weren't signed up to the event.")
+                
+    @commands.Cog.listener()
+    async def on_member_remove(self, member: discord.Member):
+        if member.guild.id not in self.cache:
+            return
+
+        for event in self.cache[member.guild.id].values():
+            if entrant := event.get_entrant(member.id):
+                event.remove_entrant(entrant)
+                msg = await event.message()
+                if not msg:
+                    continue
+
+                await msg.edit(embed=event.embed)
 
     @tasks.loop(minutes=2)
     async def check_events(self):
