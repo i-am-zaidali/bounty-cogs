@@ -12,7 +12,7 @@ class Verifier(commands.Cog):
     """
     Verify other users by mentioning gthem in a set channel."""
 
-    __version__ = "1.0.0"  # starting versioning now to keep track so starting from 1.0.0
+    __version__ = "1.0.1"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -131,7 +131,7 @@ class Verifier(commands.Cog):
         if not verified:
             return await message.channel.send(
                 embed=discord.Embed(
-                    description="No users were verified by {message.author.mention}.\n"
+                    description=f"No users were verified by {message.author.mention}.\n"
                     f"{humanize_list([member.mention for member in  failed])} "
                     f"{'was' if len(failed) == 1 else 'were'} already verified.",
                     color=discord.Color.random(),
@@ -154,6 +154,22 @@ class Verifier(commands.Cog):
                 color=discord.Color.random(),
             )
         )
+        
+    @commands.Cog.listener()
+    async def on_guild_remove(self, member: discord.Member):
+        if not member.guild.id in self.cache:
+            return
+        
+        if not (tup:=await self.config.member(member).has_been_verified()):
+            return
+        
+        user_id = tup[0]
+        
+        async with self.config.member_from_ids(member.guild.id, user_id).has_verified() as has_verified:
+            for (member_id, dt) in has_verified.copy():
+                if member_id == user_id:
+                    has_verified.remove((member_id, dt))
+                    return
 
     @commands.command(name="verified", aliases=["v"])
     @commands.mod_or_permissions(manage_guild=True)
