@@ -18,7 +18,7 @@ log = logging.getLogger("red.misan-cogs.eventmanager")
 
 class EventManager(commands.Cog):
     """A cog to create and manage events."""
-    
+
     __version__ = "1.1.0"
     __author__ = ["crayyy_zee#2900"]
 
@@ -243,7 +243,7 @@ class EventManager(commands.Cog):
 
             else:
                 await user.send("You weren't signed up to the event.")
-                
+
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
         if member.guild.id not in self.cache:
