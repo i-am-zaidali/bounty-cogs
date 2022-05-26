@@ -1,5 +1,7 @@
 import asyncio
+
 from .main import SFOffline
+
 
 async def setup(bot):
     cog = SFOffline(bot)
