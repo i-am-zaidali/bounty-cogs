@@ -41,8 +41,9 @@ class SFOffline(commands.Cog):
 
         for guild in self.bot.guilds:
             for member in guild.members:
-                if member.status in self.online_statuses:
+                if member.status is self.offline_status:
                     self.cache.update({member.id: time.time()})
+
 
     async def to_config(self):
         for user_id, seen in self.cache.copy().items():
