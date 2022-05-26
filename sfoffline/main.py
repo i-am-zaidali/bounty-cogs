@@ -2,7 +2,7 @@ from datetime import datetime
 import typing
 from redbot.core.bot import Red
 from redbot.core import commands, Config
-from redbot.core.utils.chat_formatting import pagify
+from redbot.core.utils.chat_formatting import pagify, humanize_list
 from discord.ext import tasks
 import asyncio
 import discord
@@ -17,6 +17,9 @@ class SFOffline(commands.Cog):
     
     online_statuses = [discord.Status.online, discord.Status.idle, discord.Status.dnd]
     offline_status = discord.Status.offline
+    
+    __version__ = "1.0.0"
+    __author__ = ["crayyy_zee#2900"]
     
     def __init__(self, bot: Red):
         self.bot = bot
@@ -41,6 +44,16 @@ class SFOffline(commands.Cog):
     def cog_unload(self):
         self._task.cancel()
         asyncio.create_task(self.to_config())
+        
+    def format_help_for_context(self, ctx: commands.Context) -> str:
+        pre_processed = super().format_help_for_context(ctx) or ""
+        n = "\n" if "\n\n" not in pre_processed else ""
+        text = [
+            f"{pre_processed}{n}",
+            f"Cog Version: **{self.__version__}**",
+            f"Author: {humanize_list(self.__author__)}",
+        ]
+        return "\n".join(text)    
             
     @tasks.loop(minutes=5)
     async def save_to_config_every_5(self):
