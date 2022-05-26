@@ -44,7 +44,6 @@ class SFOffline(commands.Cog):
                 if member.status is self.offline_status:
                     self.cache.update({member.id: time.time()})
 
-
     async def to_config(self):
         for user_id, seen in self.cache.copy().items():
             await self.config.user_from_id(user_id).seen.set(seen)
