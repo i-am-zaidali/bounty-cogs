@@ -19,7 +19,7 @@ class SFOffline(commands.Cog):
     online_statuses = [discord.Status.online, discord.Status.idle, discord.Status.dnd]
     offline_status = discord.Status.offline
 
-    __version__ = "1.0.0"
+    __version__ = "1.0.1"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -34,9 +34,15 @@ class SFOffline(commands.Cog):
         self.config.register_global(schema_version=1)  # just future proofing lmao
 
     async def build_cache(self):
+        await self.bot.wait_until_red_ready()
         user_data = await self.config.all_users()
         for user_id, data in user_data.items():
             self.cache[user_id] = data["seen"]
+
+        for guild in self.bot.guilds:
+            for member in guild.members:
+                if member.status in self.online_statuses:
+                    self.cache.update({member.id: time.time()})
 
     async def to_config(self):
         for user_id, seen in self.cache.copy().items():
