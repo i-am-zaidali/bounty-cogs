@@ -154,18 +154,20 @@ class Verifier(commands.Cog):
                 color=discord.Color.random(),
             )
         )
-        
+
     @commands.Cog.listener()
     async def on_guild_remove(self, member: discord.Member):
         if not member.guild.id in self.cache:
             return
-        
-        if not (tup:=await self.config.member(member).has_been_verified()):
+
+        if not (tup := await self.config.member(member).has_been_verified()):
             return
-        
+
         user_id = tup[0]
-        
-        async with self.config.member_from_ids(member.guild.id, user_id).has_verified() as has_verified:
+
+        async with self.config.member_from_ids(
+            member.guild.id, user_id
+        ).has_verified() as has_verified:
             for (member_id, dt) in has_verified.copy():
                 if member_id == user_id:
                     has_verified.remove((member_id, dt))
