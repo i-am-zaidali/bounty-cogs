@@ -1,5 +1,5 @@
-
 from .main import RepManager
+
 
 async def setup(bot):
     cog = RepManager(bot)
