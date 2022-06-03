@@ -271,9 +271,20 @@ class EventManager(commands.Cog):
             for event in guild_config.values():
                 if event.end_time.timestamp() <= time.time():
                     embed = event.end()
-                    msg = await event.message()
+                    try:
+                        msg = await event.message()
+
+                    except Exception:
+                        log.debug(f"The channel for the event {event.name} ({event.message_id}) has been deleted so I'm removing it from storage")
+                        del self.cache[event.guild_id][event.message_id]
+                        await self.config.custom("events", event.guild_id, event.message_id).clear()
+                        continue
 
                     if not msg:
+                        log.debug(f"The message for the event {event.name} ({event.message_id}) has been deleted so I'm removing it from storage")
+                        
+                        await self.config.custom("events", event.guild_id, event.message_id).clear()
+                        del self.cache[event.guild_id][event.message_id]
                         continue
 
                     await msg.edit(embed=embed)
