@@ -145,7 +145,7 @@ class Event:
 
     async def _get_message(self) -> typing.Optional[discord.Message]:
         msg = list(filter(lambda x: x.id == self.message_id, self.bot.cached_messages))
-        
+
         if msg:
             return msg[0]
 
