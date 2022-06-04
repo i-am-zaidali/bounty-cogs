@@ -308,7 +308,5 @@ class EventManager(commands.Cog):
                         continue
 
                     await msg.edit(embed=embed)
-                    await self.config.custom(
-                            "events", event.guild_id, event.message_id
-                        ).clear()
+                    await self.config.custom("events", event.guild_id, event.message_id).clear()
                     del self.cache[event.guild_id][event.message_id]
