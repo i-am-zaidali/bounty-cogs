@@ -27,6 +27,7 @@ class EventManager(commands.Cog):
         self.config = Config.get_conf(self, identifier=0x352567829, force_registration=True)
         self.config.init_custom("events", 2)
         self.cache: Dict[int, Dict[int, Event]] = {}
+        self.task = self.check_events.start()
 
     def format_help_for_context(self, ctx: commands.Context) -> str:
         pre_processed = super().format_help_for_context(ctx) or ""
@@ -57,6 +58,7 @@ class EventManager(commands.Cog):
 
     def cog_unload(self):
         asyncio.create_task(self.to_config())
+        self.task.cancel()
 
     @commands.command(name="event")
     async def event(self, ctx: commands.Context, *, flags: Flags):
