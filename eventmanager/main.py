@@ -270,7 +270,7 @@ class EventManager(commands.Cog):
 
                 await msg.edit(embed=event.embed)
 
-    @tasks.loop(minutes=2)
+    @tasks.loop(minutes=5)
     async def check_events(self):
 
         await self.to_config()
