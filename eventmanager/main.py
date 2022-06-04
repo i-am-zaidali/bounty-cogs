@@ -314,4 +314,4 @@ class EventManager(commands.Cog):
     @check_events.before_loop
     async def before(self):
         await self.bot.wait_until_red_ready()
-        await asyncio.sleep(120) # wait until all events are cached first
+        await asyncio.sleep(120)  # wait until all events are cached first
