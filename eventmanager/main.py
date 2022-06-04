@@ -259,12 +259,10 @@ class EventManager(commands.Cog):
 
                 except Exception:
                     log.debug(
-                            f"The channel for the event {event.name} ({event.message_id}) has been deleted so I'm removing it from storage"
-                        )
+                        f"The channel for the event {event.name} ({event.message_id}) has been deleted so I'm removing it from storage"
+                    )
                     del self.cache[event.guild_id][event.message_id]
-                    await self.config.custom(
-                            "events", event.guild_id, event.message_id
-                        ).clear()
+                    await self.config.custom("events", event.guild_id, event.message_id).clear()
                     continue
 
                 if not msg:
