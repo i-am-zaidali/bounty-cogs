@@ -310,3 +310,8 @@ class EventManager(commands.Cog):
                     await msg.edit(embed=embed)
                     await self.config.custom("events", event.guild_id, event.message_id).clear()
                     del self.cache[event.guild_id][event.message_id]
+
+    @check_events.before_loop
+    async def before(self):
+        await self.bot.wait_until_red_ready()
+        await asyncio.sleep(120) # wait until all events are cached first
