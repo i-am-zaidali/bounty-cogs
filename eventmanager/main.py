@@ -275,7 +275,7 @@ class EventManager(commands.Cog):
 
         await self.to_config()
 
-        await self.cache.clear()
+        self.cache.clear()
 
         await self.to_cache()
 
