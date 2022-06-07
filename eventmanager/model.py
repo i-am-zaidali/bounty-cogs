@@ -175,13 +175,15 @@ class Event:
 
     async def _get_message(self) -> typing.Optional[discord.Message]:
         msg = list(filter(lambda x: x.id == self.message_id, self.bot.cached_messages))
-        channel = self.channel or await self.bot.fetch_channel(self.channel_id)
-
-        if not channel:
-            raise Exception("The channel for this giveaway could not be found.")
 
         if msg:
             return msg[0]
+
+        channel = self.channel
+
+        if not channel:
+            raise Exception("The channel for this event could not be found.")
+
         try:
             msg = await channel.fetch_message(self.message_id)
         except Exception:

@@ -28,6 +28,7 @@ class EventManager(commands.Cog):
         self.config.init_custom("events", 2)
         self.config.init_custom("templates", 2)
         self.cache: Dict[int, Dict[int, Event]] = {}
+        self.task = self.check_events.start()
 
     def format_help_for_context(self, ctx: commands.Context) -> str:
         pre_processed = super().format_help_for_context(ctx) or ""
@@ -58,6 +59,7 @@ class EventManager(commands.Cog):
 
     def cog_unload(self):
         asyncio.create_task(self.to_config())
+        self.task.cancel()
         
     def validate_flags(self, flags: dict):
         return all((flags.get("name"), flags.get("description"), flags.get("end_time")))
@@ -340,18 +342,28 @@ class EventManager(commands.Cog):
         for event in self.cache[member.guild.id].values():
             if entrant := event.get_entrant(member.id):
                 event.remove_entrant(entrant)
-                msg = await event.message()
+                try:
+                    msg = await event.message()
+
+                except Exception:
+                    log.debug(
+                        f"The channel for the event {event.name} ({event.message_id}) has been deleted so I'm removing it from storage"
+                    )
+                    del self.cache[event.guild_id][event.message_id]
+                    await self.config.custom("events", event.guild_id, event.message_id).clear()
+                    continue
+
                 if not msg:
                     continue
 
                 await msg.edit(embed=event.embed)
 
-    @tasks.loop(minutes=2)
+    @tasks.loop(minutes=5)
     async def check_events(self):
 
         await self.to_config()
 
-        await self.cache.clear()
+        self.cache.clear()
 
         await self.to_cache()
 
@@ -359,9 +371,35 @@ class EventManager(commands.Cog):
             for event in guild_config.values():
                 if event.end_time.timestamp() <= time.time():
                     embed = event.end()
-                    msg = await event.message()
+                    try:
+                        msg = await event.message()
+
+                    except Exception:
+                        log.debug(
+                            f"The channel for the event {event.name} ({event.message_id}) has been deleted so I'm removing it from storage"
+                        )
+                        del self.cache[event.guild_id][event.message_id]
+                        await self.config.custom(
+                            "events", event.guild_id, event.message_id
+                        ).clear()
+                        continue
 
                     if not msg:
+                        log.debug(
+                            f"The message for the event {event.name} ({event.message_id}) has been deleted so I'm removing it from storage"
+                        )
+
+                        await self.config.custom(
+                            "events", event.guild_id, event.message_id
+                        ).clear()
+                        del self.cache[event.guild_id][event.message_id]
                         continue
 
                     await msg.edit(embed=embed)
+                    await self.config.custom("events", event.guild_id, event.message_id).clear()
+                    del self.cache[event.guild_id][event.message_id]
+
+    @check_events.before_loop
+    async def before(self):
+        await self.bot.wait_until_red_ready()
+        await asyncio.sleep(60)  # wait until all events are cached first
