@@ -142,6 +142,36 @@ class Event:
             "image_url": self.image_url,
             "entrants": [i.json for i in self.entrants],
         }
+        
+    def copy(self):
+        """
+        Return a shallow copy of an event."""
+        return Event.from_json(self.bot, self.json)
+    
+    def edit(self, *, name: str = None, description: str = None, description2: str = None, image_url: str = None, end_time: datetime = None):
+        """
+        Edit an event. 
+        
+        This returns a new instance of the event and 
+        not the same instance that this method was called on."""
+        new = self.copy()
+
+        if name:
+            new.name = name
+            
+        if description:
+            new.description = description
+            
+        if description2:
+            new.description2 = description2
+            
+        if image_url:
+            new.image_url = image_url
+            
+        if end_time:
+            new.end_time = end_time
+            
+        return new
 
     async def _get_message(self) -> typing.Optional[discord.Message]:
         msg = list(filter(lambda x: x.id == self.message_id, self.bot.cached_messages))
@@ -231,10 +261,11 @@ class NoExitParser(ArgumentParser):
 
 
 class Flags(commands.Converter):
+    
     async def convert(self, ctx, argument: str):
         argument = argument.replace("—", "--")
         parser = NoExitParser(description="EventManager flag parser", add_help=False)
-
+        
         parser.add_argument(
             "--name",
             "-n",
@@ -242,7 +273,7 @@ class Flags(commands.Converter):
             help="The name of the event.",
             dest="name",
             nargs="+",
-            required=True,
+            default=[]
         )
         parser.add_argument(
             "--description",
@@ -251,7 +282,7 @@ class Flags(commands.Converter):
             help="The description of the event.",
             dest="description",
             nargs="+",
-            required=True,
+            default=[]
         )
         parser.add_argument(
             "--description2",
@@ -261,7 +292,7 @@ class Flags(commands.Converter):
             dest="description2",
             nargs="+",
             default=[],
-        )
+        )   
         parser.add_argument(
             "--end",
             "-e",
@@ -269,7 +300,7 @@ class Flags(commands.Converter):
             help="The end time of the event.",
             dest="end",
             nargs="+",
-            required=True,
+            default=[]
         )
         parser.add_argument(
             "--image",
@@ -288,23 +319,58 @@ class Flags(commands.Converter):
             dest="channel",
             nargs="+",
         )
+        parser.add_argument(
+            "--template",
+            "-t",
+            type=str,
+            help="An already existing template to use instead.",
+            dest="template",
+            nargs="+",
+            default=None,
+        )
 
         try:
             flags = vars(parser.parse_args(argument.split(" ")))
         except Exception as e:
             raise commands.BadArgument(str(e))
+        
+        template = None
+        
+        if temp_name:=flags.get("template"):
+            templates = await ctx.cog.config.custom("templates", ctx.guild.id).all()
+            if not templates:
+                raise commands.BadArgument("There are no templates to use.")
+            
+            temp_name = " ".join(temp_name)
+            
+            if not (template:=templates.get(temp_name)):
+                raise commands.BadArgument(f"There is no template named {temp_name}.")
+            
+        if flags.get("end"):
+            if not (time := dateparser.parse(" ".join(flags["end"]))):
+                raise commands.BadArgument("Invalid end time.")
+
+            if time.timestamp() < datetime.now().timestamp():
+                raise commands.BadArgument("The end time must be in the future.")
+
+            flags["end_time"] = time.replace()
+            
+            if template:
+                template.update({"end_time": flags["end_time"]})
+                return template
 
         flags["name"] = " ".join(flags["name"])
         flags["description"] = " ".join(flags["description"])
         flags["description2"] = " ".join(flags["description2"])[:1024]
 
-        if not (time := dateparser.parse(" ".join(flags["end"]))):
-            raise commands.BadArgument("Invalid end time.")
+        if flags.get("end"):
+            if not (time := dateparser.parse(" ".join(flags["end"]))):
+                raise commands.BadArgument("Invalid end time.")
 
-        if time.timestamp() < datetime.now().timestamp():
-            raise commands.BadArgument("The end time must be in the future.")
+            if time.timestamp() < datetime.now().timestamp():
+                raise commands.BadArgument("The end time must be in the future.")
 
-        flags["end_time"] = time.replace()
+            flags["end_time"] = time.replace()
 
         flags["image_url"] = " ".join(flags["image"])
 
@@ -316,5 +382,6 @@ class Flags(commands.Converter):
         del flags["channel"]
         del flags["end"]
         del flags["image"]
+        del flags["template"]
 
         return flags
