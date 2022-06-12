@@ -39,7 +39,7 @@ class Event:
         self.start_time = start_time or datetime.now()
         self.end_time = end_time
         self.image_url = image_url
-        
+
         self.pings = pings or 0
 
         self.entrants: typing.List[Entrant] = []
@@ -357,9 +357,9 @@ class Flags(commands.Converter):
 
             if not (template := templates.get(temp_name)):
                 raise commands.BadArgument(f"There is no template named {temp_name}.")
-            
+
         f = template or flags
-            
+
         if flags.get("end"):
             if not (time := dateparser.parse(" ".join(flags["end"]))):
                 raise commands.BadArgument("Invalid end time.")
@@ -371,8 +371,9 @@ class Flags(commands.Converter):
 
         f["name"] = " ".join(flags["name"]) or f.get("name")
         f["description"] = " ".join(flags["description"]) or f.get("description")
-        f["description2"] = " ".join(flags["description2"])[:1021] + ("..." if len(" ".join(flags["description2"])) > 1021 else "") or f.get("description2")
-        
+        f["description2"] = " ".join(flags["description2"])[:1021] + (
+            "..." if len(" ".join(flags["description2"])) > 1021 else ""
+        ) or f.get("description2")
 
         f["image_url"] = " ".join(flags["image"])
 

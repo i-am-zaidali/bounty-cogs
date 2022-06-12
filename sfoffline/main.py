@@ -19,7 +19,7 @@ class SFOffline(commands.Cog):
     online_statuses = [discord.Status.online, discord.Status.idle, discord.Status.dnd]
     offline_status = discord.Status.offline
 
-    __version__ = "1.0.2" # fix for last seen being updated on cog load
+    __version__ = "1.0.2"  # fix for last seen being updated on cog load
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -185,7 +185,8 @@ class SFOffline(commands.Cog):
         offline_users = dict(
             sorted(
                 filter(
-                    lambda x: x and (user := ctx.guild.get_member(x[0]))
+                    lambda x: x
+                    and (user := ctx.guild.get_member(x[0]))
                     and user.status is self.offline_status,
                     self.cache.copy().items(),
                 ),
@@ -222,11 +223,12 @@ class SFOffline(commands.Cog):
         sorted_dict = dict(
             sorted(
                 filter(
-                    lambda x: x and (user := ctx.guild.get_member(x[0]))
+                    lambda x: x
+                    and (user := ctx.guild.get_member(x[0]))
                     and user.status is self.offline_status,
                     self.cache.copy().items(),
                 ),
-                key=lambda x: x[1]
+                key=lambda x: x[1],
             )
         )
 
