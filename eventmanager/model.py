@@ -348,23 +348,8 @@ class Flags(commands.Converter):
             if not (template:=templates.get(temp_name)):
                 raise commands.BadArgument(f"There is no template named {temp_name}.")
             
-        if flags.get("end"):
-            if not (time := dateparser.parse(" ".join(flags["end"]))):
-                raise commands.BadArgument("Invalid end time.")
-
-            if time.timestamp() < datetime.now().timestamp():
-                raise commands.BadArgument("The end time must be in the future.")
-
-            flags["end_time"] = time.replace()
+        f = template or flags
             
-            if template:
-                template.update({"end_time": flags["end_time"]})
-                return template
-
-        flags["name"] = " ".join(flags["name"])
-        flags["description"] = " ".join(flags["description"])
-        flags["description2"] = " ".join(flags["description2"])[:1024]
-
         if flags.get("end"):
             if not (time := dateparser.parse(" ".join(flags["end"]))):
                 raise commands.BadArgument("Invalid end time.")
@@ -372,18 +357,27 @@ class Flags(commands.Converter):
             if time.timestamp() < datetime.now().timestamp():
                 raise commands.BadArgument("The end time must be in the future.")
 
-            flags["end_time"] = time.replace()
+            f["end_time"] = time.replace()
 
-        flags["image_url"] = " ".join(flags["image"])
+        f["name"] = " ".join(flags["name"]) or f.get("name")
+        f["description"] = " ".join(flags["description"]) or f.get("description")
+        f["description2"] = " ".join(flags["description2"])[:1021] + ("..." if len(" ".join(flags["description2"])) > 1021 else "") or f.get("description2")
+        
+
+        f["image_url"] = " ".join(flags["image"])
 
         if chan := flags.get("channel"):
-            flags["channel_id"] = (
+            f["channel_id"] = (
                 await commands.TextChannelConverter().convert(ctx, " ".joint(chan))
             ).id
 
-        del flags["channel"]
-        del flags["end"]
-        del flags["image"]
-        del flags["template"]
+        try:
+            del f["channel"]
+            del f["end"]
+            del f["image"]
+            del f["template"]
 
-        return flags
+        except KeyError:
+            pass
+
+        return f

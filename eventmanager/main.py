@@ -19,7 +19,7 @@ log = logging.getLogger("red.misan-cogs.eventmanager")
 class EventManager(commands.Cog):
     """A cog to create and manage events."""
 
-    __version__ = "1.2.1"
+    __version__ = "1.2.2"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
