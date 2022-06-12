@@ -19,7 +19,7 @@ log = logging.getLogger("red.misan-cogs.eventmanager")
 class EventManager(commands.Cog):
     """A cog to create and manage events."""
 
-    __version__ = "1.2.0"
+    __version__ = "1.2.1"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -125,6 +125,29 @@ class EventManager(commands.Cog):
         await ctx.tick()
         
         await message.edit(embed=new.embed)
+        
+    @event.command(name="remove")
+    async def event_remove(self, ctx: commands.Context, message: commands.MessageConverter, users: commands.Greedy[commands.MemberConverter]):
+        if not (g:=self.cache.get(ctx.guild.id, {})):
+            return await ctx.send("No events found.")
+        
+        if not (event:=g.get(message.id)):
+            return await ctx.send("Event not found.")
+        
+        if not event.author_id == ctx.author.id or not await ctx.bot.is_owner(ctx.author) or not ctx.guild.owner_id == ctx.author.id:
+            return await ctx.send("You do not own this event. Thus, you cannot remove users from it.")
+        
+        failed = []
+        
+        for user in users:
+            ent = event.get_entrant(user.id)
+            if not ent:
+                failed.append(ent)
+                continue
+            
+            event.remove_entrant(ent)
+            
+        await ctx.send(f"Removed given users from the event." + ("\n" + "\n".join(f"{u.mention}" for u in failed) if failed else ""))
         
     @event.group(name="template", invoke_without_command=True)
     async def event_template(self, ctx: commands.Context):
