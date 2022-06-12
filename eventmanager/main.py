@@ -66,7 +66,7 @@ class EventManager(commands.Cog):
     def cog_unload(self):
         asyncio.create_task(self.to_config())
         self.task.cancel()
-        
+
     def validate_flags(self, flags: dict):
         return all((flags.get("name"), flags.get("description"), flags.get("end_time")))
     
@@ -105,11 +105,13 @@ class EventManager(commands.Cog):
         `--description2` - A long description of the event.
         `--channel` - The channel to post the event in. [optional]
         """
-        
+
         if not self.validate_flags(flags):
-            await ctx.send("Incomplete arguments. `--name`, `--description` and `--end` are required.")
+            await ctx.send(
+                "Incomplete arguments. `--name`, `--description` and `--end` are required."
+            )
             return
-        
+
         flags["channel_id"] = flags.get("channel_id") or ctx.channel.id
         event = Event(
             ctx.bot,
@@ -124,7 +126,9 @@ class EventManager(commands.Cog):
         self.cache.setdefault(ctx.guild.id, {})[msg.id] = event
 
     @event.command(name="edit")
-    async def edit(self, ctx: commands.Context, message: commands.MessageConverter, *, flags: Flags):
+    async def edit(
+        self, ctx: commands.Context, message: commands.MessageConverter, *, flags: Flags
+    ):
         """
         Edit an event.
 
@@ -137,21 +141,21 @@ class EventManager(commands.Cog):
         """
         if not flags:
             return await ctx.send("You must atleast send one flag to edit.")
-        
+
         event = self.cache.get(ctx.guild.id, {}).get(message.id)
-        
+
         if not event:
             return await ctx.send("Event not found.")
-        
+
         if event.author_id != ctx.author.id:
             return await ctx.send("You do not own this event. Thus, you cannot edit it.")
-        
+
         new = event.edit(**flags)
-        
+
         self.cache[ctx.guild.id][message.id] = new
-        
+
         await ctx.tick()
-        
+
         await message.edit(embed=new.embed)
         
     @event.command(name="remove")
@@ -184,14 +188,14 @@ class EventManager(commands.Cog):
         """
         Manage event templates in your server."""
         return await ctx.send_help(ctx.command)
-    
+
     @event_template.command(name="add")
     async def event_template_add(self, ctx: commands.Context, template_name: str, *, flags: Flags):
         """
         Add a template to your server."""
         await self.config.custom("templates", ctx.guild.id, template_name).set(flags)
         await ctx.tick()
-        
+
     @event_template.command(name="remove")
     async def event_template_remove(self, ctx: commands.Context, template_name: str):
         """
@@ -201,29 +205,29 @@ class EventManager(commands.Cog):
                 return await ctx.send("Template not found.")
             del templates[template_name]
             await ctx.tick()
-            
+
     def format_template(self, flags: dict):
         final = ""
         for key, value in flags.items():
             final += f"\t*{key.replace('_', ' ').capitalize()}*: {value if value else 'Not specified'}\n"
-            
+
         return final
-            
+
     @event_template.command(name="list")
     async def event_template_list(self, ctx: commands.Context):
         """
         See a list of templates saved for your server"""
-        
+
         templates = await self.config.custom("templates", ctx.guild.id).all()
-        
+
         if not templates:
             return await ctx.send("No templates found.")
-        
+
         final = ""
-        
+
         for template in templates:
             final += f"**{template}**: \n{self.format_template(templates[template])}\n"
-            
+
         await ctx.maybe_send_embed(final)
         
     async def remove_reactions_safely(self, message:discord.Message, emoji: str, user: discord.User):
