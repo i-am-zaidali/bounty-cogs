@@ -19,7 +19,7 @@ class SFOffline(commands.Cog):
     online_statuses = [discord.Status.online, discord.Status.idle, discord.Status.dnd]
     offline_status = discord.Status.offline
 
-    __version__ = "1.0.1"
+    __version__ = "1.0.2" # fix for last seen being updated on cog load
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -42,7 +42,8 @@ class SFOffline(commands.Cog):
         for guild in self.bot.guilds:
             for member in guild.members:
                 if member.status is self.offline_status:
-                    self.cache.update({member.id: time.time()})
+                    if member.id not in self.cache:
+                        self.cache.update({member.id: time.time()})
 
     async def to_config(self):
         for user_id, seen in self.cache.copy().items():
@@ -145,9 +146,9 @@ class SFOffline(commands.Cog):
                 self.cache.update({after.id: time.time()})
 
     @staticmethod
-    def get_formatted_timestamps(time: float):
-        time = int(time)
-        return f"<t:{time}:F> - <t:{time}:R>"
+    def get_formatted_timestamps(t: float):
+        t = int(t)
+        return f"<t:{t}:F> - <t:{t}:R>"
 
     @commands.group(name="lastonline", aliases=["lastseen", "seen"], invoke_without_command=True)
     @commands.guild_only()
@@ -184,7 +185,7 @@ class SFOffline(commands.Cog):
         offline_users = dict(
             sorted(
                 filter(
-                    lambda x: (user := ctx.guild.get_member(x[0]))
+                    lambda x: x and (user := ctx.guild.get_member(x[0]))
                     and user.status is self.offline_status,
                     self.cache.copy().items(),
                 ),
@@ -221,11 +222,11 @@ class SFOffline(commands.Cog):
         sorted_dict = dict(
             sorted(
                 filter(
-                    lambda x: (user := ctx.guild.get_member(x[0]))
+                    lambda x: x and (user := ctx.guild.get_member(x[0]))
                     and user.status is self.offline_status,
                     self.cache.copy().items(),
                 ),
-                key=lambda x: x[1],
+                key=lambda x: x[1]
             )
         )
 
