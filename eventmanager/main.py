@@ -1,7 +1,8 @@
 import asyncio
+from datetime import datetime
 import logging
 import time
-from typing import Dict, Optional
+from typing import Union, Dict, List, Optional
 
 import discord
 from discord.ext import tasks
@@ -17,9 +18,14 @@ log = logging.getLogger("red.misan-cogs.eventmanager")
 
 
 class EventManager(commands.Cog):
+    
+    HOUR = 60 * 60
+    HALF_HOUR = HOUR / 2
+    QUARTER_HOUR = HALF_HOUR / 2
+    
     """A cog to create and manage events."""
 
-    __version__ = "1.2.2"
+    __version__ = "1.2.3"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -63,6 +69,28 @@ class EventManager(commands.Cog):
         
     def validate_flags(self, flags: dict):
         return all((flags.get("name"), flags.get("description"), flags.get("end_time")))
+    
+    @staticmethod
+    async def group_embeds_by_fields(
+        *fields: Dict[str, Union[str, bool]], per_embed: int = 3, **kwargs
+    ) -> List[discord.Embed]:
+        """
+        This was the result of a big brain moment i had
+
+        This method takes dicts of fields and groups them into separate embeds
+        keeping `per_embed` number of fields per embed.
+
+        Extra kwargs can be passed to create embeds off of.
+        """
+        groups: list[discord.Embed] = []
+        for ind, i in enumerate(range(0, len(fields), per_embed)):
+            groups.append(
+                discord.Embed(**kwargs)
+            )  # append embeds in the loop to prevent incorrect embed count
+            fields_to_add = fields[i : i + per_embed]
+            for field in fields_to_add:
+                groups[ind].add_field(**field)
+        return groups
 
     @commands.group(name="event", invoke_without_command=True)
     async def event(self, ctx: commands.Context, *, flags: Flags):
@@ -92,7 +120,7 @@ class EventManager(commands.Cog):
         )
         msg = await ctx.send(embed=event.embed)
         event.message_id = msg.id
-        start_adding_reactions(msg, [i for i in emoji_class_dict.keys()] + ["❌", "🧻"])
+        start_adding_reactions(msg, [i for i in emoji_class_dict.keys()] + ["❌", "🧻", "👑"])
         self.cache.setdefault(ctx.guild.id, {})[msg.id] = event
 
     @event.command(name="edit")
@@ -134,7 +162,7 @@ class EventManager(commands.Cog):
         if not (event:=g.get(message.id)):
             return await ctx.send("Event not found.")
         
-        if not event.author_id == ctx.author.id or not await ctx.bot.is_owner(ctx.author) or not ctx.guild.owner_id == ctx.author.id:
+        if not event.author_id == ctx.author.id and not await ctx.bot.is_owner(ctx.author) and not ctx.guild.owner_id == ctx.author.id:
             return await ctx.send("You do not own this event. Thus, you cannot remove users from it.")
         
         failed = []
@@ -146,6 +174,8 @@ class EventManager(commands.Cog):
                 continue
             
             event.remove_entrant(ent)
+            
+        await message.edit(embed=event.embed)
             
         await ctx.send(f"Removed given users from the event." + ("\n" + "\n".join(f"{u.mention}" for u in failed) if failed else ""))
         
@@ -195,6 +225,14 @@ class EventManager(commands.Cog):
             final += f"**{template}**: \n{self.format_template(templates[template])}\n"
             
         await ctx.maybe_send_embed(final)
+        
+    async def remove_reactions_safely(self, message:discord.Message, emoji: str, user: discord.User):
+        try:
+            await message.remove_reaction(emoji, user)
+            # to not clutter the menu with useless reactions
+        except Exception:
+            pass
+        return
 
     @commands.Cog.listener()
     async def on_member_leave(self, member: discord.Member):
@@ -236,22 +274,15 @@ class EventManager(commands.Cog):
 
         emoji = str(payload.emoji)
 
-        if not emoji in emoji_class_dict and emoji not in ["❌", "🧻"]:
-            try:
-                await message.remove_reaction(emoji, user)
-                # to not clutter the menu with useless reactions
-            except Exception:
-                pass
+        if not emoji in emoji_class_dict and emoji not in ["❌", "🧻", "👑"]:
+            await self.remove_reactions_safely(message, emoji, user)
             return
 
         if emoji in emoji_class_dict:
 
             if entrant := event.get_entrant(user.id):
                 emoji_to_remove = class_spec_dict[entrant.category_class]["emoji"]
-                try:
-                    await message.remove_reaction(emoji_to_remove, user)
-                except Exception:
-                    pass
+                await self.remove_reactions_safely(message, emoji_to_remove, user)
 
             class_name = emoji_class_dict[emoji]
 
@@ -289,10 +320,7 @@ class EventManager(commands.Cog):
 
                 except asyncio.TimeoutError:
                     await user.send("You took too long to respond. Cancelling.")
-                    try:
-                        await message.remove_reaction(emoji, user)
-                    except Exception:
-                        pass
+                    await self.remove_reactions_safely(message, emoji, user)
                     return
 
                 if not msg.content.isdigit() or int(msg.content) not in [
@@ -315,17 +343,11 @@ class EventManager(commands.Cog):
 
             await message.edit(embed=embed)
 
-            try:
-                await message.remove_reaction(emoji, user)
-            except Exception:
-                pass
+            await self.remove_reactions_safely(message, emoji, user)
 
         elif emoji == "❌":
             if not event.author_id == user.id:
-                try:
-                    await message.remove_reaction(emoji, user)
-                except Exception:
-                    pass
+                await self.remove_reactions_safely(message, emoji, user)
                 return
 
             try:
@@ -341,11 +363,7 @@ class EventManager(commands.Cog):
             await message.edit(embed=embed)
 
         elif emoji == "🧻":
-            try:
-                await message.remove_reaction(emoji, user)
-
-            except Exception:
-                pass
+            await self.remove_reactions_safely(message, emoji, user)
 
             if entrant := event.get_entrant(user.id):
                 event.remove_entrant(entrant)
@@ -356,6 +374,27 @@ class EventManager(commands.Cog):
 
             else:
                 await user.send("You weren't signed up to the event.")
+                
+        elif emoji == "👑":
+            ents = event.entrants
+            await self.remove_reactions_safely(message, emoji, user)
+            if not ents:
+                return
+            fields = []
+            for i in range(0, len(ents), 10):
+                e = ents[i:i+10]
+                fields.append(
+                    {
+                        "name": "\u200b",
+                        "value": "\n".join(
+                            f"/invite {entrant.user.display_name}" for entrant in e
+                        ),
+                        "inline": True
+                    }
+                )
+                
+            for embed in (await self.group_embeds_by_fields(*fields, per_embed=20)):
+                await message.channel.send(embed=embed, delete_after=30)
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
@@ -421,6 +460,43 @@ class EventManager(commands.Cog):
                     await msg.edit(embed=embed)
                     await self.config.custom("events", event.guild_id, event.message_id).clear()
                     del self.cache[event.guild_id][event.message_id]
+                    
+                if not event.entrants:
+                    return
+                    
+                if event.pings >= 3:
+                    return
+                
+                if (td:=(datetime.now() - event.end_time)).total_seconds() < self.HOUR:
+                    if td.total_seconds() < self.HALF_HOUR:
+                        if td.total_seconds() < self.QUARTER_HOUR:
+                            if event.pings >= 3:
+                                return
+                    
+                
+                        if event.pings >= 2:
+                            return
+                    
+                
+                    if event.pings >= 1:
+                        return
+                    
+                    channel = event.channel
+                    
+                    if not channel:
+                        log.debug(
+                            f"The channel for the event {event.name} ({event.message_id}) has been deleted so I'm removing it from storage"
+                        )
+                        del self.cache[event.guild_id][event.message_id]
+                        await self.config.custom(
+                            "events", event.guild_id, event.message_id
+                        ).clear()
+                        continue
+                    
+                    await channel.send(f"{humanize_list([f'<@{ent.user_id}>' for ent in event.entrants])}\n\nThe event `{event.name}` is about to end <t:{int(event.end_time.timestamp())}:R>", allowed_mentions=discord.AllowedMentions(users=True))
+                        
+                    event.pings += 1
+                        
 
     @check_events.before_loop
     async def before(self):

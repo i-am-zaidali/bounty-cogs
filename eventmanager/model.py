@@ -25,6 +25,7 @@ class Event:
         image_url: str,
         description2: str = "",
         start_time: typing.Optional[datetime] = None,
+        pings: int = 0,
     ) -> None:
 
         self.bot = bot
@@ -38,6 +39,8 @@ class Event:
         self.start_time = start_time or datetime.now()
         self.end_time = end_time
         self.image_url = image_url
+        
+        self.pings = pings or 0
 
         self.entrants: typing.List[Entrant] = []
 
@@ -124,7 +127,6 @@ class Event:
         embed._fields.insert(
             0, {"name": self.name, "value": cf.box(self.description), "inline": False}
         )
-        del self.cog.cache[self.guild_id][self.message_id]
         return embed
 
     @property
@@ -141,6 +143,7 @@ class Event:
             "end_time": self.end_time.isoformat(),
             "image_url": self.image_url,
             "entrants": [i.json for i in self.entrants],
+            "pings": self.pings,
         }
         
     def copy(self):
