@@ -280,6 +280,7 @@ class EventManager(commands.Cog):
             return
 
         message = await event.message()
+        channel = event.channel
 
         if not message:
             return  # idk what could be the reason message is none tbh.
@@ -322,8 +323,8 @@ class EventManager(commands.Cog):
                 await user.send(embed=embed)
 
             except Exception:
-                await message.channel.send(
-                    f"I couldn't dm you to select a spec {user.mention}.\nMake sure your dms are open."
+                await channel.send(
+                    f"I couldn't dm you to select a spec {user.mention}.\nMake sure your dms are open.", allowed_mentions=discord.AllowedMentions(users=True), delete_after=30
                 )
                 return
 
@@ -414,7 +415,7 @@ class EventManager(commands.Cog):
                 )
 
             for embed in await self.group_embeds_by_fields(*fields, per_embed=20):
-                await message.channel.send(embed=embed, delete_after=30)
+                await channel.send(embed=embed, delete_after=30)
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
