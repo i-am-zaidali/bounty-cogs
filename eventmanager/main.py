@@ -410,7 +410,7 @@ class EventManager(commands.Cog):
                     {
                         "name": "\u200b",
                         "value": "\n".join(
-                            f"/invite {entrant.user.display_name}" for entrant in e
+                            f"> /invite {entrant.user.display_name}" for entrant in e
                         ),
                         "inline": True,
                     }
