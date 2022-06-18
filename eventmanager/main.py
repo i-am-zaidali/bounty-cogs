@@ -453,7 +453,7 @@ class EventManager(commands.Cog):
         await self.to_cache()
 
         for guild_config in self.cache.copy().values():
-            for event in guild_config.values():
+            for event in guild_config.copy().values():
                 if event.end_time.timestamp() <= time.time():
                     embed = event.end()
                     try:
