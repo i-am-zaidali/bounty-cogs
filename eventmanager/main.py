@@ -324,7 +324,9 @@ class EventManager(commands.Cog):
 
             except Exception:
                 await channel.send(
-                    f"I couldn't dm you to select a spec {user.mention}.\nMake sure your dms are open.", allowed_mentions=discord.AllowedMentions(users=True), delete_after=30
+                    f"I couldn't dm you to select a spec {user.mention}.\nMake sure your dms are open.",
+                    allowed_mentions=discord.AllowedMentions(users=True),
+                    delete_after=30,
                 )
                 return
 
