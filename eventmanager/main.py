@@ -246,7 +246,7 @@ class EventManager(commands.Cog):
             final += f"**{template}**: \n{self.format_template(templates[template])}\n"
 
         await ctx.maybe_send_embed(final)
-        
+
     @event.command(name="history")
     async def event_history(self, ctx: commands.Context, channel: discord.TextChannel):
         await self.config.guild(ctx.guild).history_channel.set(channel.id)
@@ -415,13 +415,15 @@ class EventManager(commands.Cog):
 
             await user.send("The event was ended.")
 
-            if (chan_id:=await self.config.guild(message.guild).history_channel()) and (chan:=message.guild.get_channel(chan_id)):
+            if (chan_id := await self.config.guild(message.guild).history_channel()) and (
+                chan := message.guild.get_channel(chan_id)
+            ):
                 await chan.send(embed=embed)
                 await message.delete()
-                    
+
             else:
                 await message.edit(embed=embed)
-                
+
             await self.config.custom("events", event.guild_id, event.message_id).clear()
             del self.cache[event.guild_id][event.message_id]
 
@@ -543,13 +545,15 @@ class EventManager(commands.Cog):
                         del self.cache[event.guild_id][event.message_id]
                         continue
 
-                    if (chan_id:=await self.config.guild(msg.guild).history_channel()) and (chan:=msg.guild.get_channel(chan_id)):
+                    if (chan_id := await self.config.guild(msg.guild).history_channel()) and (
+                        chan := msg.guild.get_channel(chan_id)
+                    ):
                         await chan.send(embed=embed)
                         await msg.delete()
-                            
+
                     else:
                         await msg.edit(embed=embed)
-                        
+
                     await self.config.custom("events", event.guild_id, event.message_id).clear()
                     del self.cache[event.guild_id][event.message_id]
 
