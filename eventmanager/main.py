@@ -368,21 +368,23 @@ class EventManager(commands.Cog):
                 "Would you like to set this configuration as your default?\n"
                 "(Will be selected automatically when you click the 🚀 reaction)\n"
                 "Reply with y/n, yes/no."
-                )
-            
+            )
+
             pred = MessagePredicate.yes_or_no(channel=user.dm_channel)
-            
+
             try:
                 await self.bot.wait_for("message", check=pred, timeout=60)
-                
+
             except asyncio.TimeoutError:
                 await user.send("You took too long to answer. Not saving as default.")
-                
+
             else:
                 if pred.result is True:
                     await user.send("Successfully set as default!")
-                    await self.config.member_from_ids(event.guild_id, user.id).spec_class.set((class_name, category.name, spec))
-                    
+                    await self.config.member_from_ids(event.guild_id, user.id).spec_class.set(
+                        (class_name, category.name, spec)
+                    )
+
                 else:
                     await user.send("Alright!")
 
@@ -442,26 +444,28 @@ class EventManager(commands.Cog):
 
             for embed in await self.group_embeds_by_fields(*fields, per_embed=20):
                 await channel.send(embed=embed, delete_after=30)
-                
+
         elif emoji == "🚀":
-            
+
             await self.remove_reactions_safely(message, emoji, user)
-            
+
             if event.get_entrant(user.id):
                 return await user.send("You are already signed up to the event.")
-            
+
             tup = await self.config.member_from_ids(event.guild_id, user.id).spec_class()
             if not tup:
-                return await user.send("You do not have a default configuration set. Please select manually with the reactions provided.")
-                
+                return await user.send(
+                    "You do not have a default configuration set. Please select manually with the reactions provided."
+                )
+
             class_name, category, spec = tup
-            
+
             category = Category[category]
-            
+
             event.add_entrant(user.id, class_name, category, spec)
-            
+
             await user.send("You have successfully been signed up to the event.")
-            
+
             await message.edit(embed=event.embed)
 
     @commands.Cog.listener()
