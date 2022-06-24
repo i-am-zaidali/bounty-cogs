@@ -10,8 +10,9 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import humanize_list
 from redbot.core.utils.menus import start_adding_reactions
+from redbot.core.utils.predicates import MessagePredicate
 
-from .constants import class_spec_dict, emoji_class_dict
+from .constants import Category, class_spec_dict, emoji_class_dict
 from .model import Event, Flags
 
 log = logging.getLogger("red.misan-cogs.eventmanager")
@@ -25,7 +26,7 @@ class EventManager(commands.Cog):
 
     """A cog to create and manage events."""
 
-    __version__ = "1.2.3"
+    __version__ = "1.3.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -33,6 +34,7 @@ class EventManager(commands.Cog):
         self.config = Config.get_conf(self, identifier=0x352567829, force_registration=True)
         self.config.init_custom("events", 2)
         self.config.init_custom("templates", 2)
+        self.config.register_member(spec_class=())
         self.cache: Dict[int, Dict[int, Event]] = {}
         self.task = self.check_events.start()
 
@@ -122,7 +124,7 @@ class EventManager(commands.Cog):
         )
         msg = await ctx.send(embed=event.embed)
         event.message_id = msg.id
-        start_adding_reactions(msg, [i for i in emoji_class_dict.keys()] + ["❌", "🧻", "👑"])
+        start_adding_reactions(msg, [i for i in emoji_class_dict.keys()] + ["❌", "🧻", "👑", "🚀"])
         self.cache.setdefault(ctx.guild.id, {})[msg.id] = event
 
     @event.command(name="edit")
@@ -295,7 +297,7 @@ class EventManager(commands.Cog):
 
         emoji = str(payload.emoji)
 
-        if not emoji in emoji_class_dict and emoji not in ["❌", "🧻", "👑"]:
+        if not emoji in emoji_class_dict and emoji not in ["❌", "🧻", "👑", "🚀"]:
             await self.remove_reactions_safely(message, emoji, user)
             return
 
@@ -357,10 +359,32 @@ class EventManager(commands.Cog):
                 answer = int(msg.content)
 
             spec = valid_specs[answer - 1][0]
+            category: Category = details["specs"][spec]["categories"][0]
 
-            event.add_entrant(user.id, class_name, details["specs"][spec]["categories"][0], spec)
+            event.add_entrant(user.id, class_name, category, spec)
 
-            await user.send("You have been signed up to the event.")
+            await user.send(
+                "You have been signed up to the event. "
+                "Would you like to set this configuration as your default?\n"
+                "(Will be selected automatically when you click the 🚀 reaction)\n"
+                "Reply with y/n, yes/no."
+                )
+            
+            pred = MessagePredicate.yes_or_no(channel=user.dm_channel)
+            
+            try:
+                await self.bot.wait_for("message", check=pred, timeout=60)
+                
+            except asyncio.TimeoutError:
+                await user.send("You took too long to answer. Not saving as default.")
+                
+            else:
+                if pred.result is True:
+                    await user.send("Successfully set as default!")
+                    await self.config.member_from_ids(event.guild_id, user.id).spec_class.set((class_name, category.name, spec))
+                    
+                else:
+                    await user.send("Alright!")
 
             embed = event.embed
 
@@ -418,6 +442,27 @@ class EventManager(commands.Cog):
 
             for embed in await self.group_embeds_by_fields(*fields, per_embed=20):
                 await channel.send(embed=embed, delete_after=30)
+                
+        elif emoji == "🚀":
+            
+            await self.remove_reactions_safely(message, emoji, user)
+            
+            if event.get_entrant(user.id):
+                return await user.send("You are already signed up to the event.")
+            
+            tup = await self.config.member_from_ids(event.guild_id, user.id).spec_class()
+            if not tup:
+                return await user.send("You do not have a default configuration set. Please select manually with the reactions provided.")
+                
+            class_name, category, spec = tup
+            
+            category = Category[category]
+            
+            event.add_entrant(user.id, class_name, category, spec)
+            
+            await user.send("You have successfully been signed up to the event.")
+            
+            await message.edit(embed=event.embed)
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
