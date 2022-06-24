@@ -26,7 +26,7 @@ class EventManager(commands.Cog):
 
     """A cog to create and manage events."""
 
-    __version__ = "1.3.0"
+    __version__ = "1.3.1"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -35,6 +35,7 @@ class EventManager(commands.Cog):
         self.config.init_custom("events", 2)
         self.config.init_custom("templates", 2)
         self.config.register_member(spec_class=())
+        self.config.register_guild(history_channel=None)
         self.cache: Dict[int, Dict[int, Event]] = {}
         self.task = self.check_events.start()
 
@@ -245,6 +246,11 @@ class EventManager(commands.Cog):
             final += f"**{template}**: \n{self.format_template(templates[template])}\n"
 
         await ctx.maybe_send_embed(final)
+        
+    @event.command(name="history")
+    async def event_history(self, ctx: commands.Context, channel: discord.TextChannel):
+        await self.config.guild(ctx.guild).history_channel.set(channel.id)
+        await ctx.tick()
 
     async def remove_reactions_safely(
         self, message: discord.Message, emoji: str, user: discord.User
@@ -409,7 +415,15 @@ class EventManager(commands.Cog):
 
             await user.send("The event was ended.")
 
-            await message.edit(embed=embed)
+            if (chan_id:=await self.config.guild(message.guild).history_channel()) and (chan:=message.guild.get_channel(chan_id)):
+                await chan.send(embed=embed)
+                await message.delete()
+                    
+            else:
+                await message.edit(embed=embed)
+                
+            await self.config.custom("events", event.guild_id, event.message_id).clear()
+            del self.cache[event.guild_id][event.message_id]
 
         elif emoji == "🧻":
             await self.remove_reactions_safely(message, emoji, user)
@@ -529,7 +543,13 @@ class EventManager(commands.Cog):
                         del self.cache[event.guild_id][event.message_id]
                         continue
 
-                    await msg.edit(embed=embed)
+                    if (chan_id:=await self.config.guild(msg.guild).history_channel()) and (chan:=msg.guild.get_channel(chan_id)):
+                        await chan.send(embed=embed)
+                        await msg.delete()
+                            
+                    else:
+                        await msg.edit(embed=embed)
+                        
                     await self.config.custom("events", event.guild_id, event.message_id).clear()
                     del self.cache[event.guild_id][event.message_id]
 
