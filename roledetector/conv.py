@@ -1,7 +1,8 @@
-from redbot.core import commands
 import discord
 from fuzzywuzzy import process
+from redbot.core import commands
 from unidecode import unidecode
+
 
 class FuzzyRole(commands.RoleConverter):
     # thanks phen for this
@@ -39,7 +40,8 @@ class FuzzyRole(commands.RoleConverter):
 
         sorted_result = sorted(result, key=lambda r: r[1], reverse=True)
         return sorted_result[0][0]
-    
+
+
 class FuzzyMember(commands.MemberConverter):
     """
     This will accept role ID's, mentions, and perform a fuzzy search for
@@ -71,7 +73,9 @@ class FuzzyMember(commands.MemberConverter):
             )
         ]
         if not result:
-            raise commands.BadArgument(f'Member "{argument}" not found.' if self.response else None)
+            raise commands.BadArgument(
+                f'Member "{argument}" not found.' if self.response else None
+            )
 
         sorted_result = sorted(result, key=lambda r: r[1], reverse=True)
         return sorted_result[0][0]
