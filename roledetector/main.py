@@ -97,7 +97,7 @@ class RoleDetector(commands.Cog):
         """
         Set the channel to track for roledetector"""
         await self.config.guild(ctx.guild).channel.set(channel.id)
-        await ctx.send(cf.success("Channel set to {channel.mention}"))
+        await ctx.send(cf.success(f"Channel set to {channel.mention}"))
         await self._build_cache()
         
     @rd.command(name="role", aliases=["r"])
@@ -105,7 +105,7 @@ class RoleDetector(commands.Cog):
         """
         Set the role to assign to users."""
         await self.config.guild(ctx.guild).role.set(role.id)
-        await ctx.send(cf.success("Role set to {role.mention}"))
+        await ctx.send(cf.success(f"Role set to {role.mention}"))
         await self._build_cache()
         
     @rd.command(name="show", aliases=["ss", "showsettings"])
