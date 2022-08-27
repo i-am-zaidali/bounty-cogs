@@ -32,7 +32,6 @@ class FuzzyRole(commands.RoleConverter):
                 argument,
                 {r: unidecode(r.name) for r in guild.roles},
                 limit=None,
-                score_cutoff=75,
             )
         ]
         if not result:
@@ -69,7 +68,6 @@ class FuzzyMember(commands.MemberConverter):
                 argument,
                 {u: unidecode(str(u)) for u in guild.members},
                 limit=None,
-                score_cutoff=75,
             )
         ]
         if not result:

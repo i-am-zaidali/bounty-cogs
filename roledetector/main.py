@@ -14,7 +14,7 @@ class GuildSettings(TypedDict):
 
 class RoleDetector(commands.Cog):
     def __init__(self, bot: Red):
-        self.bot = Red
+        self.bot = bot
         
         self.config = Config.get_conf(self, 2784481001, force_registration=True)
         self.config.register_guild(channel=None, role=None)
@@ -41,6 +41,7 @@ class RoleDetector(commands.Cog):
         guild_role = message.guild.get_role(data["role"])
         
         not_guild_members: list[str] = []
+        failed: list[discord.Member] = []
         
         m = list(filter(None, message.content.splitlines()))
         
@@ -59,12 +60,16 @@ class RoleDetector(commands.Cog):
                 not_guild_members.append(mem)
             
             else:
-                member_role[member] = None
-                await member.add_roles(*[guild_role, role])
+                try:
+                    await member.add_roles(*[guild_role, role])
+                    member_role[member] = None
+
+                except Exception as e:
+                    failed.append(member)
 
             del member_role[mem]
                             
-        asyncio.gather(*map(lambda x: x.remove_roles(guild_role), set(message.guild.members).difference(member_role.keys())))
+        asyncio.gather(*map(lambda x: x.remove_roles(guild_role), set(filter(lambda x: guild_role.id in x._roles, message.guild.members)).difference(member_role.keys())))
         
         await message.channel.send(
             (
@@ -73,7 +78,11 @@ class RoleDetector(commands.Cog):
                 + (
                     "These users were not found so were ignored: \n\n"
                     f"{cf.humanize_list(not_guild_members)}" if not_guild_members else ""
-                ) + f"The remaining users had the `@{guild_role.name}` role removed from them."
+                ) + (
+                    "The following users failed to have their roles added to them due to permissions issues:\n"
+                    f"{cf.humanize_list(failed)}\n\n" if failed else ""
+                )
+                + f"The remaining users had the `@{guild_role.name}` role removed from them."
             ), delete_after=10
         )
         
