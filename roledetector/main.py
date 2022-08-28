@@ -87,7 +87,7 @@ class RoleDetector(commands.Cog):
                 ),
             )
         )
-        
+
         output = (
             "Successfully added roles to the following users:\n"
             f"{cf.humanize_list(member_role)}\n\n"
@@ -105,7 +105,7 @@ class RoleDetector(commands.Cog):
             )
             + f"The remaining users had the `@{guild_role.name}` role removed from them."
         )
-        
+
         self.cache[message.guild.id]["last_output"] = output
 
         await message.channel.send(
@@ -134,14 +134,14 @@ class RoleDetector(commands.Cog):
         await self.config.guild(ctx.guild).role.set(role.id)
         await ctx.send(cf.success(f"Role set to {role.mention}"))
         await self._build_cache()
-        
+
     @rd.command(name="last", aliases=["lastoutput", "lo"])
     async def rd_lo(self, ctx: commands.Context):
         output = self.cache.get(ctx.guild.id)
-        
+
         if not output or not output["last_output"]:
             return await ctx.send("There has been no last role detection.")
-        
+
         return await ctx.send(output)
 
     @rd.command(name="show", aliases=["ss", "showsettings"])
