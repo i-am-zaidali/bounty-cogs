@@ -52,8 +52,10 @@ class RoleDetector(commands.Cog):
 
             member_role = dict(map(lambda x: x.split(";"), m))
 
-        except Exception as e :
-            return await message.channel.send("There was a parsing error in the message. Please make sure the message is in the format: `<member>;<rank>`")
+        except Exception as e:
+            return await message.channel.send(
+                "There was a parsing error in the message. Please make sure the message is in the format: `<member>;<rank>`"
+            )
 
         fuzzyrole, fuzzymember = FuzzyRole(), FuzzyMember()
 
