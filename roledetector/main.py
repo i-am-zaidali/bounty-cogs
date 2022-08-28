@@ -12,6 +12,7 @@ from .conv import FuzzyMember, FuzzyRole
 class GuildSettings(TypedDict):
     channel: Optional[int]
     role: Optional[int]
+    last_output: Optional[str]
 
 
 class RoleDetector(commands.Cog):
@@ -25,6 +26,7 @@ class RoleDetector(commands.Cog):
 
     async def _build_cache(self):
         for guild, data in (await self.config.all_guilds()).items():
+            data.update({"last_output": None})
             self.cache.update({guild: data})
 
     @commands.Cog.listener()
@@ -50,7 +52,7 @@ class RoleDetector(commands.Cog):
 
             member_role = dict(map(lambda x: x.split(";"), m))
 
-        except Exception as e:
+        except Exception as e :
             return await message.channel.send("There was a parsing error in the message. Please make sure the message is in the format: `<member>;<rank>`")
 
         fuzzyrole, fuzzymember = FuzzyRole(), FuzzyMember()
@@ -83,25 +85,29 @@ class RoleDetector(commands.Cog):
                 ),
             )
         )
+        
+        output = (
+            "Successfully added roles to the following users:\n"
+            f"{cf.humanize_list(member_role)}\n\n"
+            + (
+                "These users were not found so were ignored: \n\n"
+                f"{cf.humanize_list(not_guild_members)}"
+                if not_guild_members
+                else ""
+            )
+            + (
+                "The following users failed to have their roles added to them due to permissions issues:\n"
+                f"{cf.humanize_list(failed)}\n\n"
+                if failed
+                else ""
+            )
+            + f"The remaining users had the `@{guild_role.name}` role removed from them."
+        )
+        
+        self.cache[message.guild.id]["last_output"] = output
 
         await message.channel.send(
-            (
-                "Successfully added roles to the following users:\n"
-                f"{cf.humanize_list(member_role)}\n\n"
-                + (
-                    "These users were not found so were ignored: \n\n"
-                    f"{cf.humanize_list(not_guild_members)}"
-                    if not_guild_members
-                    else ""
-                )
-                + (
-                    "The following users failed to have their roles added to them due to permissions issues:\n"
-                    f"{cf.humanize_list(failed)}\n\n"
-                    if failed
-                    else ""
-                )
-                + f"The remaining users had the `@{guild_role.name}` role removed from them."
-            ),
+            output,
             delete_after=10,
         )
 
@@ -126,6 +132,15 @@ class RoleDetector(commands.Cog):
         await self.config.guild(ctx.guild).role.set(role.id)
         await ctx.send(cf.success(f"Role set to {role.mention}"))
         await self._build_cache()
+        
+    @rd.command(name="last", aliases=["lastoutput", "lo"])
+    async def rd_lo(self, ctx: commands.Context):
+        output = self.cache.get(ctx.guild.id)
+        
+        if not output or not output["last_output"]:
+            return await ctx.send("There has been no last role detection.")
+        
+        return await ctx.send(output)
 
     @rd.command(name="show", aliases=["ss", "showsettings"])
     async def rd_ss(self, ctx: commands.Context):
