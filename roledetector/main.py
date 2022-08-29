@@ -41,7 +41,7 @@ class RoleDetector(commands.Cog):
 
         if message.channel.id != data["channel"]:
             return
-        
+
         if message.attachments:
             attachment = message.attachments[0]
             text = str(await attachment.read())
