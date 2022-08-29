@@ -31,7 +31,7 @@ class RoleDetector(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_without_command(self, message: discord.Message):
-        if not message.guild:
+        if not message.guild or message.author.bot:
             return
 
         data = self.cache.get(message.guild.id)
@@ -41,6 +41,11 @@ class RoleDetector(commands.Cog):
 
         if message.channel.id != data["channel"]:
             return
+        
+        if message.attachments:
+            attachment = message.attachments[0]
+            text = str(await attachment.read())
+            message.content += f"\n{text}"
 
         guild_role = message.guild.get_role(data["role"])
 
