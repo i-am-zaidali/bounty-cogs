@@ -68,7 +68,7 @@ class FuzzyMember(commands.MemberConverter):
             (r[2], r[1])
             for r in process.extract(
                 argument,
-                {u: unidecode(str(u)) for u in guild.members},
+                {u: unidecode(u.display_name) for u in guild.members},
                 limit=None,
             )
         ]

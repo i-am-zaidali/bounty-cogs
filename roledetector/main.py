@@ -31,6 +31,15 @@ class RoleDetector(commands.Cog):
         for guild, data in (await self.config.all_guilds()).items():
             data.update({"last_output": None})
             self.cache.update({guild: data})
+            
+    def get_member_and_roles(self, guild: discord.Guild, string: str):
+        username, roles = string.split(",", 1)
+        rank, cls = roles.split(",", 1)
+        
+        check = lambda x: x.name.lower() == rank
+        check2 = lambda x: x.name.lower() == cls
+        
+        return guild.get_member_named(username), discord.utils.find(check, guild.roles), discord.utils.find(check2, guild.roles)
 
     @commands.Cog.listener()
     async def on_message_without_command(self, message: discord.Message):
@@ -51,63 +60,51 @@ class RoleDetector(commands.Cog):
             message.content += f"\n{text}"
 
         guild_role = message.guild.get_role(data["role"])
-
-        not_guild_members: list[str] = []
-        failed: list[discord.Member] = []
-
-        try:
-            member_role = dict(map(lambda x: x.split(";"), filter(None, message.content.splitlines())))
-
-        except Exception as e:
-            log.exception("Couldn't properly parse the given data: ", exc_info=e)
-            return await message.channel.send(
-                "There was a parsing error in the message. Please make sure the message is in the format: `<member>;<rank>`"
-            )
-
-        fuzzyrole, fuzzymember = FuzzyRole(), FuzzyMember()
-
-        partial_ctx = await self.bot.get_context(message)
-
-        for mem, role_id in member_role.copy().items():
-            try:
-                member = await fuzzymember.convert(partial_ctx, mem)
-                role = await fuzzyrole.convert(partial_ctx, role_id)
-
-            except commands.BadArgument:
-                not_guild_members.append(mem)
-
-            else:
+        
+        output_success = ""
+        output_not_found = ""
+        output_failed = ""
+        
+        roles_added: set[discord.Member] = set()
+        
+        for line in filter(None, message.content.splitlines()):
+            user, rank, cls = self.get_member_and_roles(message.guild, line)
+            if not user:
+                output_not_found += f"{line.split(',', 1)[0]}\n"
+                continue
+            
+            to_add = filter(lambda x: x is not None, [guild_role, rank, cls])
+            
+            if to_add:
                 try:
-                    await member.add_roles(*[guild_role, role])
-                    member_role[member] = None
-
+                    await user.add_roles(*to_add, reason="RoleDetector")
+                    
                 except Exception as e:
-                    failed.append(member)
+                    output_failed += f"{user.name}\n"
+                    
+                else:
+                    roles_added.add(user)
+                    output_success += f"{user.name} ({cf.humanize_list(list(to_add))})\n"
 
-            del member_role[mem]
-
+        users_to_remove = set(message.guild.members).difference(roles_added)
+        
         asyncio.gather(
             *map(
-                lambda x: x.remove_roles(guild_role),
-                set(filter(lambda x: guild_role.id in x._roles, message.guild.members)).difference(
-                    member_role.keys()
-                ),
+                lambda x: x.remove_roles(guild_role, reason="RoleDetector"), users_to_remove
             )
         )
 
         output = (
             "Successfully added roles to the following users:\n"
-            f"{cf.humanize_list(member_role)}\n\n"
+            f"{output_success}"
             + (
-                "These users were not found so were ignored: \n\n"
-                f"{cf.humanize_list(not_guild_members)}"
-                if not_guild_members
+                f"These users were not found so were ignored: \n{output_not_found}"
+                if output_not_found
                 else ""
             )
             + (
-                "The following users failed to have their roles added to them due to permissions issues:\n"
-                f"{cf.humanize_list(failed)}\n\n"
-                if failed
+                f"The following users failed to have their roles added to them due to permissions issues:\n{output_failed}"
+                if output_failed
                 else ""
             )
             + f"The remaining users had the `@{guild_role.name}` role removed from them."
