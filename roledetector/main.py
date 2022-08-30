@@ -56,7 +56,9 @@ class RoleDetector(commands.Cog):
         failed: list[discord.Member] = []
 
         try:
-            member_role = dict(map(lambda x: x.split(";"), filter(None, message.content.splitlines())))
+            member_role = dict(
+                map(lambda x: x.split(";"), filter(None, message.content.splitlines()))
+            )
 
         except Exception as e:
             log.exception("Couldn't properly parse the given data: ", exc_info=e)
