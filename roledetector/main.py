@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from typing import Dict, Optional, TypedDict
 
 import discord
@@ -8,6 +9,7 @@ from redbot.core.utils import chat_formatting as cf
 
 from .conv import FuzzyMember, FuzzyRole
 
+log = logging.getLogger("red.misanthropist.RoleDetector")
 
 class GuildSettings(TypedDict):
     channel: Optional[int]
@@ -58,6 +60,7 @@ class RoleDetector(commands.Cog):
             member_role = dict(map(lambda x: x.split(";"), m))
 
         except Exception as e:
+            log.exception("Couldn't properly parse the given data: ", exc_info=e)
             return await message.channel.send(
                 "There was a parsing error in the message. Please make sure the message is in the format: `<member>;<rank>`"
             )
