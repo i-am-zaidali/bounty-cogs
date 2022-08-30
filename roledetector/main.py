@@ -11,6 +11,7 @@ from .conv import FuzzyMember, FuzzyRole
 
 log = logging.getLogger("red.misanthropist.RoleDetector")
 
+
 class GuildSettings(TypedDict):
     channel: Optional[int]
     role: Optional[int]
