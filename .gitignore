@@ -129,3 +129,6 @@ dmypy.json
 .pyre/
 
 .vscode/
+webhookhandler/last_recieved.txt
+webhookhandler/main.py
+webhookhandler/t.txt
