@@ -31,15 +31,19 @@ class RoleDetector(commands.Cog):
         for guild, data in (await self.config.all_guilds()).items():
             data.update({"last_output": None})
             self.cache.update({guild: data})
-            
+
     def get_member_and_roles(self, guild: discord.Guild, string: str):
         username, roles = string.split(",", 1)
         rank, cls = roles.split(",", 1)
-        
+
         check = lambda x: x.name.lower() == rank
         check2 = lambda x: x.name.lower() == cls
-        
-        return guild.get_member_named(username), discord.utils.find(check, guild.roles), discord.utils.find(check2, guild.roles)
+
+        return (
+            guild.get_member_named(username),
+            discord.utils.find(check, guild.roles),
+            discord.utils.find(check2, guild.roles),
+        )
 
     @commands.Cog.listener()
     async def on_message_without_command(self, message: discord.Message):
@@ -60,38 +64,36 @@ class RoleDetector(commands.Cog):
             message.content += f"\n{text}"
 
         guild_role = message.guild.get_role(data["role"])
-        
+
         output_success = ""
         output_not_found = ""
         output_failed = ""
-        
+
         roles_added: set[discord.Member] = set()
-        
+
         for line in filter(None, message.content.splitlines()):
             user, rank, cls = self.get_member_and_roles(message.guild, line)
             if not user:
                 output_not_found += f"{line.split(',', 1)[0]}\n"
                 continue
-            
+
             to_add = filter(lambda x: x is not None, [guild_role, rank, cls])
-            
+
             if to_add:
                 try:
                     await user.add_roles(*to_add, reason="RoleDetector")
-                    
+
                 except Exception as e:
                     output_failed += f"{user.name}\n"
-                    
+
                 else:
                     roles_added.add(user)
                     output_success += f"{user.name} ({cf.humanize_list(list(to_add))})\n"
 
         users_to_remove = set(message.guild.members).difference(roles_added)
-        
+
         asyncio.gather(
-            *map(
-                lambda x: x.remove_roles(guild_role, reason="RoleDetector"), users_to_remove
-            )
+            *map(lambda x: x.remove_roles(guild_role, reason="RoleDetector"), users_to_remove)
         )
 
         output = (
