@@ -47,7 +47,7 @@ class RoleDetector(commands.Cog):
 
         if message.attachments:
             attachment = message.attachments[0]
-            text = str(await attachment.read())
+            text = str(await attachment.read(), "utf-8")
             message.content += f"\n{text}"
 
         guild_role = message.guild.get_role(data["role"])
@@ -56,9 +56,7 @@ class RoleDetector(commands.Cog):
         failed: list[discord.Member] = []
 
         try:
-            m = list(filter(None, message.content.splitlines()))
-
-            member_role = dict(map(lambda x: x.split(";"), m))
+            member_role = dict(map(lambda x: x.split(";"), filter(None, message.content.splitlines())))
 
         except Exception as e:
             log.exception("Couldn't properly parse the given data: ", exc_info=e)
