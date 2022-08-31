@@ -113,7 +113,7 @@ class RoleDetector(commands.Cog):
         )
 
         self.cache[message.guild.id]["last_output"] = output
-        
+
         for p in cf.pagify(output):
             await message.channel.send(
                 p,
