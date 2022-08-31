@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from typing import Dict, Optional, TypedDict
 
@@ -39,7 +38,7 @@ class RoleDetector(commands.Cog):
 
         try:
             rank, cls = r
-            
+
         except Exception:
             rank, cls = r[0], ""
 
@@ -49,7 +48,9 @@ class RoleDetector(commands.Cog):
         return (
             guild.get_member_named(username),
             discord.utils.find(check, guild.roles) or await FuzzyRole().convert(ctx, rank),
-            (discord.utils.find(check2, guild.roles) or await FuzzyRole().convert(ctx, cls)) if cls else None
+            (discord.utils.find(check2, guild.roles) or await FuzzyRole().convert(ctx, cls))
+            if cls
+            else None,
         )
 
     @commands.Cog.listener()
@@ -77,10 +78,12 @@ class RoleDetector(commands.Cog):
         output_failed = ""
 
         roles_added: set[discord.Member] = set()
-        
+
         fake_ctx = await self.bot.get_context(message)
-        
-        await message.channel.send("Processing and role adding has started. This could take a while...")
+
+        await message.channel.send(
+            "Processing and role adding has started. This could take a while..."
+        )
 
         async with message.channel.typing():
             _iter = AsyncIter(message.content.splitlines(), 5, 100)
@@ -90,8 +93,10 @@ class RoleDetector(commands.Cog):
                     output_not_found += f"{line.split(',', 1)[0]}\n"
                     continue
 
-                to_add = list(filter(lambda x: isinstance(x, discord.Role), [guild_role, rank, cls]))
-                
+                to_add = list(
+                    filter(lambda x: isinstance(x, discord.Role), [guild_role, rank, cls])
+                )
+
                 log.info(f"{user} has {to_add}")
 
                 if to_add:
@@ -108,7 +113,10 @@ class RoleDetector(commands.Cog):
 
             users_to_remove = set(message.guild.members).difference(roles_added)
 
-            bounded_gather(*map(lambda x: x.remove_roles(guild_role, reason="RoleDetector"), users_to_remove), limit=5)
+            bounded_gather(
+                *map(lambda x: x.remove_roles(guild_role, reason="RoleDetector"), users_to_remove),
+                limit=5,
+            )
 
         output = (
             "Successfully added roles to the following users:\n"
@@ -129,7 +137,9 @@ class RoleDetector(commands.Cog):
         self.cache[message.guild.id]["last_output"] = output
 
         for p in cf.pagify(output):
-            await message.channel.send(p,)
+            await message.channel.send(
+                p,
+            )
 
     @commands.group(name="roledetector", aliases=["rd"], invoke_without_command=True)
     async def rd(self, ctx: commands.Context):
