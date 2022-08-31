@@ -49,7 +49,7 @@ class RoleDetector(commands.Cog):
         return (
             guild.get_member_named(username),
             discord.utils.find(check, guild.roles) or await FuzzyRole().convert(ctx, rank),
-            discord.utils.find(check2, guild.roles) or await FuzzyRole().convert(ctx, cls),
+            (discord.utils.find(check2, guild.roles) or await FuzzyRole().convert(ctx, cls)) if cls else None
         )
 
     @commands.Cog.listener()
@@ -85,18 +85,21 @@ class RoleDetector(commands.Cog):
         async with message.channel.typing():
             _iter = AsyncIter(message.content.splitlines(), 5, 100)
             async for line in _iter.filter(lambda x: bool(x)):
-                user, rank, cls = self.get_member_and_roles(message.guild, line, fake_ctx)
+                user, rank, cls = await self.get_member_and_roles(message.guild, line, fake_ctx)
                 if not user:
                     output_not_found += f"{line.split(',', 1)[0]}\n"
                     continue
 
                 to_add = list(filter(lambda x: isinstance(x, discord.Role), [guild_role, rank, cls]))
+                
+                log.info(f"{user} has {to_add}")
 
                 if to_add:
                     try:
                         await user.add_roles(*to_add, reason="RoleDetector")
 
                     except Exception as e:
+                        log.exception("AAAAAAAAAAAA", exc_info=e)
                         output_failed += f"{user.name}\n"
 
                     else:
