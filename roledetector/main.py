@@ -47,7 +47,7 @@ class RoleDetector(commands.Cog):
         check2 = lambda x: x.name.lower() == cls.lower()
 
         return (
-            guild.get_member_named(username),
+            guild.get_member_named(username) or await FuzzyMember().convert(ctx, username),
             discord.utils.find(check, guild.roles) or await FuzzyRole().convert(ctx, rank),
             (discord.utils.find(check2, guild.roles) or await FuzzyRole().convert(ctx, cls)) if cls else None
         )
@@ -78,9 +78,11 @@ class RoleDetector(commands.Cog):
 
         roles_added: set[discord.Member] = set()
         
+        role_member: dict[discord.Role, list[discord.Member]] = {}
+        
         fake_ctx = await self.bot.get_context(message)
         
-        await message.channel.send("Processing and role adding has started. This could take a while...")
+        await message.channel.send("Batch job received - Processing guild roster. This may take a while...")
 
         async with message.channel.typing():
             _iter = AsyncIter(message.content.splitlines(), 5, 100)
@@ -90,7 +92,7 @@ class RoleDetector(commands.Cog):
                     output_not_found += f"{line.split(',', 1)[0]}\n"
                     continue
 
-                to_add = list(filter(lambda x: isinstance(x, discord.Role), [guild_role, rank, cls]))
+                to_add = list(filter(lambda x: isinstance(x, discord.Role) and x not in user.roles, [guild_role, rank, cls]))
                 
                 log.info(f"{user} has {to_add}")
 
@@ -100,11 +102,12 @@ class RoleDetector(commands.Cog):
 
                     except Exception as e:
                         log.exception("AAAAAAAAAAAA", exc_info=e)
-                        output_failed += f"{user.name}\n"
+                        output_failed += f"{user.display_name}\n"
 
                     else:
                         roles_added.add(user)
-                        output_success += f"{user.name} ({cf.humanize_list(to_add)})\n"
+                        role_member.setdefault(rank, []).append(user)
+                        output_success += f"{user.display_name} ({cf.humanize_list(to_add)})\n"
 
             users_to_remove = set(message.guild.members).difference(roles_added)
 
@@ -130,6 +133,20 @@ class RoleDetector(commands.Cog):
 
         for p in cf.pagify(output):
             await message.channel.send(p,)
+            
+        embed = discord.Embed(
+            title="Roles and Members",
+            color=discord.Color.blue(),
+        )
+        
+        for role, members in role_member.items():
+            member_list = "\n".join(map(lambda x: f"{x.display_name}", members))
+            for p in cf.pagify(member_list, page_length=1500):
+                embed.add_field(name=role.name, value=p)
+                
+        await message.channel.send(embed=embed)
+        
+        
 
     @commands.group(name="roledetector", aliases=["rd"], invoke_without_command=True)
     async def rd(self, ctx: commands.Context):
