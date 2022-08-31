@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from typing import Dict, Optional, TypedDict
 
@@ -39,7 +38,7 @@ class RoleDetector(commands.Cog):
 
         try:
             rank, cls = r
-            
+
         except Exception:
             rank, cls = r[0], ""
 
@@ -49,7 +48,9 @@ class RoleDetector(commands.Cog):
         return (
             guild.get_member_named(username) or await FuzzyMember().convert(ctx, username),
             discord.utils.find(check, guild.roles) or await FuzzyRole().convert(ctx, rank),
-            (discord.utils.find(check2, guild.roles) or await FuzzyRole().convert(ctx, cls)) if cls else None
+            (discord.utils.find(check2, guild.roles) or await FuzzyRole().convert(ctx, cls))
+            if cls
+            else None,
         )
 
     @commands.Cog.listener()
@@ -111,7 +112,10 @@ class RoleDetector(commands.Cog):
 
             users_to_remove = set(message.guild.members).difference(roles_added)
 
-            bounded_gather(*map(lambda x: x.remove_roles(guild_role, reason="RoleDetector"), users_to_remove), limit=5)
+            bounded_gather(
+                *map(lambda x: x.remove_roles(guild_role, reason="RoleDetector"), users_to_remove),
+                limit=5,
+            )
 
         output = (
             "Successfully added roles to the following users:\n"
@@ -132,7 +136,7 @@ class RoleDetector(commands.Cog):
         self.cache[message.guild.id]["last_output"] = output
 
         for p in cf.pagify(output):
-            await message.channel.send(p,)
+            await message.channel.send(p)
             
         embed = discord.Embed(
             title="Roles and Members",
