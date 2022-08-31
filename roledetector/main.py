@@ -5,6 +5,7 @@ from typing import Dict, Optional, TypedDict
 import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
+from redbot.core.utils import AsyncIter, bounded_gather
 from redbot.core.utils import chat_formatting as cf
 
 from .conv import FuzzyMember, FuzzyRole
@@ -34,7 +35,13 @@ class RoleDetector(commands.Cog):
 
     def get_member_and_roles(self, guild: discord.Guild, string: str):
         username, roles = string.split(",", 1)
-        rank, cls = roles.split(",", 1)
+        r = roles.split(",")
+
+        try:
+            rank, cls = r
+            
+        except Exception:
+            rank, cls = r[0], ""
 
         check = lambda x: x.name.lower() == rank
         check2 = lambda x: x.name.lower() == cls
@@ -70,31 +77,33 @@ class RoleDetector(commands.Cog):
         output_failed = ""
 
         roles_added: set[discord.Member] = set()
+        
+        await message.channel.send("Processing and role adding has started. This could take a while...")
 
-        for line in filter(None, message.content.splitlines()):
-            user, rank, cls = self.get_member_and_roles(message.guild, line)
-            if not user:
-                output_not_found += f"{line.split(',', 1)[0]}\n"
-                continue
+        async with message.channel.typing():
+            _iter = AsyncIter(message.content.splitlines(), 5, 100)
+            async for line in _iter.filter(lambda x: bool(x)):
+                user, rank, cls = self.get_member_and_roles(message.guild, line)
+                if not user:
+                    output_not_found += f"{line.split(',', 1)[0]}\n"
+                    continue
 
-            to_add = filter(lambda x: x is not None, [guild_role, rank, cls])
+                to_add = list(filter(lambda x: isinstance(x, discord.Role), [guild_role, rank, cls]))
 
-            if to_add:
-                try:
-                    await user.add_roles(*to_add, reason="RoleDetector")
+                if to_add:
+                    try:
+                        await user.add_roles(*to_add, reason="RoleDetector")
 
-                except Exception as e:
-                    output_failed += f"{user.name}\n"
+                    except Exception as e:
+                        output_failed += f"{user.name}\n"
 
-                else:
-                    roles_added.add(user)
-                    output_success += f"{user.name} ({cf.humanize_list(list(to_add))})\n"
+                    else:
+                        roles_added.add(user)
+                        output_success += f"{user.name} ({cf.humanize_list(to_add)})\n"
 
-        users_to_remove = set(message.guild.members).difference(roles_added)
+            users_to_remove = set(message.guild.members).difference(roles_added)
 
-        asyncio.gather(
-            *map(lambda x: x.remove_roles(guild_role, reason="RoleDetector"), users_to_remove)
-        )
+            bounded_gather(*map(lambda x: x.remove_roles(guild_role, reason="RoleDetector"), users_to_remove), limit=5)
 
         output = (
             "Successfully added roles to the following users:\n"
@@ -109,16 +118,13 @@ class RoleDetector(commands.Cog):
                 if output_failed
                 else ""
             )
-            + f"The remaining users had the `@{guild_role.name}` role removed from them."
+            + f"The remaining users are getting the `@{guild_role.name}` role removed from them."
         )
 
         self.cache[message.guild.id]["last_output"] = output
         
         for p in cf.pagify(output):
-            await message.channel.send(
-                p,
-                delete_after=10,
-            )
+            await message.channel.send(p,)
 
     @commands.group(name="roledetector", aliases=["rd"], invoke_without_command=True)
     async def rd(self, ctx: commands.Context):
