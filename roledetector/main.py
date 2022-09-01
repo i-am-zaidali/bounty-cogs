@@ -32,7 +32,7 @@ class RoleDetector(commands.Cog):
             data.update({"last_output": None})
             self.cache.update({guild: data})
 
-    async def get_member_and_roles(self, guild: discord.Guild, string: str, ctx: commands.Context):
+    async def get_member_and_roles(self, guild: discord.Guild, string: str, ctx: commands.Context, present: list[discord.Member]):
         username, roles = string.split(",", 1)
         r = roles.split(",")
 
@@ -45,8 +45,10 @@ class RoleDetector(commands.Cog):
         check = lambda x: x.name.lower() == rank.lower()
         check2 = lambda x: x.name.lower() == cls.lower()
 
+        user = guild.get_member_named(username) or await FuzzyMember().convert(ctx, username)
+
         return (
-            guild.get_member_named(username) or await FuzzyMember().convert(ctx, username),
+            user if user not in present else None,
             discord.utils.find(check, guild.roles) or await FuzzyRole().convert(ctx, rank),
             (discord.utils.find(check2, guild.roles) or await FuzzyRole().convert(ctx, cls))
             if cls
@@ -92,7 +94,7 @@ class RoleDetector(commands.Cog):
             message.content = message.content.replace("--no-remove", "")
             _iter = AsyncIter(message.content.splitlines(), 5, 100)
             async for line in _iter.filter(lambda x: bool(x)):
-                user, rank, cls = await self.get_member_and_roles(message.guild, line, fake_ctx)
+                user, rank, cls = await self.get_member_and_roles(message.guild, line, fake_ctx, roles_added)
                 if not user:
                     output_not_found += f"{line.split(',', 1)[0]}\n"
                     continue
