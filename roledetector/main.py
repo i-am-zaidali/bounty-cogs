@@ -86,6 +86,8 @@ class RoleDetector(commands.Cog):
         await message.channel.send("Batch job received - Processing guild roster. This may take a while...")
 
         async with message.channel.typing():
+            remove = "--no-remove" not in message.content.lower()
+            message.content = message.content.replace("--no-remove", "")
             _iter = AsyncIter(message.content.splitlines(), 5, 100)
             async for line in _iter.filter(lambda x: bool(x)):
                 user, rank, cls = await self.get_member_and_roles(message.guild, line, fake_ctx)
@@ -110,12 +112,13 @@ class RoleDetector(commands.Cog):
                         role_member.setdefault(rank, []).append(user)
                         output_success += f"{user.display_name} ({cf.humanize_list(to_add)})\n"
 
-            users_to_remove = set(message.guild.members).difference(roles_added)
+            if remove:
+                users_to_remove = set(filter(lambda x: guild_role in x.roles, message.guild.members)).difference(roles_added)
 
-            bounded_gather(
-                *map(lambda x: x.remove_roles(guild_role, reason="RoleDetector"), users_to_remove),
-                limit=5,
-            )
+                bounded_gather(
+                    *map(lambda x: x.remove_roles(guild_role, reason="RoleDetector"), users_to_remove),
+                    limit=5, 
+                )
 
         output = (
             "Successfully added roles to the following users:\n"
