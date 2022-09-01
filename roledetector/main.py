@@ -140,7 +140,7 @@ class RoleDetector(commands.Cog):
                 if output_failed
                 else ""
             )
-            + f"The remaining users are getting the `@{guild_role.name}` role removed from them."
+            + (f"The remaining users are getting the `@{guild_role.name}` role removed from them." if remove else "")
         )
 
         self.cache[message.guild.id]["last_output"] = output
