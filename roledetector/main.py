@@ -78,12 +78,14 @@ class RoleDetector(commands.Cog):
         output_failed = ""
 
         roles_added: set[discord.Member] = set()
-        
+
         role_member: dict[discord.Role, list[discord.Member]] = {}
-        
+
         fake_ctx = await self.bot.get_context(message)
-        
-        await message.channel.send("Batch job received - Processing guild roster. This may take a while...")
+
+        await message.channel.send(
+            "Batch job received - Processing guild roster. This may take a while..."
+        )
 
         async with message.channel.typing():
             remove = "--no-remove" not in message.content.lower()
@@ -95,8 +97,13 @@ class RoleDetector(commands.Cog):
                     output_not_found += f"{line.split(',', 1)[0]}\n"
                     continue
 
-                to_add = list(filter(lambda x: isinstance(x, discord.Role) and x not in user.roles, [guild_role, rank, cls]))
-                
+                to_add = list(
+                    filter(
+                        lambda x: isinstance(x, discord.Role) and x not in user.roles,
+                        [guild_role, rank, cls],
+                    )
+                )
+
                 log.info(f"{user} has {to_add}")
 
                 if to_add:
@@ -140,20 +147,18 @@ class RoleDetector(commands.Cog):
 
         for p in cf.pagify(output):
             await message.channel.send(p)
-            
+
         embed = discord.Embed(
             title="Roles and Members",
             color=discord.Color.blue(),
         )
-        
+
         for role, members in role_member.items():
             member_list = "\n".join(map(lambda x: f"{x.display_name}", members))
             for p in cf.pagify(member_list, page_length=1500):
                 embed.add_field(name=role.name, value=p)
-                
+
         await message.channel.send(embed=embed)
-        
-        
 
     @commands.group(name="roledetector", aliases=["rd"], invoke_without_command=True)
     async def rd(self, ctx: commands.Context):
