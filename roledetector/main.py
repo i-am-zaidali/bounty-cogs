@@ -120,11 +120,16 @@ class RoleDetector(commands.Cog):
                         output_success += f"{user.display_name} ({cf.humanize_list(to_add)})\n"
 
             if remove:
-                users_to_remove = set(filter(lambda x: guild_role in x.roles, message.guild.members)).difference(roles_added)
+                users_to_remove = set(
+                    filter(lambda x: guild_role in x.roles, message.guild.members)
+                ).difference(roles_added)
 
                 bounded_gather(
-                    *map(lambda x: x.remove_roles(guild_role, reason="RoleDetector"), users_to_remove),
-                    limit=5, 
+                    *map(
+                        lambda x: x.remove_roles(guild_role, reason="RoleDetector"),
+                        users_to_remove,
+                    ),
+                    limit=5,
                 )
 
         output = (
