@@ -45,7 +45,7 @@ class RoleDetector(commands.Cog):
         check = lambda x: x.name.lower() == rank.lower()
         check2 = lambda x: x.name.lower() == cls.lower()
 
-        user = guild.get_member_named(username) or await FuzzyMember().convert(ctx, username)
+        user = guild.get_member_named(username)# or await FuzzyMember().convert(ctx, username)
 
         return (
             user if user not in present else None,

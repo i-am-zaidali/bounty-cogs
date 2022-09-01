@@ -39,7 +39,7 @@ class FuzzyRole(commands.RoleConverter):
             raise commands.BadArgument(f'Role "{argument}" not found.' if self.response else None)
 
         sorted_result = sorted(result, key=lambda r: r[1], reverse=True)
-        return sorted_result[0][0] if sorted_result[0][1] > 75 else None
+        return sorted_result[0][0] if sorted_result[0][1] > 90 else None
 
 
 class FuzzyMember(commands.MemberConverter):
