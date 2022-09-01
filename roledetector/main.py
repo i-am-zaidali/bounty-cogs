@@ -114,10 +114,9 @@ class RoleDetector(commands.Cog):
                         log.exception("AAAAAAAAAAAA", exc_info=e)
                         output_failed += f"{user.display_name}\n"
 
-                    else:
-                        roles_added.add(user)
-                        role_member.setdefault(rank, []).append(user)
-                        output_success += f"{user.display_name} ({cf.humanize_list(to_add)})\n"
+                roles_added.add(user)
+                role_member.setdefault(rank, []).append(user)
+                output_success += f"{user.display_name} ({cf.humanize_list(to_add) or 'No roles added.'})\n"
 
             if remove:
                 users_to_remove = set(
