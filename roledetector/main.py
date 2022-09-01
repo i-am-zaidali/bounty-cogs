@@ -132,20 +132,18 @@ class RoleDetector(commands.Cog):
                     limit=5,
                 )
 
-        output = (
-            "Successfully added roles to the following users:\n"
-            f"{output_success}\n\n"
-            + (
-                f"These users were not found so were ignored: \n{output_not_found}\n\n"
-                if output_not_found
-                else ""
-            )
-            + (
-                f"The following users failed to have their roles added to them due to permissions issues:\n{output_failed}\n\n"
-                if output_failed
-                else ""
-            )
-            + (f"The remaining users are getting the `@{guild_role.name}` role removed from them." if remove else "")
+        output = "Successfully added roles to the following users:\n" f"{output_success}\n\n" + (
+            f"These users were not found so were ignored: \n{output_not_found}\n\n"
+            if output_not_found
+            else ""
+        ) + (
+            f"The following users failed to have their roles added to them due to permissions issues:\n{output_failed}\n\n"
+            if output_failed
+            else ""
+        ) + (
+            f"The remaining users are getting the `@{guild_role.name}` role removed from them."
+            if remove
+            else ""
         )
 
         self.cache[message.guild.id]["last_output"] = output
