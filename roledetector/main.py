@@ -116,7 +116,9 @@ class RoleDetector(commands.Cog):
 
                 roles_added.add(user)
                 role_member.setdefault(rank, []).append(user)
-                output_success += f"{user.display_name} ({cf.humanize_list(to_add) or 'No roles added.'})\n"
+                output_success += (
+                    f"{user.display_name} ({cf.humanize_list(to_add) or 'No roles added.'})\n"
+                )
 
             if remove:
                 users_to_remove = set(
