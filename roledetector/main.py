@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Optional, TypedDict, List, Set
+from typing import Dict, List, Optional, Set, TypedDict
 
 import discord
 from redbot.core import Config, commands
