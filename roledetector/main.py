@@ -50,8 +50,9 @@ class RoleDetector(commands.Cog):
 
         check = lambda x: x.name.lower() == rank.lower()
         check2 = lambda x: x.name.lower() == cls.lower()
+        check3 = lambda x: x.display_name.casefold() == username.casefold()
 
-        user = guild.get_member_named(username)  # or await FuzzyMember().convert(ctx, username)
+        user = guild.get_member_named(username) or discord.utils.find(check3, guild.members) # or await FuzzyMember().convert(ctx, username)
 
         return (
             user if user not in present else None,
