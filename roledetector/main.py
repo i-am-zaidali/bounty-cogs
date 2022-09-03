@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Optional, TypedDict
+from typing import Dict, List, Optional, Set, TypedDict
 
 import discord
 from redbot.core import Config, commands
@@ -38,7 +38,7 @@ class RoleDetector(commands.Cog):
         guild: discord.Guild,
         string: str,
         ctx: commands.Context,
-        present: list[discord.Member],
+        present: List[discord.Member],
     ):
         username, roles = string.split(",", 1)
         r = roles.split(",")
@@ -51,8 +51,11 @@ class RoleDetector(commands.Cog):
 
         check = lambda x: x.name.lower() == rank.lower()
         check2 = lambda x: x.name.lower() == cls.lower()
+        check3 = lambda x: x.display_name.casefold() == username.casefold()
 
-        user = guild.get_member_named(username)# or await FuzzyMember().convert(ctx, username)
+        user = guild.get_member_named(username)  # or discord.utils.find(
+        # check3, guild.members
+        # )  # or await FuzzyMember().convert(ctx, username)
 
         return (
             user if user not in present else None,
@@ -87,7 +90,7 @@ class RoleDetector(commands.Cog):
         not_found = []
         failed = []
 
-        roles_added: set[discord.Member] = set()
+        roles_added: Set[discord.Member] = set()
 
         fake_ctx = await self.bot.get_context(message)
 
