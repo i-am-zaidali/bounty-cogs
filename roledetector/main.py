@@ -15,6 +15,7 @@ log = logging.getLogger("red.misanthropist.RoleDetector")
 class GuildSettings(TypedDict):
     channel: Optional[int]
     role: Optional[int]
+    floorwarden: Optional[int]
     last_output: Optional[str]
 
 
@@ -23,7 +24,7 @@ class RoleDetector(commands.Cog):
         self.bot = bot
 
         self.config = Config.get_conf(self, 2784481001, force_registration=True)
-        self.config.register_guild(channel=None, role=None)
+        self.config.register_guild(channel=None, role=None, floorwarden=None)
 
         self.cache: Dict[int, GuildSettings] = {}
 
@@ -80,14 +81,13 @@ class RoleDetector(commands.Cog):
             message.content += f"\n{text}"
 
         guild_role = message.guild.get_role(data["role"])
+        floorwarden = message.guild.get_role(data["floorwarden"])
 
         output_success = ""
-        output_not_found = ""
-        output_failed = ""
+        not_found = []
+        failed = []
 
         roles_added: set[discord.Member] = set()
-
-        role_member: dict[discord.Role, list[discord.Member]] = {}
 
         fake_ctx = await self.bot.get_context(message)
 
@@ -104,7 +104,7 @@ class RoleDetector(commands.Cog):
                     message.guild, line, fake_ctx, roles_added
                 )
                 if not user:
-                    output_not_found += f"{line.split(',', 1)[0]}\n"
+                    not_found.append(line.split(',', 1)[0])
                     continue
 
                 to_add = list(
@@ -113,19 +113,19 @@ class RoleDetector(commands.Cog):
                         [guild_role, rank, cls],
                     )
                 )
+                to_add += ([floorwarden] if floorwarden in user.roles else [])
 
-                log.info(f"{user} has {to_add}")
+                log.debug(f"{user} gets {to_add}")
 
                 if to_add:
                     try:
-                        await user.add_roles(*to_add, reason="RoleDetector")
+                        await user.edit(roles=to_add, reason="RoleDetector")
 
                     except Exception as e:
                         log.exception("AAAAAAAAAAAA", exc_info=e)
-                        output_failed += f"{user.display_name}\n"
+                        failed.append(user.display_name)
 
                 roles_added.add(user)
-                role_member.setdefault(rank, []).append(user)
                 output_success += (
                     f"{user.display_name} ({cf.humanize_list(to_add) or 'No roles added.'})\n"
                 )
@@ -144,12 +144,12 @@ class RoleDetector(commands.Cog):
                 )
 
         output = "Successfully added roles to the following users:\n" f"{output_success}\n\n" + (
-            f"These users were not found so were ignored: \n{output_not_found}\n\n"
-            if output_not_found
+            f"These users were not found so were ignored: \n{cf.humanize_list(not_found)}\n\n"
+            if not_found
             else ""
         ) + (
-            f"The following users failed to have their roles added to them due to permissions issues:\n{output_failed}\n\n"
-            if output_failed
+            f"The following users failed to have their roles added to them due to permissions issues:\n{cf.humanize_list(failed)}\n\n"
+            if failed
             else ""
         ) + (
             f"The remaining users are getting the `@{guild_role.name}` role removed from them."
@@ -162,17 +162,17 @@ class RoleDetector(commands.Cog):
         for p in cf.pagify(output):
             await message.channel.send(p)
 
-        embed = discord.Embed(
-            title="Roles and Members",
-            color=discord.Color.blue(),
-        )
-
-        for role, members in role_member.items():
-            member_list = "\n".join(map(lambda x: f"{x.display_name}", members))
-            for p in cf.pagify(member_list, page_length=1500):
-                embed.add_field(name=role.name, value=p)
-
-        await message.channel.send(embed=embed)
+        shitter = discord.utils.find(lambda x: x.name.lower() == "shitter", message.guild.roles)
+        shitters = [x for x in message.guild.members if shitter in x.roles]
+        
+        if shitters:
+            await message.channel.send(
+                embed=discord.Embed(
+                    title="Shitters",
+                    description="\n".join([x.display_name for x in shitters]),
+                    color=discord.Color.red()
+                )
+            )
 
     @commands.group(name="roledetector", aliases=["rd"], invoke_without_command=True)
     async def rd(self, ctx: commands.Context):
@@ -194,6 +194,14 @@ class RoleDetector(commands.Cog):
         Set the role to assign to users."""
         await self.config.guild(ctx.guild).role.set(role.id)
         await ctx.send(cf.success(f"Role set to {role.mention}"))
+        await self._build_cache()
+    
+    @rd.command(name="floorwarden", aliases=["fw"])
+    async def rd_fw(self, ctx: commands.Context, role: discord.Role):
+        """
+        Set the floorwarden role."""
+        await self.config.guild(ctx.guild).floorwarden.set(role.id)
+        await ctx.send(cf.success(f"FloorWarden role set to {role.mention}"))
         await self._build_cache()
 
     @rd.command(name="last", aliases=["lastoutput", "lo"])
