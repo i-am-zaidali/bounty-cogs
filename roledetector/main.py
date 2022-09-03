@@ -107,7 +107,7 @@ class RoleDetector(commands.Cog):
                     message.guild, line, fake_ctx, roles_added
                 )
                 if not user:
-                    not_found.append(line.split(',', 1)[0])
+                    not_found.append(line.split(",", 1)[0])
                     continue
 
                 to_add = list(
@@ -116,7 +116,7 @@ class RoleDetector(commands.Cog):
                         [guild_role, rank, cls],
                     )
                 )
-                to_add += ([floorwarden] if floorwarden in user.roles else [])
+                to_add += [floorwarden] if floorwarden in user.roles else []
 
                 log.debug(f"{user} gets {to_add}")
 
@@ -167,13 +167,13 @@ class RoleDetector(commands.Cog):
 
         shitter = discord.utils.find(lambda x: x.name.lower() == "shitter", message.guild.roles)
         shitters = [x for x in message.guild.members if shitter in x.roles]
-        
+
         if shitters:
             await message.channel.send(
                 embed=discord.Embed(
                     title="Shitters",
                     description="\n".join([x.display_name for x in shitters]),
-                    color=discord.Color.red()
+                    color=discord.Color.red(),
                 )
             )
 
@@ -198,7 +198,7 @@ class RoleDetector(commands.Cog):
         await self.config.guild(ctx.guild).role.set(role.id)
         await ctx.send(cf.success(f"Role set to {role.mention}"))
         await self._build_cache()
-    
+
     @rd.command(name="floorwarden", aliases=["fw"])
     async def rd_fw(self, ctx: commands.Context, role: discord.Role):
         """
