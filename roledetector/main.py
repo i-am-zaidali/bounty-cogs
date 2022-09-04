@@ -121,14 +121,16 @@ class RoleDetector(commands.Cog):
                 if to_add == user.roles:
                     log.debug(f"{user} already has all roles ({cf.humanize_list(to_add)}).")
                     to_add = []
-                    
+
                 elif set.issubset(set(to_add), set(user.roles)):
-                    log.debug(f"{user} has some extra roles apart from the required ones. Removing extra.")
+                    log.debug(
+                        f"{user} has some extra roles apart from the required ones. Removing extra."
+                    )
                     to_remove = set(user.roles).difference(to_add)
                     to_remove.remove(message.guild.default_role)
                     try:
                         await user.remove_roles(*to_remove, reason="RoleDetector")
-                        
+
                     except Exception as e:
                         log.exception(f"Failed to remove roles from {user}.", exc_info=e)
                         failed.append(user.display_name)
@@ -136,7 +138,9 @@ class RoleDetector(commands.Cog):
 
                 else:
                     to_add = list(set(to_add).difference(set(user.roles)))
-                    log.debug(f"{user} has no roles or some roles are missing. Adding roles ({cf.humanize_list(to_add)}).")
+                    log.debug(
+                        f"{user} has no roles or some roles are missing. Adding roles ({cf.humanize_list(to_add)})."
+                    )
                     try:
                         await user.add_roles(*to_add, reason="RoleDetector")
 
@@ -151,7 +155,9 @@ class RoleDetector(commands.Cog):
                 )
 
             if remove:
-                users_to_remove = filter(lambda x: guild_role in x.roles and x not in roles_added, message.guild.members)
+                users_to_remove = filter(
+                    lambda x: guild_role in x.roles and x not in roles_added, message.guild.members
+                )
 
                 bounded_gather(
                     *map(
