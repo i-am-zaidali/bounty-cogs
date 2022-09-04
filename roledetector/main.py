@@ -112,21 +112,38 @@ class RoleDetector(commands.Cog):
 
                 to_add = list(
                     filter(
-                        lambda x: isinstance(x, discord.Role) and x not in user.roles,
+                        lambda x: isinstance(x, discord.Role),
                         [guild_role, rank, cls],
                     )
                 )
                 to_add += [floorwarden] if floorwarden in user.roles else []
 
-                log.debug(f"{user} gets {to_add}")
-
-                if to_add:
+                if to_add == user.roles:
+                    log.debug(f"{user} already has all roles ({cf.humanize_list(to_add)}).")
+                    to_add = []
+                    
+                elif set.issubset(set(to_add), set(user.roles)):
+                    log.debug(f"{user} has some extra roles apart from the required ones. Removing extra.")
+                    to_remove = set(user.roles).difference(to_add)
+                    to_remove.remove(message.guild.default_role)
                     try:
-                        await user.edit(roles=to_add, reason="RoleDetector")
+                        await user.remove_roles(*to_remove, reason="RoleDetector")
+                        
+                    except Exception as e:
+                        log.exception(f"Failed to remove roles from {user}.", exc_info=e)
+                        failed.append(user.display_name)
+                        continue
+
+                else:
+                    to_add = list(set(to_add).difference(set(user.roles)))
+                    log.debug(f"{user} has no roles or some roles are missing. Adding roles ({cf.humanize_list(to_add)}).")
+                    try:
+                        await user.add_roles(*to_add, reason="RoleDetector")
 
                     except Exception as e:
                         log.exception("AAAAAAAAAAAA", exc_info=e)
                         failed.append(user.display_name)
+                        continue
 
                 roles_added.add(user)
                 output_success += (
@@ -134,9 +151,7 @@ class RoleDetector(commands.Cog):
                 )
 
             if remove:
-                users_to_remove = set(
-                    filter(lambda x: guild_role in x.roles, message.guild.members)
-                ).difference(roles_added)
+                users_to_remove = filter(lambda x: guild_role in x.roles and x not in roles_added, message.guild.members)
 
                 bounded_gather(
                     *map(
@@ -146,7 +161,7 @@ class RoleDetector(commands.Cog):
                     limit=5,
                 )
 
-        output = "Successfully added roles to the following users:\n" f"{output_success}\n\n" + (
+        output = "Detected following users in the server:\n" f"{output_success}\n\n" + (
             f"These users were not found so were ignored: \n{cf.humanize_list(not_found)}\n\n"
             if not_found
             else ""
