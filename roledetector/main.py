@@ -188,11 +188,14 @@ class RoleDetector(commands.Cog):
 
         shitter = discord.utils.find(lambda x: x.name.lower() == "shitter", message.guild.roles)
         shitters = "\n".join(
-                        map(
-                            lambda x: f"**{x.display_name}**: {x.mention} ({x.id})",
-                            sorted(filter(lambda x: shitter in x.roles, message.guild.members), key=lambda x: x.display_name),
-                        )
-                    )
+            map(
+                lambda x: f"**{x.display_name}**: {x.mention} ({x.id})",
+                sorted(
+                    filter(lambda x: shitter in x.roles, message.guild.members),
+                    key=lambda x: x.display_name,
+                ),
+            )
+        )
 
         if shitters:
             await message.channel.send(
