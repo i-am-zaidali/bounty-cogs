@@ -183,22 +183,22 @@ class RoleDetector(commands.Cog):
 
         self.cache[message.guild.id]["last_output"] = output
 
-        for p in cf.pagify(output):
+        for p in cf.pagify(output, delims=", ", page_length=4000):
             await message.channel.send(p)
 
         shitter = discord.utils.find(lambda x: x.name.lower() == "shitter", message.guild.roles)
-        shitters = filter(lambda x: shitter in x.roles, message.guild.members)
+        shitters = "\n".join(
+                        map(
+                            lambda x: f"**{x.display_name}**: {x.mention} ({x.id})",
+                            sorted(filter(lambda x: shitter in x.roles, message.guild.members), key=lambda x: x.display_name),
+                        )
+                    )
 
         if shitters:
             await message.channel.send(
                 embed=discord.Embed(
                     title="Shitters",
-                    description="\n".join(
-                        map(
-                            lambda x: f"**{x.display_name}**: {x.mention} ({x.id})",
-                            sorted(shitters, key=lambda x: x.display_name),
-                        )
-                    ),
+                    description=shitters,
                     color=discord.Color.red(),
                 )
             )
