@@ -193,7 +193,12 @@ class RoleDetector(commands.Cog):
             await message.channel.send(
                 embed=discord.Embed(
                     title="Shitters",
-                    description="\n".join(map(lambda x: f"**{x.display_name}**: {x.mention} ({x.id})", sorted(shitters, key=lambda x: x.display_name))),
+                    description="\n".join(
+                        map(
+                            lambda x: f"**{x.display_name}**: {x.mention} ({x.id})",
+                            sorted(shitters, key=lambda x: x.display_name),
+                        )
+                    ),
                     color=discord.Color.red(),
                 )
             )
