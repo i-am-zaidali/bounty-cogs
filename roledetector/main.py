@@ -242,21 +242,21 @@ class RoleDetector(commands.Cog):
             return await ctx.send("There has been no last role detection.")
 
         return await ctx.send(output)
-    
+
     @rd.command(name="listshitters", aliases=["ls", "shitters"])
     async def rd_ls(self, ctx: commands.Context, prefix: str = "/gpromote"):
         """
         See a list of shitters in the server.
-        
+
         The prefix argument is optional and is simply used to add a prefix to the list of names.
         If you don't want a prefix, you can pass None, or False to disable it.
         It is /gpromote by default."""
         if prefix.lower() in ("false", None):
             prefix = ""
-            
+
         else:
             prefix += " "
-            
+
         shitter = discord.utils.find(lambda x: x.name.lower() == "shitter", ctx.guild.roles)
         shitters = "\n".join(
             map(
