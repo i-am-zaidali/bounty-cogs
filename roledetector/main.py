@@ -116,8 +116,6 @@ class RoleDetector(commands.Cog):
                         [guild_role, rank, cls],
                     )
                 )
-                to_add += [floorwarden] if floorwarden in user.roles else []
-
                 if to_add == user.roles:
                     log.debug(f"{user} already has all roles ({cf.humanize_list(to_add)}).")
                     to_add = []
@@ -244,6 +242,41 @@ class RoleDetector(commands.Cog):
             return await ctx.send("There has been no last role detection.")
 
         return await ctx.send(output)
+    
+    @rd.command(name="listshitters", aliases=["ls", "shitters"])
+    async def rd_ls(self, ctx: commands.Context, prefix: str = "/gpromote"):
+        """
+        See a list of shitters in the server.
+        
+        The prefix argument is optional and is simply used to add a prefix to the list of names.
+        If you don't want a prefix, you can pass None, or False to disable it.
+        It is /gpromote by default."""
+        if prefix.lower() in ("false", None):
+            prefix = ""
+            
+        else:
+            prefix += " "
+            
+        shitter = discord.utils.find(lambda x: x.name.lower() == "shitter", ctx.guild.roles)
+        shitters = "\n".join(
+            map(
+                lambda x: f"{prefix}{x.display_name}",
+                sorted(
+                    filter(lambda x: shitter in x.roles, ctx.guild.members),
+                    key=lambda x: x.display_name,
+                ),
+            )
+        )
+
+        if shitters:
+            return await ctx.send(
+                embed=discord.Embed(
+                    description=shitters,
+                    color=discord.Color.red(),
+                )
+            )
+
+        await ctx.send("No shitters found.")
 
     @rd.command(name="show", aliases=["ss", "showsettings"])
     async def rd_ss(self, ctx: commands.Context):
