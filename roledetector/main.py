@@ -30,7 +30,7 @@ class RoleDetector(commands.Cog):
 
     async def _build_cache(self):
         for guild, data in (await self.config.all_guilds()).items():
-            data.update({"last_output": None})
+            data.update({"last_output": None, "floorwarden": None})
             self.cache.update({guild: data})
 
     async def get_member_and_roles(
