@@ -181,7 +181,7 @@ class RoleDetector(commands.Cog):
 
         self.cache[message.guild.id]["last_output"] = output
 
-        for p in cf.pagify(output, delims=", ", page_length=4000):
+        for p in cf.pagify(output, delims=", ", page_length=2000): # istg discord
             await message.channel.send(p)
 
         shitter = discord.utils.find(lambda x: x.name.lower() == "shitter", message.guild.roles)
