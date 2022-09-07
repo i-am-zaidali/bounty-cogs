@@ -154,12 +154,12 @@ class RoleDetector(commands.Cog):
 
             if remove:
                 users_to_remove = filter(
-                    lambda x: guild_role in x.roles and x not in roles_added, message.guild.members
+                    lambda x: x not in roles_added, message.guild.members
                 )
 
                 bounded_gather(
                     *map(
-                        lambda x: x.remove_roles(guild_role, reason="RoleDetector"),
+                        lambda x: x.remove_roles(x.roles, reason="RoleDetector"),
                         users_to_remove,
                     ),
                     limit=5,
@@ -174,7 +174,7 @@ class RoleDetector(commands.Cog):
             if failed
             else ""
         ) + (
-            f"The remaining users are getting the `@{guild_role.name}` role removed from them."
+            f"The remaining users are getting their roles removed from them."
             if remove
             else ""
         )
