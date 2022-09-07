@@ -159,7 +159,7 @@ class RoleDetector(commands.Cog):
 
                 bounded_gather(
                     *map(
-                        lambda x: x.remove_roles(x.roles, reason="RoleDetector"),
+                        lambda x: x.remove_roles(*filter(lambda y: not y.is_default(), x.roles), reason="RoleDetector"),
                         users_to_remove,
                     ),
                     limit=5,
