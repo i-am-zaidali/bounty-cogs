@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Optional, Set, TypedDict
+from typing import Dict, List, Optional, Set, TypedDict, Iterable
 
 import discord
 from redbot.core import Config, commands
@@ -135,12 +135,11 @@ class RoleDetector(commands.Cog):
                         continue
 
                 else:
-                    to_add = list(set(to_add).difference(set(user.roles)))
                     log.debug(
                         f"{user} has no roles or some roles are missing. Adding roles ({cf.humanize_list(to_add)})."
                     )
                     try:
-                        await user.add_roles(*to_add, reason="RoleDetector")
+                        await user.edit(roles=to_add, reason="RoleDetector")
 
                     except Exception as e:
                         log.exception("AAAAAAAAAAAA", exc_info=e)
