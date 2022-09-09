@@ -563,7 +563,7 @@ class EventManager(commands.Cog):
                 if event.pings >= 3:
                     return
 
-                if (td := (event.end_time-datetime.now())).total_seconds() < self.HOUR:
+                if (td := (event.end_time - datetime.now())).total_seconds() < self.HOUR:
                     if td.total_seconds() < self.HALF_HOUR:
                         if td.total_seconds() < self.QUARTER_HOUR:
                             if event.pings >= 3:
