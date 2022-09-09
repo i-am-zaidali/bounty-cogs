@@ -141,7 +141,11 @@ class RepManager(commands.Cog):
         Add a certain amount of reputation to a user.
         """
 
-        members: typing.List[discord.Member] = [member for member in members_or_voice.members] if isinstance(members_or_voice, discord.VoiceChannel) else members_or_voice
+        members: typing.List[discord.Member] = (
+            [member for member in members_or_voice.members]
+            if isinstance(members_or_voice, discord.VoiceChannel)
+            else members_or_voice
+        )
 
         for member in members:
             rep = self.cache.setdefault(ctx.guild.id, {}).setdefault(member.id, 0)
