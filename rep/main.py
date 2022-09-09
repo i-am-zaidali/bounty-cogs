@@ -258,6 +258,7 @@ class RepManager(commands.Cog):
         Pass False/0 to show the leaderboard from lowest to highest instead.
         """
 
+        amount = amount or 10
         if amount < 1:
             return await ctx.maybe_send_embed("You must specify an amount greater than 0.")
 
