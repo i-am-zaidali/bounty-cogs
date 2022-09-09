@@ -1,4 +1,5 @@
 import asyncio
+import itertools
 import typing
 
 import discord
@@ -27,7 +28,7 @@ class RepManager(commands.Cog):
     REMOVE = "removed"
     RESET = "resetted"
 
-    __version__ = "1.0.1"
+    __version__ = "1.1.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -133,19 +134,19 @@ class RepManager(commands.Cog):
         self,
         ctx: commands.Context,
         amount: float,
-        members_or_voice: typing.Union[discord.VoiceChannel, commands.Greedy[discord.Member]],
+        members_or_voice: commands.Greedy[typing.Union[discord.VoiceChannel, discord.Member]],
         *,
         reason: str,
     ):
         """
         Add a certain amount of reputation to a user.
         """
-
-        members: typing.List[discord.Member] = (
-            members_or_voice.members
-            if isinstance(members_or_voice, discord.VoiceChannel)
-            else members_or_voice
-        )
+        
+        voice_channels = list(filter(lambda x: isinstance(x, discord.VoiceChannel), members_or_voice))
+        members: typing.Set[discord.Member] = list(filter(lambda x: isinstance(x, discord.Member), members_or_voice))
+        members.extend(itertools.chain.from_iterable(map(lambda x: x.members, voice_channels)))
+        
+        members = set(members)
 
         if not members:
             return await ctx.send_help()
