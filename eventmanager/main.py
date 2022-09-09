@@ -563,7 +563,7 @@ class EventManager(commands.Cog):
                 if event.pings >= 3:
                     return
 
-                if (td := (datetime.now() - event.end_time)).total_seconds() < self.HOUR:
+                if (td := (event.end_time-datetime.now())).total_seconds() < self.HOUR:
                     if td.total_seconds() < self.HALF_HOUR:
                         if td.total_seconds() < self.QUARTER_HOUR:
                             if event.pings >= 3:
@@ -597,4 +597,4 @@ class EventManager(commands.Cog):
     @check_events.before_loop
     async def before(self):
         await self.bot.wait_until_red_ready()
-        await asyncio.sleep(60)  # wait until all events are cached first
+        await self.to_cache()
