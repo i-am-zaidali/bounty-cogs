@@ -141,11 +141,15 @@ class RepManager(commands.Cog):
         """
         Add a certain amount of reputation to a user.
         """
-        
-        voice_channels = list(filter(lambda x: isinstance(x, discord.VoiceChannel), members_or_voice))
-        members: typing.Set[discord.Member] = list(filter(lambda x: isinstance(x, discord.Member), members_or_voice))
+
+        voice_channels = list(
+            filter(lambda x: isinstance(x, discord.VoiceChannel), members_or_voice)
+        )
+        members: typing.Set[discord.Member] = list(
+            filter(lambda x: isinstance(x, discord.Member), members_or_voice)
+        )
         members.extend(itertools.chain.from_iterable(map(lambda x: x.members, voice_channels)))
-        
+
         members = set(members)
 
         if not members:
