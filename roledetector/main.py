@@ -115,7 +115,14 @@ class RoleDetector(commands.Cog):
                         [guild_role, rank, cls],
                     )
                 )
-                to_add.extend(filter(lambda x: x.is_integration() or x.is_bot_managed() or x.is_premium_subscriber(), user.roles))
+                to_add.extend(
+                    filter(
+                        lambda x: x.is_integration()
+                        or x.is_bot_managed()
+                        or x.is_premium_subscriber(),
+                        user.roles,
+                    )
+                )
                 if to_add == user.roles:
                     log.debug(f"{user} already has all roles ({cf.humanize_list(to_add)}).")
                     to_add = []
@@ -152,7 +159,9 @@ class RoleDetector(commands.Cog):
                 )
 
             if remove:
-                users_to_remove = filter(lambda x: x not in roles_added and x not in failed, message.guild.members)
+                users_to_remove = filter(
+                    lambda x: x not in roles_added and x not in failed, message.guild.members
+                )
 
                 bounded_gather(
                     *map(
