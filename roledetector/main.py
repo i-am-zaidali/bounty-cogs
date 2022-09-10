@@ -241,23 +241,28 @@ class RoleDetector(commands.Cog):
         return await ctx.send(output)
 
     @rd.command(name="listshitters", aliases=["ls", "shitters"])
-    async def rd_ls(self, ctx: commands.Context, prefix: str = "/gpromote"):
+    async def rd_ls(self, ctx: commands.Context, prefix: str = "/gpromote", suffix: str = "-Whitemane"):
         """
         See a list of shitters in the server.
 
-        The prefix argument is optional and is simply used to add a prefix to the list of names.
-        If you don't want a prefix, you can pass None, or False to disable it.
-        It is /gpromote by default."""
-        if prefix.lower() in ("false", None):
+        The prefix and suffix arguments are optional.
+        The former is used to add a prefix to the list of names.
+        and the latter is used to add a suffix to each individual name without space.
+        If you don't want a prefix or suffix, you can pass None, or False to disable it.
+        It is /gpromote and -Whitemane by default."""
+        if prefix.lower() in ("false", "None"):
             prefix = ""
 
         else:
             prefix += " "
+            
+        if suffix.lower() in ("false", "None"):
+            suffix = ""
 
         shitter = discord.utils.find(lambda x: x.name.lower() == "shitter", ctx.guild.roles)
         shitters = "\n".join(
             map(
-                lambda x: f"{prefix}{x.display_name}",
+                lambda x: f"{prefix}{x.display_name}{suffix}",
                 sorted(
                     filter(lambda x: shitter in x.roles, ctx.guild.members),
                     key=lambda x: x.display_name,
