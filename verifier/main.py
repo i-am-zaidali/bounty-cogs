@@ -156,7 +156,7 @@ class Verifier(commands.Cog):
         )
 
     @commands.Cog.listener()
-    async def on_guild_remove(self, member: discord.Member):
+    async def on_member_remove(self, member: discord.Member):
         if not member.guild.id in self.cache:
             return
 
