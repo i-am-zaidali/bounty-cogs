@@ -271,11 +271,15 @@ class RoleDetector(commands.Cog):
         )
 
         if shitters:
+            embed = discord.Embed(
+                title="Shitters of the server.",
+                color=discord.Color.red(),
+            )
+            for page in cf.pagify(shitters, page_length=255):
+                embed.add_field(name="\u200b", value=page, inline=False)
+                
             return await ctx.send(
-                embed=discord.Embed(
-                    description=shitters,
-                    color=discord.Color.red(),
-                )
+                embed=embed
             )
 
         await ctx.send("No shitters found.")
