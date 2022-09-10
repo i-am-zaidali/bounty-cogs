@@ -279,10 +279,8 @@ class RoleDetector(commands.Cog):
             )
             for page in cf.pagify(shitters, page_length=255):
                 embed.add_field(name="\u200b", value=page, inline=False)
-                
-            return await ctx.send(
-                embed=embed
-            )
+
+            return await ctx.send(embed=embed)
 
         await ctx.send("No shitters found.")
 
