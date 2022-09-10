@@ -241,7 +241,9 @@ class RoleDetector(commands.Cog):
         return await ctx.send(output)
 
     @rd.command(name="listshitters", aliases=["ls", "shitters"])
-    async def rd_ls(self, ctx: commands.Context, prefix: str = "/gpromote", suffix: str = "-Whitemane"):
+    async def rd_ls(
+        self, ctx: commands.Context, prefix: str = "/gpromote", suffix: str = "-Whitemane"
+    ):
         """
         See a list of shitters in the server.
 
@@ -255,7 +257,7 @@ class RoleDetector(commands.Cog):
 
         else:
             prefix += " "
-            
+
         if suffix.lower() in ("false", "None"):
             suffix = ""
 
