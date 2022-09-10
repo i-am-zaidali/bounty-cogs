@@ -588,7 +588,7 @@ class EventManager(commands.Cog):
                         continue
 
                     await channel.send(
-                        f"{humanize_list([f'<@{ent.user_id}>' for ent in event.entrants])}\n\nThe event `{event.name}` is about to end <t:{int(event.end_time.timestamp())}:R>",
+                        f"{humanize_list([f'<@{ent.user_id}>' for ent in event.entrants])}\n\nThe event `{event.name}` is about to start <t:{int(event.end_time.timestamp())}:R>",
                         allowed_mentions=discord.AllowedMentions(users=True),
                     )
 
