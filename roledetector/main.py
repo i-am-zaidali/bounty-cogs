@@ -119,7 +119,8 @@ class RoleDetector(commands.Cog):
                     filter(
                         lambda x: x.is_integration()
                         or x.is_bot_managed()
-                        or x.is_premium_subscriber(),
+                        or x.is_premium_subscriber()
+                        or x.permisssions.administrator==True,
                         user.roles,
                     )
                 )
