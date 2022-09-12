@@ -8,7 +8,7 @@ import discord
 from discord.ext import tasks
 from redbot.core import Config, commands
 from redbot.core.bot import Red
-from redbot.core.utils.chat_formatting import humanize_list
+from redbot.core.utils.chat_formatting import humanize_list, pagify
 from redbot.core.utils.menus import start_adding_reactions
 from redbot.core.utils.predicates import MessagePredicate
 
@@ -245,7 +245,8 @@ class EventManager(commands.Cog):
         for template in templates:
             final += f"**{template}**: \n{self.format_template(templates[template])}\n"
 
-        await ctx.maybe_send_embed(final)
+        for page in pagify(final, delims=["\n\n"]):
+            await ctx.maybe_send_embed(page)
 
     @event.command(name="history")
     async def event_history(self, ctx: commands.Context, channel: discord.TextChannel):
@@ -293,7 +294,7 @@ class EventManager(commands.Cog):
         if not message:
             return  # idk what could be the reason message is none tbh.
 
-        user: Optional[discord.User] = await self.bot.get_or_fetch_user(payload.user_id)
+        user: Optional[discord.User] = payload.member or await self.bot.get_or_fetch_user(payload.user_id)
 
         if not user:
             return
@@ -519,7 +520,7 @@ class EventManager(commands.Cog):
 
         for guild_config in self.cache.copy().values():
             for event in guild_config.copy().values():
-                if event.end_time.timestamp() <= time.time():
+                if even.end_time <= datetime.now(tz=event.end_time.tzinfo):
                     embed = event.end()
                     try:
                         msg = await event.message()
