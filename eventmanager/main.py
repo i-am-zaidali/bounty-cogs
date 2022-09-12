@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import time
 from datetime import datetime
 from typing import Dict, List, Optional, Union
 
@@ -294,7 +293,9 @@ class EventManager(commands.Cog):
         if not message:
             return  # idk what could be the reason message is none tbh.
 
-        user: Optional[discord.User] = payload.member or await self.bot.get_or_fetch_user(payload.user_id)
+        user: Optional[discord.User] = payload.member or await self.bot.get_or_fetch_user(
+            payload.user_id
+        )
 
         if not user:
             return
