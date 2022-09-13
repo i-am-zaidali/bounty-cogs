@@ -551,7 +551,7 @@ class EventManager(commands.Cog):
                         chan_id := await self.config.guild_from_id(
                             event.guild_id
                         ).history_channel()
-                    ) and (chan := msg.guild.get_channel(int(chan_id))):
+                    ) and (chan := event.guild.get_channel(int(chan_id))):
                         await chan.send(embed=embed)
                         try:
                             await msg.delete()
