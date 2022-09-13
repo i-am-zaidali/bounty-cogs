@@ -35,15 +35,11 @@ class_spec_dict: typing.Dict[
                 "emoji": "<:blood:975436654322008064>",  # emoji edit here
             },
             "Frost": {
-                "categories": (
-                    Category.MELEE,
-                ),
+                "categories": (Category.MELEE,),
                 "emoji": "<:dfrost:975462630582022256>",  # emoji edit here
             },
             "Unholy": {
-                "categories": (
-                    Category.MELEE,
-                ),
+                "categories": (Category.MELEE,),
                 "emoji": "<:unholy:975436654108082226>",  # emoji edit here
             },
         }
