@@ -521,7 +521,7 @@ class EventManager(commands.Cog):
 
         for guild_config in self.cache.copy().values():
             for event in guild_config.copy().values():
-                if even.end_time <= datetime.now(tz=event.end_time.tzinfo):
+                if event.end_time <= datetime.now(tz=event.end_time.tzinfo):
                     embed = event.end()
                     try:
                         msg = await event.message()
