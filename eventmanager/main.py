@@ -547,11 +547,14 @@ class EventManager(commands.Cog):
                         del self.cache[event.guild_id][event.message_id]
                         continue
 
-                    if (chan_id := await self.config.guild(msg.guild).history_channel()) and (
+                    if (chan_id := await self.config.guild_from_id(event.guild_id).history_channel()) and (
                         chan := msg.guild.get_channel(int(chan_id))
                     ):
                         await chan.send(embed=embed)
-                        await msg.delete()
+                        try:
+                            await msg.delete()
+                        except Excepion:
+                            pass
 
                     else:
                         await msg.edit(embed=embed)
