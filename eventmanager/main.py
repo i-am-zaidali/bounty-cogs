@@ -257,10 +257,54 @@ class EventManager(commands.Cog):
         await ctx.tick()
 
     @commands.command(name="sr", aliases=["softres"])
-    async def event_sr(self, ctx: commands.Context, *, dungeon: commands.Literal["aq20", "aq40", "mc", "bwl", "onyxia", "zg", "dragonsofnightmare", "naxxramas", "kara", "magtheridon", "gruul", "doomwalker", "doomlordkazzak", "worldbosses", "gruulmag", "ssc", "tempestkeep", "ssctempestkeep", "hyjal", "blacktemple", "bthyjal", "za", "sunwellplateau"], reserves: int, lock: bool= False, linkid: str= None):
+    async def event_sr(
+        self,
+        ctx: commands.Context,
+        *,
+        dungeon: commands.Literal[
+            "aq20",
+            "aq40",
+            "mc",
+            "bwl",
+            "onyxia",
+            "zg",
+            "dragonsofnightmare",
+            "naxxramas",
+            "kara",
+            "magtheridon",
+            "gruul",
+            "doomwalker",
+            "doomlordkazzak",
+            "worldbosses",
+            "gruulmag",
+            "ssc",
+            "tempestkeep",
+            "ssctempestkeep",
+            "hyjal",
+            "blacktemple",
+            "bthyjal",
+            "za",
+            "sunwellplateau",
+        ],
+        reserves: int,
+        lock: bool = False,
+        linkid: str = None,
+    ):
         """
         Create a softres event link."""
-        args = {'faction': 'Horde', 'instance': dungeon, 'edition': 'tbc', 'lock': lock, 'amount': reserves, 'note': '', 'raidDate': datetime.now().isoformat(), 'allowDuplicate': False, 'hideReserves': False, 'characterNotes': False, 'restrictByClass': False}
+        args = {
+            "faction": "Horde",
+            "instance": dungeon,
+            "edition": "tbc",
+            "lock": lock,
+            "amount": reserves,
+            "note": "",
+            "raidDate": datetime.now().isoformat(),
+            "allowDuplicate": False,
+            "hideReserves": False,
+            "characterNotes": False,
+            "restrictByClass": False,
+        }
         args["discord"] = True
         args["discordId"] = str(ctx.author.id)
         try:
