@@ -318,8 +318,10 @@ class EventManager(commands.Cog):
 
         token, id = await self.softres.create_raid(**args)
 
+        await ctx.send(f"The link to the softres is: https://softres.it/raid/{id}")
+
         return await ctx.author.send(
-            f"Your raid token is `{token}`. The link to the softres is: https://softres.it/raid/{id}"
+            f"Your raid token is `{token}`."
         )
 
     @commands.command(name="gargul")
