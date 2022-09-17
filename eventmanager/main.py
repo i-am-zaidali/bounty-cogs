@@ -260,7 +260,6 @@ class EventManager(commands.Cog):
     async def event_sr(
         self,
         ctx: commands.Context,
-        *,
         dungeon: commands.Literal[
             "aq20",
             "aq40",
