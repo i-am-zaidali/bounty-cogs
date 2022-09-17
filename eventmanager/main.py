@@ -13,6 +13,7 @@ from redbot.core.utils.predicates import MessagePredicate
 
 from .constants import Category, class_spec_dict, emoji_class_dict
 from .model import Event, Flags
+from .wrapper import SoftRes, SRFlags
 
 log = logging.getLogger("red.misan-cogs.eventmanager")
 
@@ -33,10 +34,12 @@ class EventManager(commands.Cog):
         self.config = Config.get_conf(self, identifier=0x352567829, force_registration=True)
         self.config.init_custom("events", 2)
         self.config.init_custom("templates", 2)
+        self.config.init_custom("softres", 2)
         self.config.register_member(spec_class=())
         self.config.register_guild(history_channel=None)
         self.cache: Dict[int, Dict[int, Event]] = {}
         self.task = self.check_events.start()
+        self.softres = SoftRes(self.bot)
 
     def format_help_for_context(self, ctx: commands.Context) -> str:
         pre_processed = super().format_help_for_context(ctx) or ""
@@ -68,6 +71,7 @@ class EventManager(commands.Cog):
     def cog_unload(self):
         asyncio.create_task(self.to_config())
         self.task.cancel()
+        asyncio.create_task(self.softres._session.close())
 
     def validate_flags(self, flags: dict):
         return all((flags.get("name"), flags.get("description"), flags.get("end_time")))
@@ -251,6 +255,45 @@ class EventManager(commands.Cog):
     async def event_history(self, ctx: commands.Context, channel: discord.TextChannel):
         await self.config.guild(ctx.guild).history_channel.set(channel.id)
         await ctx.tick()
+        
+    @event.command(name="sr", aliases=["softres"])
+    async def event_sr(self, ctx: commands.Context, *, args: SRFlags):
+        """
+        Create a softres event link.
+        
+        Allowed arguments are: 
+        `--faction` - The faction of the event - Alliance or Horde [default]
+        `--instance` - The raid instance - aq20, aq40, mc, bwl, onyxia, zg, dragonsofnightmare, naxxramas, kara, magtheridon, gruul, doomwalker, doomlordkazzak, worldbosses, gruulmag, ssc, tempestkeep, ssctempestkeep, hyjal, blacktemple, bthyjal, za, or sunwellplateau
+        `--edition` - The edition of the event - classic, tbc, or wotlk [default]
+        `--discord-invite` - The discord invite for the event.
+        `--lock` - Whether to lock the event or not - no argument
+        `--amount` - per character soft reserve limit - any number between 1[default] and 10
+        `--note` - A note to add to the event.
+        `--date` - The date of the event - any date format that discord can parse
+        `--allow-duplicate` - Whether to allow duplicate items to be soft reserved - no argument
+        `--hide-reserves` - Whether to hide reserves from the embed - no argument
+        `--item-limit` - The maximum amount of items that can be soft reserved - any number between 0 and 10
+        `--plus-modifier` - The plus modifier for the event - any number between 0 and 25
+        `--plus-type` - The plus type for the event - 0 or 1
+        `--character-notes` - Whether to allow character notes - no argument
+        `--restrict-by-class` - Whether to restrict by class - no argument"""
+        args["discord"] = True
+        args["discordId"] = str(ctx.author.id)
+        try:
+            args["discordInvite"] = (await ctx.guild.vanity_invite() or (await ctx.guild.invites())[0]).url
+        
+        except Exception:
+            pass
+        
+        # await ctx.send(str(args))
+        
+        token, id = await self.softres.create_raid(**args)
+        
+        return await ctx.author.send(f"Your raid token is `{token}`. The link to the softres is: https://softres.it/raid/{id}")
+    
+    @event.command(name="gargul")
+    async def event_gargul(self, ctx: commands.Context, raid_id: str, token: str):
+        return await ctx.author.send(f"The gargul data recieved for this raid is:\n{await self.softres.get_gargul_data(token, raid_id)}")
 
     async def remove_reactions_safely(
         self, message: discord.Message, emoji: str, user: discord.User
@@ -263,7 +306,7 @@ class EventManager(commands.Cog):
         return
 
     @commands.Cog.listener()
-    async def on_member_leave(self, member: discord.Member):
+    async def on_member_remove(self, member: discord.Member):
         if member.guild.id not in self.cache:
             return
 
@@ -555,7 +598,7 @@ class EventManager(commands.Cog):
                         await chan.send(embed=embed)
                         try:
                             await msg.delete()
-                        except Excepion:
+                        except Exception:
                             pass
 
                     else:

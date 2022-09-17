@@ -24,6 +24,7 @@ class Event:
         end_time: datetime,
         image_url: str,
         description2: str = "",
+        softres: str = "",
         start_time: typing.Optional[datetime] = None,
         pings: int = 0,
     ) -> None:
@@ -36,6 +37,7 @@ class Event:
         self.channel_id = channel_id
         self.description = description
         self.description2 = description2
+        self.softres = softres
         self.start_time = start_time or datetime.now()
         self.end_time = end_time
         self.image_url = image_url
@@ -111,6 +113,9 @@ class Event:
             ),
             inline=False,
         )
+        
+        if self.softres:
+            embed.add_field(name="Softres link:", value=self.softres, inline=False)
 
         if self.description2:
             embed.add_field(name="Additional Information:", value=self.description2, inline=False)
@@ -272,6 +277,15 @@ class NoExitParser(ArgumentParser):
     def error(self, message):
         raise commands.BadArgument(message)
 
+def validate_end_time(date: list[str]):
+    if not (time := dateparser.parse(" ".join(date))):
+        print(date)
+        raise commands.BadArgument("Invalid end time.")
+
+    if time.timestamp() < datetime.now().timestamp():
+        raise commands.BadArgument("The end time must be in the future.")
+    
+    return time
 
 class Flags(commands.Converter):
     async def convert(self, ctx, argument: str):
@@ -340,6 +354,12 @@ class Flags(commands.Converter):
             nargs="+",
             default=None,
         )
+        parser.add_argument(
+            "--softres",
+            "-sr",
+            type=str,
+            dest="softres"
+        )
 
         try:
             flags = vars(parser.parse_args(argument.split(" ")))
@@ -361,13 +381,9 @@ class Flags(commands.Converter):
         f = template or flags
 
         if flags.get("end"):
-            if not (time := dateparser.parse(" ".join(flags["end"]))):
-                raise commands.BadArgument("Invalid end time.")
+            time = validate_end_time(flags.get("end"))
 
-            if time.timestamp() < datetime.now().timestamp():
-                raise commands.BadArgument("The end time must be in the future.")
-
-            f["end_time"] = time.replace()
+            f["end_time"] = time
 
         f["name"] = " ".join(flags["name"]) or f.get("name")
         f["description"] = " ".join(flags["description"]) or f.get("description")
