@@ -35,7 +35,7 @@ class SoftRes:
 
     async def create_raid(self, **kwargs) -> Tuple[str, str]:
         if not "faction" in kwargs:
-            kwargs["faction"] = "Alliance"
+            kwargs["faction"] = "Horde"
 
         if not "instance" in kwargs:
             raise KeyError("Missing instance")
