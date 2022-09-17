@@ -320,9 +320,7 @@ class EventManager(commands.Cog):
 
         await ctx.send(f"The link to the softres is: https://softres.it/raid/{id}")
 
-        return await ctx.author.send(
-            f"Your raid token is `{token}`."
-        )
+        return await ctx.author.send(f"Your raid token is `{token}`.")
 
     @commands.command(name="gargul")
     async def event_gargul(self, ctx: commands.Context, raid_id: str, token: str):
