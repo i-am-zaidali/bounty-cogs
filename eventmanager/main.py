@@ -26,7 +26,7 @@ class EventManager(commands.Cog):
 
     """A cog to create and manage events."""
 
-    __version__ = "1.3.1"
+    __version__ = "1.6.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
