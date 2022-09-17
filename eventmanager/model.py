@@ -113,7 +113,7 @@ class Event:
             ),
             inline=False,
         )
-        
+
         if self.softres:
             embed.add_field(name="Softres link:", value=self.softres, inline=False)
 
@@ -277,6 +277,7 @@ class NoExitParser(ArgumentParser):
     def error(self, message):
         raise commands.BadArgument(message)
 
+
 def validate_end_time(date: list[str]):
     if not (time := dateparser.parse(" ".join(date))):
         print(date)
@@ -284,8 +285,9 @@ def validate_end_time(date: list[str]):
 
     if time.timestamp() < datetime.now().timestamp():
         raise commands.BadArgument("The end time must be in the future.")
-    
+
     return time
+
 
 class Flags(commands.Converter):
     async def convert(self, ctx, argument: str):
@@ -354,12 +356,7 @@ class Flags(commands.Converter):
             nargs="+",
             default=None,
         )
-        parser.add_argument(
-            "--softres",
-            "-sr",
-            type=str,
-            dest="softres"
-        )
+        parser.add_argument("--softres", "-sr", type=str, dest="softres")
 
         try:
             flags = vars(parser.parse_args(argument.split(" ")))
