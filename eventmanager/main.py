@@ -257,26 +257,10 @@ class EventManager(commands.Cog):
         await ctx.tick()
 
     @commands.command(name="sr", aliases=["softres"])
-    async def event_sr(self, ctx: commands.Context, *, args: SRFlags):
+    async def event_sr(self, ctx: commands.Context, *, dungeon: commands.Literal["aq20", "aq40", "mc", "bwl", "onyxia", "zg", "dragonsofnightmare", "naxxramas", "kara", "magtheridon", "gruul", "doomwalker", "doomlordkazzak", "worldbosses", "gruulmag", "ssc", "tempestkeep", "ssctempestkeep", "hyjal", "blacktemple", "bthyjal", "za", "sunwellplateau"], reserves: int, lock: bool= False, linkid: str= None):
         """
-        Create a softres event link.
-
-        Allowed arguments are:
-        `--faction` - The faction of the event - Alliance or Horde [default]
-        `--instance` - The raid instance - aq20, aq40, mc, bwl, onyxia, zg, dragonsofnightmare, naxxramas, kara, magtheridon, gruul, doomwalker, doomlordkazzak, worldbosses, gruulmag, ssc, tempestkeep, ssctempestkeep, hyjal, blacktemple, bthyjal, za, or sunwellplateau
-        `--edition` - The edition of the event - classic, tbc, or wotlk [default]
-        `--discord-invite` - The discord invite for the event.
-        `--lock` - Whether to lock the event or not - no argument
-        `--amount` - per character soft reserve limit - any number between 1[default] and 10
-        `--note` - A note to add to the event.
-        `--date` - The date of the event - any date format that discord can parse
-        `--allow-duplicate` - Whether to allow duplicate items to be soft reserved - no argument
-        `--hide-reserves` - Whether to hide reserves from the embed - no argument
-        `--item-limit` - The maximum amount of items that can be soft reserved - any number between 0 and 10
-        `--plus-modifier` - The plus modifier for the event - any number between 0 and 25
-        `--plus-type` - The plus type for the event - 0 or 1
-        `--character-notes` - Whether to allow character notes - no argument
-        `--restrict-by-class` - Whether to restrict by class - no argument"""
+        Create a softres event link."""
+        args = {'faction': 'Horde', 'instance': dungeon, 'edition': 'tbc', 'lock': lock, 'amount': reserves, 'note': '', 'raidDate': datetime.now().isoformat(), 'allowDuplicate': False, 'hideReserves': False, 'characterNotes': False, 'restrictByClass': False}
         args["discord"] = True
         args["discordId"] = str(ctx.author.id)
         try:
