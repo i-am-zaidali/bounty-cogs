@@ -138,7 +138,9 @@ class SRFlags(commands.Converter):
     )
     _parser.add_argument("--pt", "--plus-type", type=int, dest="plusType", choices=range(0, 2))
     _parser.add_argument("--cn", "--character-notes", action="store_true", dest="characterNotes")
-    _parser.add_argument("--rc", "--restrict-by-class", action="store_true", dest="restrictByClass")
+    _parser.add_argument(
+        "--rc", "--restrict-by-class", action="store_true", dest="restrictByClass"
+    )
 
     async def convert(self, ctx: commands.Context, argument: str) -> Dict:
         v = vars(self._parser.parse_args(argument.split(" ")))
