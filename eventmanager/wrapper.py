@@ -93,7 +93,7 @@ class SRFlags(commands.Converter):
         "-f", "--faction", choices=["Alliance", "Horde"], dest="faction", default="Horde"
     )
     _parser.add_argument(
-        "-i",
+        "--i",
         "--instance",
         type=str.lower,
         choices=[
@@ -123,22 +123,22 @@ class SRFlags(commands.Converter):
         ],
         required=True,
     )
-    _parser.add_argument("-e", "--edition", choices=["classic", "tbc", "wotlk"], default="tbc")
-    _parser.add_argument("-di", "--discord-invite", dest="discordInvite", default="")
-    _parser.add_argument("-l", "--lock", action="store_true")
-    _parser.add_argument("-a", "--amount", type=int, choices=range(1, 11), default=1)
-    _parser.add_argument("-p", "--preset", type=int, choices=range(0, 6))
-    _parser.add_argument("-n", "--note", default="")
-    _parser.add_argument("-d", "--date", nargs="+", dest="raidDate")
-    _parser.add_argument("-ad", "--allow-duplicate", action="store_true", dest="allowDuplicate")
-    _parser.add_argument("-hr", "--hide-reserves", action="store_true", dest="hideReserves")
-    _parser.add_argument("-il", "--item-limit", type=int, dest="itemLimit", choices=range(0, 11))
+    _parser.add_argument("--e", "--edition", choices=["classic", "tbc", "wotlk"], default="tbc")
+    _parser.add_argument("--di", "--discord-invite", dest="discordInvite", default="")
+    _parser.add_argument("--l", "--lock", action="store_true")
+    _parser.add_argument("--a", "--amount", type=int, choices=range(1, 11), default=1)
+    _parser.add_argument("--p", "--preset", type=int, choices=range(0, 6))
+    _parser.add_argument("--n", "--note", default="")
+    _parser.add_argument("--d", "--date", nargs="+", dest="raidDate")
+    _parser.add_argument("--ad", "--allow-duplicate", action="store_true", dest="allowDuplicate")
+    _parser.add_argument("--hr", "--hide-reserves", action="store_true", dest="hideReserves")
+    _parser.add_argument("--il", "--item-limit", type=int, dest="itemLimit", choices=range(0, 11))
     _parser.add_argument(
-        "-pm", "--plus-modifier", type=int, dest="plusModifier", choices=range(1, 26)
+        "--pm", "--plus-modifier", type=int, dest="plusModifier", choices=range(1, 26)
     )
-    _parser.add_argument("-pt", "--plus-type", type=int, dest="plusType", choices=range(0, 2))
-    _parser.add_argument("-cn", "--character-notes", action="store_true", dest="characterNotes")
-    _parser.add_argument("-rc", "--restrict-by-class", action="store_true", dest="restrictByClass")
+    _parser.add_argument("--pt", "--plus-type", type=int, dest="plusType", choices=range(0, 2))
+    _parser.add_argument("--cn", "--character-notes", action="store_true", dest="characterNotes")
+    _parser.add_argument("--rc", "--restrict-by-class", action="store_true", dest="restrictByClass")
 
     async def convert(self, ctx: commands.Context, argument: str) -> Dict:
         v = vars(self._parser.parse_args(argument.split(" ")))
