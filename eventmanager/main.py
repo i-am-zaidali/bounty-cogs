@@ -256,7 +256,7 @@ class EventManager(commands.Cog):
         await self.config.guild(ctx.guild).history_channel.set(channel.id)
         await ctx.tick()
 
-    @event.command(name="sr", aliases=["softres"])
+    @commands.command(name="sr", aliases=["softres"])
     async def event_sr(self, ctx: commands.Context, *, args: SRFlags):
         """
         Create a softres event link.
@@ -295,7 +295,7 @@ class EventManager(commands.Cog):
             f"Your raid token is `{token}`. The link to the softres is: https://softres.it/raid/{id}"
         )
 
-    @event.command(name="gargul")
+    @commands.command(name="gargul")
     async def event_gargul(self, ctx: commands.Context, raid_id: str, token: str):
         return await ctx.author.send(
             f"The gargul data recieved for this raid is:\n{await self.softres.get_gargul_data(token, raid_id)}"
