@@ -53,7 +53,7 @@ class SoftRes:
 
     async def get_raid(self, token: str, raid_id: str):
         return await self._request(
-            self.RAID_GET + f"/{raid_id}", method="GET"#, json={"token": token, "id": raid_id}
+            self.RAID_GET + f"/{raid_id}", method="GET"  # , json={"token": token, "id": raid_id}
         )
 
     async def get_gargul_data(self, token: str, raid_id: str) -> str:
