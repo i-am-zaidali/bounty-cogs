@@ -17,7 +17,6 @@ class SoftRes:
     RAID_VERIFYDISCORD = BASE_URL + "raid/verifydiscord"
     RAID_UPDATE = BASE_URL + "raid/update"
     RAID_PLUS = BASE_URL + "raid/plus"
-    RAID_SECURE = BASE_URL + "raid/secure"
 
     def __init__(self, bot: Red, session: Optional[aiohttp.ClientSession] = None):
         self.bot = bot
@@ -50,11 +49,11 @@ class SoftRes:
 
         await self._request(self.RAID_UPDATE, method="POST", json=kwargs)
 
-        return await self.get_raid(kwargs["token"], kwargs["raidId"])
+        return await self.get_raid(kwargs["token"], kwargs["raid"]["raidId"])
 
     async def get_raid(self, token: str, raid_id: str):
         return await self._request(
-            self.RAID_SECURE, method="POST", json={"token": token, "raidId": raid_id}
+            self.RAID_GET + f"/{raid_id}", method="GET"#, json={"token": token, "id": raid_id}
         )
 
     async def get_gargul_data(self, token: str, raid_id: str) -> str:
