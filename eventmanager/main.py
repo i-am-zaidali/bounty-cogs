@@ -320,6 +320,7 @@ class EventManager(commands.Cog):
         return await ctx.author.send(f"Your raid token is `{token}`.")
     
     @sr.command(name="lock")
+    @commands.dm_only()
     async def sr_lock(self, ctx: commands.Context, raid_id: str, token: str):
         """
         Lock a softres event."""
@@ -327,6 +328,7 @@ class EventManager(commands.Cog):
         await ctx.tick()
         
     @sr.command(name="unlock")
+    @commands.dm_only()
     async def sr_unlock(self, ctx: commands.Context, raid_id: str, token: str):
         """
         Unlock a softres event."""
@@ -334,6 +336,7 @@ class EventManager(commands.Cog):
         await ctx.tick()
 
     @sr.command(name="gargul")
+    @commands.dm_only()
     async def sr_gargul(self, ctx: commands.Context, raid_id: str, token: str):
         return await ctx.author.send(
             f"The gargul data recieved for this raid is:\n{await self.softres.get_gargul_data(token, raid_id)}"
