@@ -261,29 +261,29 @@ class EventManager(commands.Cog):
         self,
         ctx: commands.Context,
         dungeon: commands.Literal[
-            'aq20',
-            'aq40',
-            'mc',
-            'bwl',
-            'onyxia',
-            'zg',
-            'dragonsofnightmare',
-            'naxxramas',
-            'kara',
-            'magtheridon',
-            'gruul',
-            'doomwalker',
-            'doomlordkazzak',
-            'worldbosses',
-            'gruulmag',
-            'ssc',
-            'tempestkeep',
-            'ssctempestkeep',
-            'hyjal',
-            'blacktemple',
-            'bthyjal',
-            'za',
-            'sunwellplateau'
+            "aq20",
+            "aq40",
+            "mc",
+            "bwl",
+            "onyxia",
+            "zg",
+            "dragonsofnightmare",
+            "naxxramas",
+            "kara",
+            "magtheridon",
+            "gruul",
+            "doomwalker",
+            "doomlordkazzak",
+            "worldbosses",
+            "gruulmag",
+            "ssc",
+            "tempestkeep",
+            "ssctempestkeep",
+            "hyjal",
+            "blacktemple",
+            "bthyjal",
+            "za",
+            "sunwellplateau",
         ],
         reserves: int,
     ):
@@ -318,14 +318,14 @@ class EventManager(commands.Cog):
         await ctx.send(f"The link to the softres is: https://softres.it/raid/{id}")
 
         return await ctx.author.send(f"Your raid token is `{token}`.")
-    
+
     @sr.command(name="lock")
     async def sr_lock(self, ctx: commands.Context, raid_id: str, token: str):
         """
         Lock a softres event."""
         await self.softres.update_raid(raid=dict(raidId=raid_id, lock=True), token=token)
         await ctx.tick()
-        
+
     @sr.command(name="unlock")
     async def sr_unlock(self, ctx: commands.Context, raid_id: str, token: str):
         """
