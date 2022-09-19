@@ -164,6 +164,7 @@ class Event:
         description2: str = None,
         image_url: str = None,
         end_time: datetime = None,
+        softres: str = None,
     ):
         """
         Edit an event.
@@ -186,6 +187,9 @@ class Event:
 
         if end_time:
             new.end_time = end_time
+
+        if softres:
+            self.softres = softres
 
         return new
 
