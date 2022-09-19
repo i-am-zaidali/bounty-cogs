@@ -189,7 +189,7 @@ class Event:
             new.end_time = end_time
 
         if softres:
-            self.softres = softres
+            new.softres = softres
 
         return new
 
@@ -300,7 +300,7 @@ class Flags(commands.Converter):
 
         parser.add_argument(
             "--name",
-            "-n",
+            "--n",
             type=str,
             help="The name of the event.",
             dest="name",
@@ -309,7 +309,7 @@ class Flags(commands.Converter):
         )
         parser.add_argument(
             "--description",
-            "-d",
+            "--d",
             type=str,
             help="The description of the event.",
             dest="description",
@@ -318,7 +318,7 @@ class Flags(commands.Converter):
         )
         parser.add_argument(
             "--description2",
-            "-d2",
+            "--d2",
             type=str,
             help="The description of the event.",
             dest="description2",
@@ -327,7 +327,7 @@ class Flags(commands.Converter):
         )
         parser.add_argument(
             "--end",
-            "-e",
+            "--e",
             type=str,
             help="The end time of the event.",
             dest="end",
@@ -336,7 +336,7 @@ class Flags(commands.Converter):
         )
         parser.add_argument(
             "--image",
-            "-i",
+            "--i",
             type=str,
             help="The image url of the event.",
             dest="image",
@@ -345,7 +345,7 @@ class Flags(commands.Converter):
         )
         parser.add_argument(
             "--channel",
-            "-c",
+            "--c",
             type=str,
             help="The channel to post the event in.",
             dest="channel",
@@ -353,14 +353,14 @@ class Flags(commands.Converter):
         )
         parser.add_argument(
             "--template",
-            "-t",
+            "--t",
             type=str,
             help="An already existing template to use instead.",
             dest="template",
             nargs="+",
             default=None,
         )
-        parser.add_argument("--softres", "-sr", type=str, dest="softres")
+        parser.add_argument("--softres", "--sr", type=str, dest="softres")
 
         try:
             flags = vars(parser.parse_args(argument.split(" ")))
