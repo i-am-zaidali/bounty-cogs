@@ -26,7 +26,7 @@ class EventManager(commands.Cog):
 
     """A cog to create and manage events."""
 
-    __version__ = "1.6.0"
+    __version__ = "1.7.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -34,9 +34,8 @@ class EventManager(commands.Cog):
         self.config = Config.get_conf(self, identifier=0x352567829, force_registration=True)
         self.config.init_custom("events", 2)
         self.config.init_custom("templates", 2)
-        self.config.init_custom("softres", 2)
         self.config.register_member(spec_class=())
-        self.config.register_guild(history_channel=None)
+        self.config.register_guild(history_channel=None, softres_log=None)
         self.cache: Dict[int, Dict[int, Event]] = {}
         self.task = self.check_events.start()
         self.softres = SoftRes(self.bot)
@@ -317,7 +316,11 @@ class EventManager(commands.Cog):
 
         await ctx.send(f"The link to the softres is: https://softres.it/raid/{id}")
 
-        return await ctx.author.send(f"Your raid token is `{token}`.")
+        log = await self.config.guild(ctx.guild).history_channel()
+        
+        log  = ctx.guild.get_channel(log) or ctx.author
+        
+        await log.send(f"{ctx.author.mention} created a softres event for {dungeon} with {reserves} reserves. https://softres.it/raid/{id}\nToken: ||{token}||")
 
     @sr.command(name="lock")
     @commands.dm_only()
@@ -341,6 +344,11 @@ class EventManager(commands.Cog):
         return await ctx.author.send(
             f"The gargul data recieved for this raid is:\n{await self.softres.get_gargul_data(token, raid_id)}"
         )
+        
+    @sr.command(name="log")
+    async def sr_log(self, ctx: commands.Context, channel: discord.TextChannel):
+        await self.config.guild(ctx.guild).sr_log_channel.set(channel.id)
+        await ctx.tick()
 
     async def remove_reactions_safely(
         self, message: discord.Message, emoji: str, user: discord.User
