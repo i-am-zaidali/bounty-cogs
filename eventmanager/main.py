@@ -317,10 +317,12 @@ class EventManager(commands.Cog):
         await ctx.send(f"The link to the softres is: https://softres.it/raid/{id}")
 
         log = await self.config.guild(ctx.guild).history_channel()
-        
-        log  = ctx.guild.get_channel(log) or ctx.author
-        
-        await log.send(f"{ctx.author.mention} created a softres event for {dungeon} with {reserves} reserves. https://softres.it/raid/{id}\nToken: ||{token}||")
+
+        log = ctx.guild.get_channel(log) or ctx.author
+
+        await log.send(
+            f"{ctx.author.mention} created a softres event for {dungeon} with {reserves} reserves. https://softres.it/raid/{id}\nToken: ||{token}||"
+        )
 
     @sr.command(name="lock")
     @commands.dm_only()
@@ -344,7 +346,7 @@ class EventManager(commands.Cog):
         return await ctx.author.send(
             f"The gargul data recieved for this raid is:\n{await self.softres.get_gargul_data(token, raid_id)}"
         )
-        
+
     @sr.command(name="log")
     async def sr_log(self, ctx: commands.Context, channel: discord.TextChannel):
         await self.config.guild(ctx.guild).sr_log_channel.set(channel.id)
