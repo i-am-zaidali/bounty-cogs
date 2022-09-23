@@ -296,7 +296,7 @@ class EventManager(commands.Cog):
             "amount": reserves,
             "note": "",
             "raidDate": datetime.now().isoformat(),
-            "allowDuplicate": False,
+            "allowDuplicate": True,
             "hideReserves": False,
             "characterNotes": False,
             "restrictByClass": False,
