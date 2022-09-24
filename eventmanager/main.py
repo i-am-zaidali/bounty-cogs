@@ -155,13 +155,20 @@ class EventManager(commands.Cog):
         if event.author_id != ctx.author.id:
             return await ctx.send("You do not own this event. Thus, you cannot edit it.")
 
-        new = event.edit(**flags)
+        new: Event = event.edit(**flags)
+        
+        if new.channel_id != event.channel_id:
+            new_chan = new.channel
+            new_msg = await new_chan.send(embed=new.embed)
+            new.message_id = new_msg.id
+            await message.delete()
+            
+        else:
+            await message.edit(embed=new.embed)
 
-        self.cache[ctx.guild.id][message.id] = new
+        self.cache[ctx.guild.id][new.message_id] = new
 
         await ctx.tick()
-
-        await message.edit(embed=new.embed)
 
     @event.command(name="remove")
     async def event_remove(

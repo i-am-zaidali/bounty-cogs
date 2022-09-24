@@ -165,7 +165,8 @@ class Event:
         image_url: str = None,
         end_time: datetime = None,
         softres: str = None,
-    ):
+        channel_id: int = None,
+    ) -> "Event":
         """
         Edit an event.
 
@@ -190,6 +191,9 @@ class Event:
 
         if softres:
             new.softres = softres
+            
+        if channel_id:
+            new.channel_id = channel_id
 
         return new
 
