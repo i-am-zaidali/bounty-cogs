@@ -161,7 +161,9 @@ class EventManager(commands.Cog):
             new_chan = new.channel
             new_msg = await new_chan.send(embed=new.embed)
             new.message_id = new_msg.id
-            start_adding_reactions(new_msg, [i for i in emoji_class_dict.keys()] + ["❌", "🧻", "👑", "🚀"])
+            start_adding_reactions(
+                new_msg, [i for i in emoji_class_dict.keys()] + ["❌", "🧻", "👑", "🚀"]
+            )
             await message.delete()
 
         else:
