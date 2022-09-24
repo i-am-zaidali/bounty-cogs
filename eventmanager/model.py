@@ -400,7 +400,7 @@ class Flags(commands.Converter):
 
         if chan := flags.get("channel"):
             f["channel_id"] = (
-                await commands.TextChannelConverter().convert(ctx, " ".joint(chan))
+                await commands.TextChannelConverter().convert(ctx, " ".join(chan))
             ).id
 
         try:

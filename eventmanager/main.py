@@ -323,7 +323,7 @@ class EventManager(commands.Cog):
 
         await ctx.send(f"The link to the softres is: https://softres.it/raid/{id}")
 
-        log = await self.config.guild(ctx.guild).history_channel()
+        log = await self.config.guild(ctx.guild).softres_log()
 
         log = ctx.guild.get_channel(log) or ctx.author
 
@@ -356,7 +356,7 @@ class EventManager(commands.Cog):
 
     @sr.command(name="log")
     async def sr_log(self, ctx: commands.Context, channel: discord.TextChannel):
-        await self.config.guild(ctx.guild).sr_log_channel.set(channel.id)
+        await self.config.guild(ctx.guild).softres_log.set(channel.id)
         await ctx.tick()
 
     async def remove_reactions_safely(
