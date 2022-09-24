@@ -26,7 +26,7 @@ class EventManager(commands.Cog):
 
     """A cog to create and manage events."""
 
-    __version__ = "1.7.0"
+    __version__ = "1.8.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -161,6 +161,7 @@ class EventManager(commands.Cog):
             new_chan = new.channel
             new_msg = await new_chan.send(embed=new.embed)
             new.message_id = new_msg.id
+            start_adding_reactions(new_msg, [i for i in emoji_class_dict.keys()] + ["❌", "🧻", "👑", "🚀"])
             await message.delete()
             
         else:
