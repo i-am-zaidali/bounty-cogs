@@ -191,7 +191,7 @@ class Event:
 
         if softres:
             new.softres = softres
-            
+
         if channel_id:
             new.channel_id = channel_id
 
