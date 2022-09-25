@@ -333,7 +333,7 @@ class EventManager(commands.Cog):
         await log.send(
             f"{ctx.author.mention} created a softres event for {dungeon} with {reserves} reserves. https://softres.it/raid/{id}\nToken: ||{token}||"
         )
-        
+
         return token, id
 
     @sr.command(name="lock")

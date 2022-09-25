@@ -403,24 +403,26 @@ class Flags(commands.Converter):
             f["channel_id"] = (
                 await commands.TextChannelConverter().convert(ctx, " ".join(chan))
             ).id
-            
-        if sr:=flags.get("softres"):
+
+        if sr := flags.get("softres"):
             sr = " ".join(sr)
-            if not (m:=re.match(r"https://softres.it/raid/.+", sr)):
+            if not (m := re.match(r"https://softres.it/raid/.+", sr)):
                 raid, res = sr.split(" ", 1)
                 res = int(res)
                 old_send = ctx.send
+
                 async def send(*args, **kwargs):
                     pass
+
                 ctx.send = send
                 token, id = await ctx.invoke(ctx.bot.get_command("softres"), raid, res)
                 ctx.send = old_send
-                
+
                 sr = f"https://softres.it/raid/{id}"
-                
+
             else:
                 sr = m.group(0)
-                
+
             f["softres"] = sr
 
         try:
