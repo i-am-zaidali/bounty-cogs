@@ -26,7 +26,7 @@ class EventManager(commands.Cog):
 
     """A cog to create and manage events."""
 
-    __version__ = "1.8.0"
+    __version__ = "1.9.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -333,6 +333,8 @@ class EventManager(commands.Cog):
         await log.send(
             f"{ctx.author.mention} created a softres event for {dungeon} with {reserves} reserves. https://softres.it/raid/{id}\nToken: ||{token}||"
         )
+        
+        return token, id
 
     @sr.command(name="lock")
     @commands.dm_only()
