@@ -279,7 +279,7 @@ class EventManager(commands.Cog):
             "obsidiansanctum25",
             "eyeofeternity25",
             "wyrmrest25",
-            "naxxdragons25"
+            "naxxdragons25",
         ],
         reserves: int,
     ):
