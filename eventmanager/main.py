@@ -26,7 +26,7 @@ class EventManager(commands.Cog):
 
     """A cog to create and manage events."""
 
-    __version__ = "1.9.0"
+    __version__ = "1.10.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -270,29 +270,16 @@ class EventManager(commands.Cog):
         self,
         ctx: commands.Context,
         dungeon: commands.Literal[
-            "aq20",
-            "aq40",
-            "mc",
-            "bwl",
-            "onyxia",
-            "zg",
-            "dragonsofnightmare",
-            "naxxramas",
-            "kara",
-            "magtheridon",
-            "gruul",
-            "doomwalker",
-            "doomlordkazzak",
-            "worldbosses",
-            "gruulmag",
-            "ssc",
-            "tempestkeep",
-            "ssctempestkeep",
-            "hyjal",
-            "blacktemple",
-            "bthyjal",
-            "za",
-            "sunwellplateau",
+            "wotlknaxx10",
+            "obsidiansanctum10",
+            "eyeofeternity10",
+            "wyrmrest10",
+            "naxxdragons10",
+            "wotlknaxx25",
+            "obsidiansanctum25",
+            "eyeofeternity25",
+            "wyrmrest25",
+            "naxxdragons25"
         ],
         reserves: int,
     ):
@@ -301,7 +288,7 @@ class EventManager(commands.Cog):
         args = {
             "faction": "Horde",
             "instance": dungeon,
-            "edition": "tbc",
+            "edition": "wotlk",
             "amount": reserves,
             "note": "",
             "raidDate": datetime.now().isoformat(),
