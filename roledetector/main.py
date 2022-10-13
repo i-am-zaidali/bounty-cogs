@@ -54,7 +54,7 @@ class RoleDetector(commands.Cog):
         check3 = lambda x: x.display_name.casefold() == username.casefold()
 
         user = discord.utils.find(
-         check3, guild.members
+            check3, guild.members
         )  # or await FuzzyMember().convert(ctx, username)
 
         return (
