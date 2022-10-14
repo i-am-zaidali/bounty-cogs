@@ -1,10 +1,11 @@
 import typing
-from redbot.core.bot import Red
-from redbot.core import commands, Config
 
 import discord
+from redbot.core import Config, commands
+from redbot.core.bot import Red
 
 humanize_bool = lambda b: "enabled" if b else "disabled"
+
 
 class BanOnLeave(commands.Cog):
     def __init__(self, bot: Red):
@@ -15,7 +16,7 @@ class BanOnLeave(commands.Cog):
     @commands.group(aliases=["bol"])
     async def banonleave(self, ctx: commands.Context):
         """Ban On Leave"""
-        
+
     @banonleave.command(name="toggle")
     @commands.mod_or_permissions(ban_members=True)
     async def banonleave_toggle(self, ctx: commands.Context):
@@ -24,15 +25,17 @@ class BanOnLeave(commands.Cog):
         current = await self.config.guild(guild).ban_on_leave()
         await self.config.guild(guild).ban_on_leave.set(not current)
         await ctx.send(f"Ban on leave is now {humanize_bool(not current)}")
-        
+
     @banonleave.command(name="log")
     @commands.mod_or_permissions(manage_guild=True)
-    async def banonleave_log(self, ctx: commands.Context, channel: typing.Optional[discord.TextChannel]):
+    async def banonleave_log(
+        self, ctx: commands.Context, channel: typing.Optional[discord.TextChannel]
+    ):
         """Set the log channel where ban on leave messages will be sent"""
         guild = ctx.guild
         await self.config.guild(guild).log.set(getattr(channel, "id", None))
         await ctx.send(f"Log channel is now {getattr(channel, 'mention', 'removed')}")
-        
+
     @banonleave.command(name="showsettings", aliases=["show", "ss"])
     @commands.mod_or_permissions(manage_guild=True)
     async def banonleave_info(self, ctx: commands.Context):
@@ -57,7 +60,7 @@ class BanOnLeave(commands.Cog):
                     embed = discord.Embed(
                         title="Ban on Leave",
                         description=f"{member.mention} was banned because they left the server.",
-                        color=discord.Color.red()
+                        color=discord.Color.red(),
                     )
                     embed.set_author(name=str(member), icon_url=member.avatar_url)
                     embed.set_footer(text=f"User ID: {member.id}")
