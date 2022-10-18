@@ -28,7 +28,7 @@ class RepManager(commands.Cog):
     REMOVE = "removed"
     RESET = "resetted"
 
-    __version__ = "1.1.0"
+    __version__ = "1.1.1"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -150,7 +150,7 @@ class RepManager(commands.Cog):
         )
         members.extend(itertools.chain.from_iterable(map(lambda x: x.members, voice_channels)))
 
-        members = set(members)
+        members = set(members) or {ctx.author}
 
         if not members:
             return await ctx.send_help()
@@ -161,7 +161,7 @@ class RepManager(commands.Cog):
             self.cache[ctx.guild.id][member.id] = rep
 
         await ctx.maybe_send_embed(
-            f"{cf.humanize_list([member.mention for member in members])} now have {rep} reputation."
+            f"{cf.humanize_number(amount)} rep was added to {cf.humanize_list([member.mention for member in members])}"
         )
 
         await self.send_logging_embed(ctx, members, amount, self.ADD, reason)
@@ -179,38 +179,19 @@ class RepManager(commands.Cog):
         """
         Remove a certain amount of reputation from a user."""
 
-        members: typing.List[discord.Member] = [member for member in members]
-
-        failed = []
-        success = []
+        members: typing.List[discord.Member] = members or [ctx.author]
 
         for member in members:
             rep = self.cache.setdefault(ctx.guild.id, {}).setdefault(member.id, 0)
 
-            if rep == 0 or rep < amount:
-                failed.append(member)
+            rep -= amount
 
-            else:
-                rep -= amount
-
-                self.cache[ctx.guild.id][member.id] = rep
-
-                success.append(member)
-
-        if members == failed:
-            return await ctx.maybe_send_embed(
-                "All of the given members either had 0 reputation or had less rep than the amount given to remove."
-            )
+            self.cache[ctx.guild.id][member.id] = rep
 
         await self.send_logging_embed(ctx, members, amount, self.REMOVE, reason)
 
         return await ctx.maybe_send_embed(
-            f"Removed {amount} rep from {cf.humanize_list([member.mention for member in success])}.\nThey now have {rep} reputation.\n\n"
-            + (
-                f"{cf.humanize_list([member.mention for member in failed])} had 0 reputation or had less rep than the amount given to remove."
-                if failed
-                else ""
-            )
+            f"Removed {amount} rep from {cf.humanize_list([member.mention for member in members])}."
         )
 
     @rep.command(name="reset")
