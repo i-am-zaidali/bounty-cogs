@@ -24,7 +24,7 @@ class RoleDetector(commands.Cog):
         self.bot = bot
 
         self.config = Config.get_conf(self, 2784481001, force_registration=True)
-        self.config.register_guild(channel=None, role=None, floorwarden=None)
+        self.config.register_guild(channel=None, role=None, exclude_roles=[])
 
         self.cache: Dict[int, GuildSettings] = {}
 
@@ -101,6 +101,8 @@ class RoleDetector(commands.Cog):
             remove = "--no-remove" not in message.content.lower()
             message.content = message.content.replace("--no-remove", "")
             _iter = AsyncIter(message.content.splitlines(), 5, 100)
+            excluded = await self.config.guild(message.guild).exclude_roles()
+            
             async for line in _iter.filter(lambda x: bool(x)):
                 user, rank, cls = await self.get_member_and_roles(
                     message.guild, line, fake_ctx, roles_added
@@ -120,7 +122,8 @@ class RoleDetector(commands.Cog):
                         lambda x: x.is_integration()
                         or x.is_bot_managed()
                         or x.is_premium_subscriber()
-                        or x.permissions.administrator == True,
+                        or x.permissions.administrator == True
+                        or x.id in excluded,
                         user.roles,
                     )
                 )
@@ -163,11 +166,11 @@ class RoleDetector(commands.Cog):
                 users_to_remove = filter(
                     lambda x: x not in roles_added and x not in failed, message.guild.members
                 )
-
+                
                 bounded_gather(
                     *map(
                         lambda x: x.remove_roles(
-                            *filter(lambda y: not y.is_default(), x.roles), reason="RoleDetector"
+                            *filter(lambda y: not y.is_default() and y.id not in excluded, x.roles), reason="RoleDetector"
                         ),
                         users_to_remove,
                     ),
@@ -233,12 +236,13 @@ class RoleDetector(commands.Cog):
         await ctx.send(cf.success(f"Role set to {role.mention}"))
         await self._build_cache()
 
-    @rd.command(name="floorwarden", aliases=["fw"])
-    async def rd_fw(self, ctx: commands.Context, role: discord.Role):
+    @rd.command(name="excluderoles", aliases=["er"])
+    async def rd_er(self, ctx: commands.Context, *roles: discord.Role):
         """
-        Set the floorwarden role."""
-        await self.config.guild(ctx.guild).floorwarden.set(role.id)
-        await ctx.send(cf.success(f"FloorWarden role set to {role.mention}"))
+        Set the roles to exclude from the roledetector"""
+        async with self.config.guild(ctx.guild).exclude_roles() as er:
+            er.extend(map(lambda x: x.id, filter(lambda x: x.id not in er, roles)))
+        await ctx.send(cf.success(f"Excluded roles set to {cf.humanize_list(roles)}"))
         await self._build_cache()
 
     @rd.command(name="last", aliases=["lastoutput", "lo"])
