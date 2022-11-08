@@ -660,7 +660,6 @@ class EventManager(commands.Cog):
         for guild_config in self.cache.copy().values():
             cop = guild_config.copy()
             for event in cop.values():
-                print(event)
                 if event.end_time <= datetime.now(tz=event.end_time.tzinfo):
                     embed = event.end()
                     try:
