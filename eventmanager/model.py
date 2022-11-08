@@ -220,14 +220,15 @@ class Event:
             if entrant.user_id == user_id:
                 return entrant
 
-    def add_entrant(self, user_id: int, category_class: str, category: Category, spec: str):
+    def add_entrant(self, user_name: typing.Optional[str], user_id: int, category_class: str, category: Category, spec: str):
         if entrant := self.get_entrant(user_id):
+            entrant._name = user_name
             entrant.category_class = category_class
             entrant.category = category
             entrant.spec = spec
             entrant.joined_at = datetime.now()
             return entrant
-        entrant = Entrant(user_id, self, category, category_class, spec, datetime.now())
+        entrant = Entrant(user_name, user_id, self, category, category_class, spec, datetime.now())
         self.entrants.append(entrant)
 
     def remove_entrant(self, entrant: "Entrant"):
@@ -247,6 +248,7 @@ class Event:
 class Entrant:
     def __init__(
         self,
+        user_name: typing.Optional[str],
         user_id: int,
         event: Event,
         category: Category,
@@ -254,6 +256,7 @@ class Entrant:
         spec: str,
         joined_at: datetime,
     ) -> None:
+        self._name = user_name
         self.user_id = user_id
         self.event = event
         self.category = category
@@ -262,12 +265,17 @@ class Entrant:
         self.joined_at: datetime = joined_at
 
     @property
+    def name(self):
+        return self._name or self.user.display_name
+
+    @property
     def user(self) -> typing.Optional[discord.Member]:
         return self.event.guild.get_member(self.user_id)
 
     @property
     def json(self) -> dict:
         return {
+            "user_name": self._name,
             "user_id": self.user_id,
             "category": self.category.name,
             "category_class": self.category_class,
@@ -279,6 +287,7 @@ class Entrant:
     def from_json(cls, event: Event, json: dict):
         json["category"] = Category[json["category"]]
         json["joined_at"] = datetime.fromisoformat(json["joined_at"])
+        json.setdefault("user_name", None)
         return cls(event=event, **json)
 
 
