@@ -179,7 +179,9 @@ class EventManager(commands.Cog):
         )
         msg = await ctx.send(embed=event.embed)
         event.message_id = msg.id
-        start_adding_reactions(msg, [i for i in emoji_class_dict.keys()] + ["❌", "🧻", "👑", "🚀", "👻"])
+        start_adding_reactions(
+            msg, [i for i in emoji_class_dict.keys()] + ["❌", "🧻", "👑", "🚀", "👻"]
+        )
         self.cache.setdefault(ctx.guild.id, {})[msg.id] = event
 
     @event.command(name="edit")
@@ -428,7 +430,9 @@ class EventManager(commands.Cog):
                 await msg.edit(embed=event.embed)
 
     @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent, name: Optional[str] = None):
+    async def on_raw_reaction_add(
+        self, payload: discord.RawReactionActionEvent, name: Optional[str] = None
+    ):
         if not payload.guild_id:
             return
 
@@ -630,19 +634,15 @@ class EventManager(commands.Cog):
             await user.send("You have successfully been signed up to the event.")
 
             await message.edit(embed=event.embed)
-            
+
         elif emoji == "👻":
             questions = [
-                (
-                    "What do you want your name to be?",
-                    "",
-                    "name",
-                    lambda m: m.content
-                ),
+                ("What do you want your name to be?", "", "name", lambda m: m.content),
                 (
                     "Select a class for the event",
                     "\n".join(
-                        f"{ind+1}. {class_spec_dict[cls]['emoji']}{cls}" for ind, cls in enumerate(class_spec_dict.keys())
+                        f"{ind+1}. {class_spec_dict[cls]['emoji']}{cls}"
+                        for ind, cls in enumerate(class_spec_dict.keys())
                     ),
                     "class",
                     lambda m: int(m.content)
@@ -659,23 +659,27 @@ class EventManager(commands.Cog):
                         commands.BadArgument(
                             f"That's not a valid answer. You must write a number from 1 to {len(class_spec_dict)}"
                         )
-                    )
+                    ),
                 ),
             ]
-            
-            answers = await self.ask_for_answers(questions, channel=(user.dm_channel or await user.create_dm()), user=user, timeout=30)
+
+            answers = await self.ask_for_answers(
+                questions,
+                channel=(user.dm_channel or await user.create_dm()),
+                user=user,
+                timeout=30,
+            )
             await self.remove_reactions_safely(message, emoji, user)
-            
+
             if answers is False:
                 return
-            
+
             class_name = list(class_spec_dict.keys())[answers["class"] - 1]
-            
+
             emoji = class_spec_dict[class_name]["emoji"]
-            
+
             payload.emoji = emoji
-            
-            
+
             await self.on_raw_reaction_add(payload, answers["name"])
 
     @commands.Cog.listener()
