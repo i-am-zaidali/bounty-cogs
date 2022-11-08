@@ -718,6 +718,7 @@ class EventManager(commands.Cog):
 
                     await self.config.custom("events", event.guild_id, event.message_id).clear()
                     del self.cache[event.guild_id][event.message_id]
+                    continue
 
                 if not event.entrants:
                     continue
