@@ -46,7 +46,7 @@ class_spec_dict: typing.Dict[
         # you know everywhere else to edit the emojis below
     },
     "Druid": {
-        "emoji": "<:druid:975448972472770570> ",
+        "emoji": "<:druid:975448972472770570>",
         "specs": {
             "Balance": {
                 "categories": (Category.RANGED,),
@@ -64,7 +64,7 @@ class_spec_dict: typing.Dict[
         },
     },
     "Hunter": {
-        "emoji": "<:hunter:975448994350252032> ",
+        "emoji": "<:hunter:975448994350252032>",
         "specs": {
             "Beast Mastery": {
                 "categories": (Category.RANGED,),
@@ -89,7 +89,7 @@ class_spec_dict: typing.Dict[
         },
     },
     "Paladin": {
-        "emoji": "<:paladin:975449019469955152> ",
+        "emoji": "<:paladin:975449019469955152>",
         "specs": {
             "Holy": {"categories": (Category.HEALER,), "emoji": "<:holy:975436654007423126>"},
             "Protection": {"categories": (Category.TANK,), "emoji": "<:prot:975436654028411010>"},
@@ -97,7 +97,7 @@ class_spec_dict: typing.Dict[
         },
     },
     "Priest": {
-        "emoji": "<:priest:975449029360111686> ",
+        "emoji": "<:priest:975449029360111686>",
         "specs": {
             "Discipline": {
                 "categories": (Category.HEALER,),
@@ -108,7 +108,7 @@ class_spec_dict: typing.Dict[
         },
     },
     "Rogue": {
-        "emoji": "<:rogue:975449040227553360> ",
+        "emoji": "<:rogue:975449040227553360>",
         "specs": {
             "Assassination": {
                 "categories": (Category.MELEE,),
@@ -140,7 +140,7 @@ class_spec_dict: typing.Dict[
         "specs": {
             "Affliction": {
                 "categories": (Category.RANGED,),
-                "emoji": "<:affliction:975436654070358056> ",
+                "emoji": "<:affliction:975436654070358056>",
             },
             "Demonology": {
                 "categories": (Category.RANGED,),

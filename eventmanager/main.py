@@ -28,7 +28,7 @@ class EventManager(commands.Cog):
 
     """A cog to create and manage events."""
 
-    __version__ = "1.11.0"
+    __version__ = "1.12.0"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -179,7 +179,7 @@ class EventManager(commands.Cog):
         )
         msg = await ctx.send(embed=event.embed)
         event.message_id = msg.id
-        start_adding_reactions(msg, [i for i in emoji_class_dict.keys()] + ["❌", "🧻", "👑", "🚀"])
+        start_adding_reactions(msg, [i for i in emoji_class_dict.keys()] + ["❌", "🧻", "👑", "🚀", "👻"])
         self.cache.setdefault(ctx.guild.id, {})[msg.id] = event
 
     @event.command(name="edit")
@@ -214,7 +214,7 @@ class EventManager(commands.Cog):
             new_msg = await new_chan.send(embed=new.embed)
             new.message_id = new_msg.id
             start_adding_reactions(
-                new_msg, [i for i in emoji_class_dict.keys()] + ["❌", "🧻", "👑", "🚀"]
+                new_msg, [i for i in emoji_class_dict.keys()] + ["❌", "🧻", "👑", "🚀", "👻"]
             )
             await message.delete()
 
@@ -409,8 +409,8 @@ class EventManager(commands.Cog):
         try:
             await message.remove_reaction(emoji, user)
             # to not clutter the menu with useless reactions
-        except Exception:
-            pass
+        except Exception as e:
+            log.exception("Failed to remove reaction", exc_info=e)
         return
 
     @commands.Cog.listener()
@@ -428,7 +428,7 @@ class EventManager(commands.Cog):
                 await msg.edit(embed=event.embed)
 
     @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent, name: Optional[str] = None):
         if not payload.guild_id:
             return
 
@@ -455,8 +455,9 @@ class EventManager(commands.Cog):
             return
 
         emoji = str(payload.emoji)
+        print(emoji, payload.emoji)
 
-        if not emoji in emoji_class_dict and emoji not in ["❌", "🧻", "👑", "🚀"]:
+        if not emoji in emoji_class_dict and emoji not in ["❌", "🧻", "👑", "🚀", "👻"]:
             await self.remove_reactions_safely(message, emoji, user)
             return
 
@@ -496,12 +497,6 @@ class EventManager(commands.Cog):
                         )
                     ),
                 ),
-                (
-                    "Do you want to use a different name for the event?",
-                    'If not please reply with "NO" (in all capital letters).',
-                    "name",
-                    lambda m: None if m.content == "NO" else m.content,
-                ),
             ]
 
             answers = await self.ask_for_answers(
@@ -516,7 +511,7 @@ class EventManager(commands.Cog):
 
             spec = valid_specs[answers["spec"] - 1][0]
             category: Category = details["specs"][spec]["categories"][0]
-            user_name = answers["name"]
+            user_name = name
 
             event.add_entrant(user_name, user.id, class_name, category, spec)
 
@@ -636,6 +631,53 @@ class EventManager(commands.Cog):
             await user.send("You have successfully been signed up to the event.")
 
             await message.edit(embed=event.embed)
+            
+        elif emoji == "👻":
+            questions = [
+                (
+                    "What do you want your name to be?",
+                    "",
+                    "name",
+                    lambda m: m.content
+                ),
+                (
+                    "Select a class for the event",
+                    "\n".join(
+                        f"{ind+1}. {class_spec_dict[cls]['emoji']}{cls}" for ind, cls in enumerate(class_spec_dict.keys())
+                    ),
+                    "class",
+                    lambda m: int(m.content)
+                    if all(
+                        (
+                            m.author == user,
+                            not m.guild,
+                            m.channel.recipient == user,
+                            m.content.isdigit(),
+                            int(m.content) in range(1, len(class_spec_dict) + 1),
+                        )
+                    )
+                    else (_ for _ in ()).throw(
+                        commands.BadArgument(
+                            f"That's not a valid answer. You must write a number from 1 to {len(class_spec_dict)}"
+                        )
+                    )
+                ),
+            ]
+            
+            answers = await self.ask_for_answers(questions, channel=(user.dm_channel or await user.create_dm()), user=user, timeout=30)
+            await self.remove_reactions_safely(message, emoji, user)
+            
+            if answers is False:
+                return
+            
+            class_name = list(class_spec_dict.keys())[answers["class"] - 1]
+            
+            emoji = class_spec_dict[class_name]["emoji"]
+            
+            payload.emoji = emoji
+            
+            
+            await self.on_raw_reaction_add(payload, answers["name"])
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
