@@ -305,7 +305,6 @@ class NoExitParser(ArgumentParser):
 
 def validate_end_time(date: typing.List[str]):
     if not (time := dateparser.parse(" ".join(date))):
-        print(date)
         raise commands.BadArgument("Invalid end time.")
 
     if time.timestamp() < datetime.now().timestamp():

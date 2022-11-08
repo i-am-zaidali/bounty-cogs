@@ -455,7 +455,6 @@ class EventManager(commands.Cog):
             return
 
         emoji = str(payload.emoji)
-        print(emoji, payload.emoji)
 
         if not emoji in emoji_class_dict and emoji not in ["❌", "🧻", "👑", "🚀", "👻"]:
             await self.remove_reactions_safely(message, emoji, user)
