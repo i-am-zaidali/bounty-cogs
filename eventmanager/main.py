@@ -1,13 +1,13 @@
 import asyncio
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional, Union, Tuple, Callable, Awaitable, Any, Literal
+from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import discord
 from discord.ext import tasks
 from redbot.core import Config, commands
 from redbot.core.bot import Red
-from redbot.core.utils.chat_formatting import humanize_list, pagify, box
+from redbot.core.utils.chat_formatting import box, humanize_list, pagify
 from redbot.core.utils.menus import start_adding_reactions
 from redbot.core.utils.predicates import MessagePredicate
 
@@ -51,11 +51,11 @@ class EventManager(commands.Cog):
             f"Author: {humanize_list(self.__author__)}",
         ]
         return "\n".join(text)
-    
+
     async def ask_for_answers(
         self,
         questions: List[Tuple[str, str, str, Callable[[discord.Message], Awaitable[Any]]]],
-        ctx : Optional[commands.Context] = None,
+        ctx: Optional[commands.Context] = None,
         user: Optional[discord.User] = None,
         channel: Optional[discord.abc.Messageable] = None,
         timeout: int = 30,
@@ -68,18 +68,17 @@ class EventManager(commands.Cog):
         for question in questions:
             title, description, key, check = question
             answer = MISSING
-            sent = False    
+            sent = False
             while answer is MISSING:
                 if not sent:
-                    embed = discord.Embed(
-                        title=title,
-                        description=description,
-                    ).set_footer(
+                    embed = discord.Embed(title=title, description=description,).set_footer(
                         text=f"You have {timeout} seconds to answer.\nSend `cancel` to cancel."
                     )
                     sent = await context.send(embed=embed)
                 try:
-                    message: discord.Message = await self.bot.wait_for("message", check=main_check, timeout=timeout)
+                    message: discord.Message = await self.bot.wait_for(
+                        "message", check=main_check, timeout=timeout
+                    )
                 except asyncio.TimeoutError:
                     await context.send("You took too long to answer. Cancelling.")
                     return False
@@ -472,32 +471,48 @@ class EventManager(commands.Cog):
             details = class_spec_dict[class_name]
 
             valid_specs = [(k, v["emoji"]) for k, v in details["specs"].items()]
-            
+
             questions = [
                 (
                     "Select a spec for the class {}".format(class_name),
                     "\n".join(
-                    f"{ind+1}. {spec[1]} {spec[0]}" for ind, spec in enumerate(valid_specs))
+                        f"{ind+1}. {spec[1]} {spec[0]}" for ind, spec in enumerate(valid_specs)
+                    )
                     + "\nSend the correct number to select a spec.",
                     "spec",
-                    lambda m: int(m.content) if all((m.author == user
-                        , not m.guild
-                        , m.channel.recipient == user
-                        , m.content.isdigit(), int(m.content) in range(1, len(valid_specs) + 1))) else (_ for _ in ()).throw(commands.BadArgument(f"That's not a valid answer. You must write a number from 1 to {len(valid_specs)}"))
+                    lambda m: int(m.content)
+                    if all(
+                        (
+                            m.author == user,
+                            not m.guild,
+                            m.channel.recipient == user,
+                            m.content.isdigit(),
+                            int(m.content) in range(1, len(valid_specs) + 1),
+                        )
+                    )
+                    else (_ for _ in ()).throw(
+                        commands.BadArgument(
+                            f"That's not a valid answer. You must write a number from 1 to {len(valid_specs)}"
+                        )
+                    ),
                 ),
                 (
                     "Do you want to use a different name for the event?",
-                    "If not please reply with \"NO\" (in all capital letters).",
+                    'If not please reply with "NO" (in all capital letters).',
                     "name",
                     lambda m: None if m.content == "NO" else m.content,
-                )
+                ),
             ]
-            
-            answers = await self.ask_for_answers(questions, channel=(user.dm_channel or await user.create_dm()), user=user, timeout=30)
-            
+
+            answers = await self.ask_for_answers(
+                questions,
+                channel=(user.dm_channel or await user.create_dm()),
+                user=user,
+                timeout=30,
+            )
+
             if answers is False:
                 return await self.remove_reactions_safely(message, emoji, user)
-            
 
             spec = valid_specs[answers["spec"] - 1][0]
             category: Category = details["specs"][spec]["categories"][0]
@@ -587,9 +602,7 @@ class EventManager(commands.Cog):
                 fields.append(
                     {
                         "name": "\u200b",
-                        "value": "\n".join(
-                            f"> /invite {entrant.name}" for entrant in e
-                        ),
+                        "value": "\n".join(f"> /invite {entrant.name}" for entrant in e),
                         "inline": True,
                     }
                 )
@@ -670,7 +683,7 @@ class EventManager(commands.Cog):
                         log.debug(
                             f"The channel for the event {event.name} ({event.message_id}) has been deleted so I'm removing it from storage"
                         )
-                        
+
                         del self.cache[event.guild_id][event.message_id]
                         await self.config.custom(
                             "events", event.guild_id, event.message_id
@@ -693,7 +706,7 @@ class EventManager(commands.Cog):
                             event.guild_id
                         ).history_channel()
                     ) and (chan := event.guild.get_channel(int(chan_id))):
-                        
+
                         await chan.send(embed=embed)
                         try:
                             await msg.delete()
@@ -714,7 +727,7 @@ class EventManager(commands.Cog):
                     continue
 
                 td = event.end_time - datetime.now(tz=event.end_time.tzinfo)
-                
+
                 if td.total_seconds() < self.HOUR:
                     if td.total_seconds() <= self.HALF_HOUR:
                         if td.total_seconds() <= self.QUARTER_HOUR:

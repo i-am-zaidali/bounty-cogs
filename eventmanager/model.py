@@ -220,7 +220,14 @@ class Event:
             if entrant.user_id == user_id:
                 return entrant
 
-    def add_entrant(self, user_name: typing.Optional[str], user_id: int, category_class: str, category: Category, spec: str):
+    def add_entrant(
+        self,
+        user_name: typing.Optional[str],
+        user_id: int,
+        category_class: str,
+        category: Category,
+        spec: str,
+    ):
         if entrant := self.get_entrant(user_id):
             entrant._name = user_name
             entrant.category_class = category_class
