@@ -95,17 +95,19 @@ class Event:
                 ent = [i for i in self.entrants if i.category is category]
                 if not ent:
                     continue
-                category_emoji = category.emoji
-                embed.add_field(
-                    name=f"{category_emoji} **{category.value}**:  (**{len(ent)}**)",
-                    value="\n".join(
-                        [
-                            f"{class_spec_dict[i.category_class]['specs'][i.spec]['emoji']} <@{i.user_id}> (**{i.name}**) - <t:{int(i.joined_at.timestamp())}:F>"
-                            for i in ent
-                        ]
-                    ),
-                    inline=False,
+                entrants_str = "\n".join(
+                    [
+                        f"{class_spec_dict[i.category_class]['specs'][i.spec]['emoji']} <@{i.user_id}> (**{i.name}**) - <t:{int(i.joined_at.timestamp())}:F>"
+                        for i in ent
+                    ]
                 )
+                category_emoji = category.emoji
+                for page in cf.pagify(entrants_str, page_length=1000):
+                    embed.add_field(
+                        name=f"{category_emoji} **{category.value}**:  (**{len(page.splitlines())}/{len(ent)}**)",
+                        value=page,
+                        inline=True,
+                    )
 
         embed.add_field(
             name=f"**{len(self.entrants)}** Joined Users: ",
