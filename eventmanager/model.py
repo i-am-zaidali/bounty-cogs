@@ -100,7 +100,7 @@ class Event:
                     name=f"{category_emoji} **{category.value}**:  (**{len(ent)}**)",
                     value="\n".join(
                         [
-                            f"{class_spec_dict[i.category_class]['specs'][i.spec]['emoji']} <@{i.user_id}> - <t:{int(i.joined_at.timestamp())}:F>"
+                            f"{class_spec_dict[i.category_class]['specs'][i.spec]['emoji']} <@{i.user_id}> (**{i.name}**) - <t:{int(i.joined_at.timestamp())}:F>"
                             for i in ent
                         ]
                     ),
