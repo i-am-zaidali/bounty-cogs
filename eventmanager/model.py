@@ -82,7 +82,7 @@ class Event:
         embed.add_field(
             name="Time",
             value=f"<t:{int(self.end_time.timestamp())}:F> - <t:{int(self.end_time.timestamp())}:R>",
-            inline=True,
+            inline=False,
         )
 
         joined_melee = [i for i in self.entrants if i.category is Category.MELEE]
@@ -97,7 +97,7 @@ class Event:
                     continue
                 entrants_str = "\n".join(
                     [
-                        f"{class_spec_dict[i.category_class]['specs'][i.spec]['emoji']} <@{i.user_id}> (**{i.name}**) - <t:{int(i.joined_at.timestamp())}:F>"
+                        f"{class_spec_dict[i.category_class]['specs'][i.spec]['emoji']} <@{i.user_id}> {f'(**{i.name}**)' if i._name else ''} - <t:{int(i.joined_at.timestamp())}:F>"
                         for i in ent
                     ]
                 )
