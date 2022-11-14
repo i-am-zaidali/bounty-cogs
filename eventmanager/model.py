@@ -106,7 +106,7 @@ class Event:
                     embed.add_field(
                         name=f"{category_emoji} **{category.value}**:  (**{len(page.splitlines())}/{len(ent)}**)",
                         value=page,
-                        inline=True,
+                        inline=False,
                     )
 
         embed.add_field(
