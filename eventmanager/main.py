@@ -37,7 +37,7 @@ class EventManager(commands.Cog):
         self.config.init_custom("events", 2)
         self.config.init_custom("templates", 2)
         self.config.register_member(spec_class=())
-        self.config.register_guild(history_channel=None, softres_log=None)
+        self.config.register_guild(history_channel=None, softres_log=None, log=None)
         self.cache: Dict[int, Dict[int, Event]] = {}
         self.task = self.check_events.start()
         self.softres = SoftRes(self.bot)
@@ -318,6 +318,11 @@ class EventManager(commands.Cog):
     async def event_history(self, ctx: commands.Context, channel: discord.TextChannel):
         await self.config.guild(ctx.guild).history_channel.set(channel.id)
         await ctx.tick()
+        
+    @event.command(name="log")
+    async def event_log(self, ctx: commands.Context, channel: discord.TextChannel):
+        await self.config.guild(ctx.guild).log.set(channel.id)
+        await ctx.tick()
 
     @commands.group(name="sr", aliases=["softres"], invoke_without_command=True)
     async def sr(
@@ -548,6 +553,23 @@ class EventManager(commands.Cog):
             await message.edit(embed=embed)
 
             await self.remove_reactions_safely(message, emoji, user)
+            
+            chan = self.bot.get_channel(await self.config.guild(event.guild).log())
+            
+            if not chan:
+                return
+            
+            class_emoji = emoji
+            spec_emoji = details["specs"][spec]["emoji"]
+            
+            await chan.send(
+                embed=discord.Embed(
+                    title="**New entrant!**",
+                    description=f"**{user_name}** has signed up for **{event.name}** as **{class_emoji} {spec_emoji}**",
+                    color=discord.Color.green(),
+                    timestamp=datetime.utcnow(),
+                )
+            )
 
         elif emoji == "❌":
             if not event.author_id == user.id:
@@ -585,6 +607,20 @@ class EventManager(commands.Cog):
                 await user.send("You have been removed from the event.")
 
                 await message.edit(embed=event.embed)
+
+                chan = self.bot.get_channel(await self.config.guild(event.guild).log())
+                
+                if not chan:
+                    return
+                
+                await chan.send(
+                    embed=discord.Embed(
+                        title="**Entrant removed!**",
+                        description=f"**{entrant.name}** has been removed from **{event.name}**.\nThey were signed up as **{entrant.category_class} {entrant.spec}**",
+                        color=discord.Color.red(),
+                        timestamp=datetime.utcnow(),
+                    )
+                )
 
             else:
                 await user.send("You weren't signed up to the event.")
@@ -634,6 +670,23 @@ class EventManager(commands.Cog):
             await user.send("You have successfully been signed up to the event.")
 
             await message.edit(embed=event.embed)
+            
+            chan = self.bot.get_channel(await self.config.guild(event.guild).log())
+            
+            if not chan:
+                return
+            
+            class_emoji = class_spec_dict[class_name]["emoji"]
+            spec_emoji = class_spec_dict[class_name]["specs"][spec]["emoji"]
+            
+            await chan.send(
+                embed=discord.Embed(
+                    title="**New entrant!**",
+                    description=f"**{user_name}** has signed up for **{event.name}** as **{class_emoji} {spec_emoji}**",
+                    color=discord.Color.green(),
+                    timestamp=datetime.utcnow(),
+                )
+            )
 
         elif emoji == "👻":
             questions = [
