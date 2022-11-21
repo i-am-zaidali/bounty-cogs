@@ -318,7 +318,7 @@ class EventManager(commands.Cog):
     async def event_history(self, ctx: commands.Context, channel: discord.TextChannel):
         await self.config.guild(ctx.guild).history_channel.set(channel.id)
         await ctx.tick()
-        
+
     @event.command(name="log")
     async def event_log(self, ctx: commands.Context, channel: discord.TextChannel):
         await self.config.guild(ctx.guild).log.set(channel.id)
@@ -553,15 +553,15 @@ class EventManager(commands.Cog):
             await message.edit(embed=embed)
 
             await self.remove_reactions_safely(message, emoji, user)
-            
+
             chan = self.bot.get_channel(await self.config.guild(event.guild).log())
-            
+
             if not chan:
                 return
-            
+
             class_emoji = emoji
             spec_emoji = details["specs"][spec]["emoji"]
-            
+
             await chan.send(
                 embed=discord.Embed(
                     title="**New entrant!**",
@@ -609,10 +609,10 @@ class EventManager(commands.Cog):
                 await message.edit(embed=event.embed)
 
                 chan = self.bot.get_channel(await self.config.guild(event.guild).log())
-                
+
                 if not chan:
                     return
-                
+
                 await chan.send(
                     embed=discord.Embed(
                         title="**Entrant removed!**",
@@ -670,15 +670,15 @@ class EventManager(commands.Cog):
             await user.send("You have successfully been signed up to the event.")
 
             await message.edit(embed=event.embed)
-            
+
             chan = self.bot.get_channel(await self.config.guild(event.guild).log())
-            
+
             if not chan:
                 return
-            
+
             class_emoji = class_spec_dict[class_name]["emoji"]
             spec_emoji = class_spec_dict[class_name]["specs"][spec]["emoji"]
-            
+
             await chan.send(
                 embed=discord.Embed(
                     title="**New entrant!**",
