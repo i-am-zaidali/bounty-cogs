@@ -150,7 +150,7 @@ class InRole(commands.Cog):
     @commands.group(name="rolefilter", invoke_without_command=True)
     @commands.guild_only()
     @commands.mod_or_permissions(manage_roles=True)
-    async def rolefilter(self, ctx: commands.Context, *, flags: FilterFlags = None):
+    async def rolefilter(self, ctx: commands.Context, *, flags: FilterFlags = {}):
         """Set filters based on which regular users won't be allowed to check their members.
 
         To remove filters, simply use the same command without any flags.
