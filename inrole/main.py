@@ -83,7 +83,7 @@ class FilterFlags(commands.Converter):
 class InRole(commands.Cog):
     """Cog for checking members of a role with the options to add filters that allow regular members to only see role members of roles that pass those filters."""
     
-    __version__ = "1.1.2"
+    __version__ = "1.1.3"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -150,7 +150,7 @@ class InRole(commands.Cog):
     @commands.group(name="rolefilter", invoke_without_command=True)
     @commands.guild_only()
     @commands.mod_or_permissions(manage_roles=True)
-    async def rolefilter(self, ctx: commands.Context, *, flags: FilterFlags):
+    async def rolefilter(self, ctx: commands.Context, *, flags: FilterFlags = None):
         """Set filters based on which regular users won't be allowed to check their members.
 
         To remove filters, simply use the same command without any flags.
