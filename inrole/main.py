@@ -82,13 +82,8 @@ class FilterFlags(commands.Converter):
 
 class InRole(commands.Cog):
     """Cog for checking members of a role with the options to add filters that allow regular members to only see role members of roles that pass those filters."""
-<<<<<<< HEAD
     
     __version__ = "1.1.2"
-=======
-
-    __version__ = "1.1.1"
->>>>>>> 1879347d667bc414a7c9f9427270d5e34da62799
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
