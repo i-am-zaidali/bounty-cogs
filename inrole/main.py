@@ -1,14 +1,7 @@
-from redbot.core import commands, Config
-from redbot.core.utils import chat_formatting as cf, menus, mod
-from redbot.core.bot import Red
-from fuzzywuzzy import process
-from typing import TypeVar, Dict, Tuple, Union, Generator, Callable, Any
-from argparse import ArgumentParser
-import discord
 import itertools
 import re
 from argparse import ArgumentParser
-from typing import TypeVar
+from typing import Any, Callable, Dict, Generator, Tuple, TypeVar, Union
 
 import discord
 from fuzzywuzzy import process
@@ -19,6 +12,7 @@ from redbot.core.utils import menus, mod
 
 _K = TypeVar("_K")
 _V = TypeVar("_V")
+
 
 def similar_keys(*dicts: Dict[_K, _V]) -> Generator[Tuple[_K, Tuple[_V, ...]], None, None]:
     all_keys = set(itertools.chain.from_iterable(d.keys() for d in dicts))
@@ -88,7 +82,7 @@ class FilterFlags(commands.Converter):
 
 class InRole(commands.Cog):
     """Cog for checking members of a role with the options to add filters that allow regular members to only see role members of roles that pass those filters."""
-    
+
     __version__ = "1.1.1"
     __author__ = ["crayyy_zee#2900"]
 
@@ -106,7 +100,7 @@ class InRole(commands.Cog):
             f"Author: {cf.humanize_list(self.__author__)}",
         ]
         return "\n".join(text)
-        
+
     @commands.command(name="filteredinrole", aliases=["finrole"])
     @commands.guild_only()
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -122,10 +116,12 @@ class InRole(commands.Cog):
                     "name_regex": lambda x, y: re.match(y, x.name) is not None,
                     "mentionable": lambda x, y: x.mentionable == y,
                     "hoisted": lambda x, y: x.hoist == y,
-                    "position": lambda x, y: x.position == y
-				}
-                
-                if not all([check(role, val) for k, (val, check) in similar_keys(filters, filter_checks)]):
+                    "position": lambda x, y: x.position == y,
+                }
+
+                if not all(
+                    [check(role, val) for k, (val, check) in similar_keys(filters, filter_checks)]
+                ):
                     return await ctx.send("You can't see that role's members, sorry.")
 
         members = list(filter(lambda x: role in x.roles, ctx.guild.members))
@@ -185,9 +181,9 @@ class InRole(commands.Cog):
         
         These filters work when normal users try to access a role's member list and \
         only allows them to see roles that pass these filters."""
-        
+
         filters: Dict[str, Union[str, int, bool]] = await self.config.guild(ctx.guild).filters()
-        
+
         filter_desc = {
             "color": "> **Color of the role:** `{}`",
             "mentionable": "> **Should the role be mentionable?** `{}`",
