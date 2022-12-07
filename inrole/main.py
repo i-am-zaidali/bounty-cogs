@@ -86,7 +86,7 @@ class InRole(commands.Cog):
         ]
         return "\n".join(text)
         
-    @commands.command()
+    @commands.command(name="filteredinrole", aliases=["finrole"])
     @commands.guild_only()
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def inrole(self, ctx: commands.Context, role: RoleConverter):
