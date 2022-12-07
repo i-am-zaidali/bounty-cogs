@@ -89,7 +89,7 @@ class FilterFlags(commands.Converter):
 class InRole(commands.Cog):
     """Cog for checking members of a role with the options to add filters that allow regular members to only see role members of roles that pass those filters."""
     
-    __version__ = "1.1.1"
+    __version__ = "1.1.2"
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -197,7 +197,7 @@ class InRole(commands.Cog):
         }
         desc = ""
 
-        for key, val1, val2 in similar_keys(filters, filter_desc):
+        for key, (val1, val2) in similar_keys(filters, filter_desc):
             val1 = (
                 bool_to_string(val1, ("yes", "no"))
                 if isinstance(val1, bool)
