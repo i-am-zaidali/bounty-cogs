@@ -2,7 +2,7 @@ from redbot.core import commands, Config
 from redbot.core.utils import chat_formatting as cf, menus, mod
 from redbot.core.bot import Red
 from fuzzywuzzy import process
-from typing import TypeVar, Dict, Tuple
+from typing import TypeVar, Dict, Tuple, Union, Generator, Callable, Any
 from argparse import ArgumentParser
 import discord
 import itertools
@@ -11,11 +11,11 @@ import re
 _K = TypeVar("_K")
 _V = TypeVar("_V")
 
-def similar_keys(*dicts):
+def similar_keys(*dicts: Dict[_K, _V]) -> Generator[Tuple[_K, Tuple[_V, ...]], None, None]:
     all_keys = set(itertools.chain.from_iterable(d.keys() for d in dicts))
     unique_keys = all_keys.intersection(*dicts)
     for k in unique_keys:
-        yield tuple([k] + [d[k] for d in dicts])
+        yield (k, tuple(d[k] for d in dicts))
 
 boolconverter = lambda x: True if x.lower() in (1, "true", "t", "on", "y", "yes") else False if x.lower() in (0, "false", "f", "off", "n", "no") else (_ for _ in ()).throw(ValueError("Invalid boolean value."))
 bool_to_string = lambda b, replacements: replacements[0] if b else replacements[1]
@@ -66,9 +66,9 @@ class FilterFlags(commands.Converter):
         
         
 class InRole(commands.Cog):
-    """Cog for checking members of a role with the options to add filters that prevent regular members from seeing the members of a given role."""
+    """Cog for checking members of a role with the options to add filters that allow regular members to only see role members of roles that pass those filters."""
     
-    __version__ = "1.0.0"
+    __version__ = "1.1.0"
     __author__ = ["crayyy_zee#2900"]
     
     def __init__(self, bot: Red):
@@ -92,9 +92,9 @@ class InRole(commands.Cog):
     async def inrole(self, ctx: commands.Context, role: RoleConverter):
         """List all members with a role."""
         if not await mod.is_mod_or_superior(self.bot, ctx.author) and not await mod.check_permissions(ctx, dict(manage_roles=True)):
-            filters = await self.config.guild(ctx.guild).filters()
+            filters: Dict[str, Union[str, int, bool]] = await self.config.guild(ctx.guild).filters()
             if filters:
-                filter_checks = {
+                filter_checks: Dict[str, Callable[[Any, Any], bool]] = {
                     "color": lambda x, y: x.color.value == y,
                     "name_regex": lambda x, y: re.match(y, x.name) is not None,
                     "mentionable": lambda x, y: x.mentionable == y,
@@ -102,7 +102,7 @@ class InRole(commands.Cog):
                     "position": lambda x, y: x.position == y
 				}
                 
-                if any([check(role, val) for k, val, check in similar_keys(filters, filter_checks)]):
+                if not all([check(role, val) for k, (val, check) in similar_keys(filters, filter_checks)]):
                     return await ctx.send("You can't see that role's members, sorry.")
         
         members = list(filter(lambda x: role in x.roles, ctx.guild.members))
@@ -154,9 +154,9 @@ class InRole(commands.Cog):
         See the filters that you have set for your server.
         
         These filters work when normal users try to access a role's member list and \
-        prevents them from running the command for role's that match these filters."""
+        only allows them to see roles that pass these filters."""
         
-        filters = await self.config.guild(ctx.guild).filters()
+        filters: Dict[str, Union[str, int, bool]] = await self.config.guild(ctx.guild).filters()
         
         filter_desc = {
             "color": "> **Color of the role:** `{}`",
@@ -167,7 +167,7 @@ class InRole(commands.Cog):
         }
         desc = ""
         
-        for key, val1, val2 in similar_keys(filters, filter_desc):
+        for key, (val1, val2) in similar_keys(filters, filter_desc):
             val1 = bool_to_string(val1, ("yes", "no")) if isinstance(val1, bool) else val1 if key != "color" else str(discord.Colour(val1))
             desc += (val2.format(val1) + "\n") 
         
