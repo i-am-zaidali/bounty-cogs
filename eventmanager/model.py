@@ -29,7 +29,6 @@ class Event:
         start_time: typing.Optional[datetime] = None,
         pings: int = 0,
     ) -> None:
-
         self.bot = bot
         self.name = name
         self.guild_id = guild_id
