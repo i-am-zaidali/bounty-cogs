@@ -1,0 +1,13 @@
+{
+    "name": "Youtube",
+    "short": "Get youtube updates when a subscribed channel posts",
+    "description": "Get youtube updates when a subscribed channel posts",
+    "install_msg": "Thanks for installing Youtube. Load the cog with `[p]load youtube` and see all its commands with `[p]help youtube`.",
+    "author": [
+        "crayyy_zee"
+    ],
+    "requirements": [
+        "feedparser"
+    ],
+    "type": "COG"
+}
