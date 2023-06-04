@@ -42,7 +42,6 @@ class Verifier(commands.Cog):
         users = await self.config.all_members()
         for guild_id, user_data in users.items():
             for member_id, data in user_data.items():
-
                 if data["has_been_verified"]:
                     data["has_been_verified"] = (
                         data["has_been_verified"],
@@ -168,7 +167,7 @@ class Verifier(commands.Cog):
         async with self.config.member_from_ids(
             member.guild.id, user_id
         ).has_verified() as has_verified:
-            for (member_id, dt) in has_verified.copy():
+            for member_id, dt in has_verified.copy():
                 if member_id == user_id:
                     has_verified.remove((member_id, dt))
                     return

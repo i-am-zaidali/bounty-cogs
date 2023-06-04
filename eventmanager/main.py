@@ -21,7 +21,6 @@ MISSING = object()
 
 
 class EventManager(commands.Cog):
-
     HOUR = 60 * 60
     HALF_HOUR = HOUR / 2
     QUARTER_HOUR = HALF_HOUR / 2
@@ -71,7 +70,10 @@ class EventManager(commands.Cog):
             sent = False
             while answer is MISSING:
                 if not sent:
-                    embed = discord.Embed(title=title, description=description,).set_footer(
+                    embed = discord.Embed(
+                        title=title,
+                        description=description,
+                    ).set_footer(
                         text=f"You have {timeout} seconds to answer.\nSend `cancel` to cancel."
                     )
                     sent = await context.send(embed=embed)
@@ -470,7 +472,6 @@ class EventManager(commands.Cog):
             return
 
         if emoji in emoji_class_dict:
-
             if entrant := event.get_entrant(user.id):
                 emoji_to_remove = class_spec_dict[entrant.category_class]["emoji"]
                 await self.remove_reactions_safely(message, emoji_to_remove, user)
@@ -645,7 +646,6 @@ class EventManager(commands.Cog):
                 await channel.send(embed=embed, delete_after=30)
 
         elif emoji == "🚀":
-
             await self.remove_reactions_safely(message, emoji, user)
 
             if event.get_entrant(user.id):
@@ -761,7 +761,6 @@ class EventManager(commands.Cog):
 
     @tasks.loop(minutes=5)
     async def check_events(self):
-
         await self.to_config()
 
         self.cache.clear()
@@ -803,7 +802,6 @@ class EventManager(commands.Cog):
                             event.guild_id
                         ).history_channel()
                     ) and (chan := event.guild.get_channel(int(chan_id))):
-
                         await chan.send(embed=embed)
                         try:
                             await msg.delete()

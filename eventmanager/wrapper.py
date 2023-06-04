@@ -63,7 +63,6 @@ class SoftRes:
 
 
 class SRFlags(commands.Converter):
-
     # faction             Joi.string().regex(/^Alliance|Horde$/).required(),
     # instance            Joi.string().valid(...itemsUtil.lootTableZones).required(),
     # edition             Joi.string().regex(/^classic|tbc|wotlk$/),

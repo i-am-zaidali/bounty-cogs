@@ -1,9 +1,9 @@
-from redbot.core import commands, Config
-from redbot.core.bot import Red
-import time
 import asyncio
 import random
+import time
 
+from redbot.core import Config, commands
+from redbot.core.bot import Red
 
 fishes = {
     "🐟 Salmon": 3,
