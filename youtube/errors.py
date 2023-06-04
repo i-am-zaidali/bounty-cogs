@@ -7,6 +7,7 @@ class APIError(Exception):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self!s})"
 
+
 class InvalidYoutubeCredentials(Exception):
     pass
 

@@ -1,12 +1,14 @@
-from .main import Youtube
-from .errors import *
 from redbot.core.bot import Red
+
+from .errors import *
+from .main import Youtube
+
 
 async def setup(bot: Red):
     self = Youtube(bot)
     try:
         self.api_key = (await self.bot.get_shared_api_tokens("youtube"))["api_key"]
-        
+
     except KeyError:
         message = (
             "To use this cog, you need to set up a YouTube API key.\n"
@@ -31,5 +33,5 @@ async def setup(bot: Red):
         )
         await bot.send_to_owners(message)
         raise InvalidYoutubeCredentials("No API key found for Youtube API")
-    
+
     await bot.add_cog(self)
