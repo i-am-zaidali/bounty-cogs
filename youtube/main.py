@@ -311,7 +311,7 @@ class Youtube(commands.Cog):
         message = (
             f"Subscribed channels: {cf.humanize_list(subscribed_channels) or 'No channels subscribed.'}\n"
             f"Last checked: <t:{int(datetime.fromisoformat(last_checked).timestamp())}:R>\n"
-            f"Interval: {cf.humanize_timedelta(seconds=interval)}"
+            f"Interval: {cf.humanize_timedelta(seconds=interval)}\n"
             f"Shorts channel: {getattr(ctx.guild.get_channel(post_channels.get('shorts')), 'mention', 'None')}\n"
             f"Videos channel: {getattr(ctx.guild.get_channel(post_channels.get('videos')), 'mention', 'None')}\n"
             f"Live channel: {getattr(ctx.guild.get_channel(post_channels.get('live')), 'mention', 'None')}\n"
