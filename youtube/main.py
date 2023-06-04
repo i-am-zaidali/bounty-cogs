@@ -26,7 +26,7 @@ class Youtube(commands.Cog):
         default_guild = {
             "subscribed_channels": [],
             "last_checked": datetime.now(timezone.utc).isoformat(),
-            "post_channels": {}, # would be like {"shorts": channel_id, "videos": channel_id, "live": channel_id}
+            "post_channels": {},  # would be like {"shorts": channel_id, "videos": channel_id, "live": channel_id}
         }
         self.config.register_guild(**default_guild)
         self.config.register_global(checking_interval=300)
