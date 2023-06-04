@@ -40,17 +40,6 @@ class Youtube(commands.Cog):
 
     @tasks.loop(seconds=1)
     async def checking(self):
-        # get all guilds
-        # for each guild, get the subscribed channels
-        # for each channel, get the last checked time
-        # for each channel, get the latest video
-        # for each channel, check if the latest video is newer than the last checked time
-        # if it is, post the video
-        # update the last checked time
-        # save the last checked time
-        # repeat for each channel
-        # repeat for each guild
-        # repeat every 5 minutes
         for guild_id, data in (await self.config.all_guilds()).items():
             guild = self.bot.get_guild(guild_id)
             if guild is None:
@@ -83,6 +72,7 @@ class Youtube(commands.Cog):
                         ),
                         key=lambda x: x["published"],
                     )
+                    print(latest_videos)
                     for vid in latest_videos:
                         data = await self.get_video_data_from_id(vid.yt_videoid)
                         published = datetime.strptime(
@@ -91,7 +81,7 @@ class Youtube(commands.Cog):
 
                         message_to_send = f"<t:{int(published.timestamp())}:F> :\n**{data['snippet']['title']}**\n\n{vid.link}"
 
-                        if data["snippet"]["liveBroadcastContent"] not in ["None", "none", None]:
+                        if data["snippet"]["liveBroadcastContent"] not in ["None", "none", None] or data.get("liveStreamingDetails") is not None:
                             chan = post_channels.get("live")
                             if chan is None:
                                 continue
