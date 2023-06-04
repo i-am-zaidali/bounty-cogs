@@ -81,7 +81,10 @@ class Youtube(commands.Cog):
 
                         message_to_send = f"<t:{int(published.timestamp())}:F> :\n**{data['snippet']['title']}**\n\n{vid.link}"
 
-                        if data["snippet"]["liveBroadcastContent"] not in ["None", "none", None] or data.get("liveStreamingDetails") is not None:
+                        if (
+                            data["snippet"]["liveBroadcastContent"] not in ["None", "none", None]
+                            or data.get("liveStreamingDetails") is not None
+                        ):
                             chan = post_channels.get("live")
                             if chan is None:
                                 continue
