@@ -72,7 +72,6 @@ class Youtube(commands.Cog):
                         ),
                         key=lambda x: x["published"],
                     )
-                    print(latest_videos)
                     for vid in latest_videos:
                         data = await self.get_video_data_from_id(vid.yt_videoid)
                         published = datetime.strptime(
@@ -167,7 +166,6 @@ class Youtube(commands.Cog):
         async with self.session.get(YOUTUBE_CHANNELS_ENDPOINT, params=params) as resp:
             data = await resp.json()
             self.check_resp_for_errors(data)
-            print(data)
             return data["items"][0]["id"]
 
     def check_resp_for_errors(self, data: dict):

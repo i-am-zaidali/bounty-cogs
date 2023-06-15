@@ -93,8 +93,6 @@ class Fishing(commands.Cog):
         ch = self.calculate_catch_chance(diff)
         rand = random.random()
 
-        print(ch, rand, ch > rand)
-
         if ch > rand:
             fish = random.choices(list(fishes.items()), weights=list(fishes.values()))[0]
             rarity = "Common" if fish[1] == 3 else "Uncommon" if fish[1] == 2 else "Rare"

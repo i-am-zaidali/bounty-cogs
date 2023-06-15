@@ -66,8 +66,6 @@ class FilterFlags(commands.Converter):
         except Exception as e:
             raise commands.BadArgument(str(e))
 
-        print(flags)
-
         if color := (flags.get("color") or flags.get("colour")):
             flags["color"] = (await commands.ColourConverter().convert(ctx, color)).value
 
