@@ -1,10 +1,13 @@
-from redbot.core import commands
-import discord
-import json, yaml
-from typing import TypedDict, Literal
 import asyncio
+import json
 import re
-from redbot.core.utils import menus, chat_formatting as cf
+from typing import Literal, TypedDict
+
+import discord
+import yaml
+from redbot.core import commands
+from redbot.core.utils import chat_formatting as cf
+from redbot.core.utils import menus
 
 __all__ = ["Page", "PageGroup", "StringToPage", "PastebinConverter"]
 

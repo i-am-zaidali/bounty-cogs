@@ -1,7 +1,8 @@
-from redbot.core import commands
+from typing import List
+
 import discord
-from discord.ui import View, Button, Select
-from typing import Optional, Union, List
+from discord.ui import Button, Select, View
+from redbot.core import commands
 
 from .utils import Page
 
