@@ -1,4 +1,4 @@
-from .main import Red, DiabloNotifier
+from .main import DiabloNotifier, Red
 
 
 async def setup(bot: Red):

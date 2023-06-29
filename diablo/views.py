@@ -1,9 +1,10 @@
+import typing
+
 import discord
 import discord.interactions
-from discord.ui import View, button, Select
-from redbot.core.utils import chat_formatting as cf
+from discord.ui import Select, View, button
 from redbot.core.bot import Red
-import typing
+from redbot.core.utils import chat_formatting as cf
 
 if typing.TYPE_CHECKING:
     from .main import DiabloNotifier
