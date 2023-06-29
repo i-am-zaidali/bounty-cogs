@@ -204,7 +204,9 @@ class Diablo(commands.Cog):
         if eventname == "boss":
             eventdata: BossDict
             message = f"{role.mention} {eventdata['name']} is stirring in {eventdata['territory']} <t:{int(eventdata['timestamp'])}:R>"
-            await channel.send(message, delete_after=120)
+            await channel.send(
+                message, delete_after=120, allowed_mentions=discord.AllowedMentions(roles=True)
+            )
         elif eventname == "helltide":
             eventdata: HelltideDict
             message = f"{role.mention} Helltide is about to start in {helltide_locs[eventdata['zone']]} <t:{int(eventdata['timestamp'])}:R>"
@@ -218,7 +220,9 @@ class Diablo(commands.Cog):
                     )
                 )
             )
-            await channel.send(message, delete_after=120)
+            await channel.send(
+                message, delete_after=120, allowed_mentions=discord.AllowedMentions(roles=True)
+            )
 
         elif eventname == "legion":
             eventdata: LegionDict
@@ -226,7 +230,10 @@ class Diablo(commands.Cog):
             asyncio.create_task(self.get_legion_map()).add_done_callback(
                 lambda x: asyncio.create_task(
                     channel.send(
-                        message, file=discord.File(io.BytesIO(x.result()), filename="legion.png")
+                        message,
+                        file=discord.File(io.BytesIO(x.result()), filename="legion.png"),
+                        delete_after=120,
+                        allowed_mentions=discord.AllowedMentions(roles=True),
                     )
                 )
             )
