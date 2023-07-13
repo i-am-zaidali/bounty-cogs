@@ -1,6 +1,6 @@
-from redbot.core.bot import Red
-from redbot.core import commands, Config
 import discord
+from redbot.core import Config, commands
+from redbot.core.bot import Red
 
 from .views import AddToSheetsView, VerifyView
 

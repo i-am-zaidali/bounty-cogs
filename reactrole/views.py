@@ -1,9 +1,10 @@
-from discord.ui import Button, View, Modal
-import discord
-import functools
-from .models import ButtonConfig, RRMConfig
-from redbot.core.bot import Red
 from typing import TYPE_CHECKING
+
+import discord
+from discord.ui import Button, Modal, View
+from redbot.core.bot import Red
+
+from .models import ButtonConfig, RRMConfig
 
 if TYPE_CHECKING:
     from .main import ReactRole
