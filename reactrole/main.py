@@ -1,13 +1,15 @@
 import asyncio
-from redbot.core.bot import Red
-from redbot.core import commands, Config
-from redbot.core.utils import chat_formatting as cf
+import operator
+from typing import Dict, Literal, Optional
+
 import discord
-from typing import Dict, Optional, Literal
+from redbot.core import Config, commands
+from redbot.core.bot import Red
+from redbot.core.utils import chat_formatting as cf
 from tabulate import tabulate
+
 from .models import ButtonConfig, EditFlags, RRMConfig
 from .views import RoleView
-import operator
 
 
 class ReactRole(commands.Cog):
@@ -56,7 +58,6 @@ class ReactRole(commands.Cog):
     async def reactrole(self, ctx: commands.Context):
         """
         Commands for managing reactrole messages."""
-        pass
 
     @reactrole.command(name="add")
     async def rr_add(

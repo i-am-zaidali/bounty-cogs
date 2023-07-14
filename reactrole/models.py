@@ -1,6 +1,7 @@
-from typing import Union, Literal, TypedDict, List, Optional
-from discord.ext import commands
+from typing import List, Literal, Optional, TypedDict, Union
+
 import discord
+from discord.ext import commands
 
 
 class ButtonConfig(TypedDict):

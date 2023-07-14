@@ -1,8 +1,9 @@
-import pandas as pd
-import discord
-from discord.ui import View, Button, button, Modal
-from typing import TYPE_CHECKING, Dict
 import functools
+from typing import TYPE_CHECKING, Dict
+
+import discord
+import pandas as pd
+from discord.ui import Button, Modal, View, button
 from redbot.core.bot import Red
 from redbot.core.data_manager import bundled_data_path
 
