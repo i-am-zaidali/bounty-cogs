@@ -9,36 +9,46 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
 from redbot.core.utils import menus, mod
+from .views import Page, PaginationView
 
 _K = TypeVar("_K")
 _V = TypeVar("_V")
 _K1 = TypeVar("_K1")
 _V1 = TypeVar("_V1")
-_k2 = TypeVar("_K2")
+_K2 = TypeVar("_K2")
 _V2 = TypeVar("_V2")
 _K3 = TypeVar("_K3")
-_V4 = TypeVar("_V3")
+_V3 = TypeVar("_V3")
 
 
 @overload
-def similar_keys(dict1: Dict[_K1, _V1]):
+def similar_keys(dict1: Dict[_K1, _V1]) -> Generator[Tuple[_K1, Tuple[_V1]], None, None]:
     ...
 
 
 @overload
 def similar_keys(
     dict1: Dict[_K1, _V1], dict2: Dict[_K2, _V2]
-) -> Generator[Tuple[Union[_K1, _K2], Tuple[_V1, _V2, ...]], None, None]:
+) -> Generator[Tuple[Union[_K1, _K2], Tuple[_V1, _V2]], None, None]:
     ...
 
 
 @overload
-def similar_keys(dict1: Dict[_K1, _V1], dict2: Dict[_K2, _V2], dict3: Dict[_K3, _V3]):
+def similar_keys(
+    dict1: Dict[_K1, _V1], dict2: Dict[_K2, _V2], dict3: Dict[_K3, _V3]
+) -> Generator[Tuple[Union[_K1, _K2, _K3], Tuple[_V1, _V2, _V3]], None, None]:
     ...
 
 
 @overload
-def similar_keys(*dicts: Dict[_k, _V]):
+def similar_keys(
+    dict1: Dict[_K1, _V1], dict2: Dict[_K2, _V2], dict3: Dict[_K3, _V3], *dicts: Dict[Any, Any]
+) -> Generator[Tuple[Union[_K1, _K2, _K3, Any], Tuple[_V1, _V2, _V3, Any]], None, None]:
+    ...
+
+
+@overload
+def similar_keys(*dicts: Dict[Any, Any]) -> Generator[Tuple[Any, Tuple[Any, ...]], None, None]:
     ...
 
 
@@ -135,9 +145,11 @@ class InRole(commands.Cog):
         if not await mod.is_mod_or_superior(
             self.bot, ctx.author
         ) and not await mod.check_permissions(ctx, dict(manage_roles=True)):
-            filters = await self.config.guild(ctx.guild).filters()
+            filters: Dict[str, Union[str, int, bool]] = await self.config.guild(
+                ctx.guild
+            ).filters()
             if filters:
-                filter_checks: Dict[str, Callable[[Any, Any], bool]] = {
+                filter_checks: Dict[str, Callable[[discord.Role, Any], bool]] = {
                     "color": lambda x, y: x.color.value == y,
                     "name_regex": lambda x, y: re.match(y, x.name) is not None,
                     "mentionable": lambda x, y: x.mentionable == y,
@@ -146,7 +158,7 @@ class InRole(commands.Cog):
                 }
 
                 if not all(
-                    [check(role, val) for k, (val, check) in similar_keys(filters, filter_checks)]
+                    (check(role, val) for k, (val, check) in similar_keys(filters, filter_checks))
                 ):
                     return await ctx.send("You can't see that role's members, sorry.")
 
@@ -157,21 +169,21 @@ class InRole(commands.Cog):
         if not members:
             return await ctx.send("No members found that have this role.")
 
-        embeds: list[discord.Embed] = []
+        pages: list[Page] = []
 
         for page in cf.pagify(joined, page_length=1000):
-            embeds.append(
-                discord.Embed(
-                    title=f"{amount} members found with {role.name}",
-                    description=cf.box(page, lang="md"),
+            pages.append(
+                Page(
+                    embeds=[
+                        discord.Embed(
+                            title=f"{amount} members found with {role.name}",
+                            description=cf.box(page, lang="md"),
+                        )
+                    ]
                 )
             )
 
-        controls = (
-            menus.DEFAULT_CONTROLS if len(embeds) > 1 else {"\N{CROSS MARK}": menus.close_menu}
-        )
-
-        await menus.menu(ctx, embeds, controls)
+        await PaginationView(ctx, pages).start()
 
     @commands.group(name="rolefilter", invoke_without_command=True)
     @commands.guild_only()
