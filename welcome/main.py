@@ -1,6 +1,7 @@
 import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
+from redbot.core.data_manager import bundled_data_path
 
 from .views import AddToSheetsView, VerifyView
 
@@ -27,12 +28,15 @@ class Welcome(commands.Cog):
         self.sheets_view = AddToSheetsView(self)
         self.bot.add_view(self.verify_view)
         self.bot.add_view(self.sheets_view)
+        self.bot.add_dev_env_value("welcome", lambda x: self)
 
     async def cog_unload(self):
+        self.bot.remove_dev_env_value("welcome")
         self.verify_view.stop()
         self.sheets_view.stop()
 
     @commands.group(name="questionnaire", aliases=["q"], invoke_without_command=True)
+    @commands.admin_or_permissions(manage_guild=True)
     async def questionnaire(self, ctx: commands.Context):
         """Commands to create questionnaires"""
         if ctx.invoked_subcommand is None:
@@ -93,6 +97,7 @@ class Welcome(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(name="setruleschannel", aliases=["src"])
+    @commands.admin_or_permissions(manage_guild=True)
     async def set_rules_channel(self, ctx: commands.Context, channel: discord.TextChannel):
         """Set the channel where the rules are posted"""
         await self.config.guild(ctx.guild).rules_channel.set(channel.id)
@@ -103,19 +108,36 @@ class Welcome(commands.Cog):
         await ctx.tick()
 
     @commands.command(name="setverifiedrole", aliases=["svr"])
+    @commands.admin_or_permissions(manage_guild=True)
     async def set_verified_role(self, ctx: commands.Context, role: discord.Role):
         """Set the role to give when someone verifies"""
         await self.config.guild(ctx.guild).verified_role.set(role.id)
         await ctx.tick()
 
     @commands.command(name="setstaffchannel", aliases=["ssc"])
+    @commands.admin_or_permissions(manage_guild=True)
     async def set_staff_channel(self, ctx: commands.Context, channel: discord.TextChannel):
         """Set the channel where the staff will be notified"""
         await self.config.guild(ctx.guild).staff_channel.set(channel.id)
         await ctx.tick()
 
     @commands.command(name="setstaffrole", aliases=["ssr"])
+    @commands.admin_or_permissions(manage_guild=True)
     async def set_staff_role(self, ctx: commands.Context, role: discord.Role):
         """Set the role that will be allowed to interact with user data"""
         await self.config.guild(ctx.guild).staff_role.set(role.id)
         await ctx.tick()
+
+    @commands.command(name="sendexcelfile", aliases=["sef"])
+    @commands.admin_or_permissions(manage_guild=True)
+    async def send_excel_file(self, ctx: commands.Context):
+        """Send the excel file with all the user data"""
+        staff_role = await self.config.guild(ctx.guild).staff_role()
+        if not ctx.bot.is_owner(ctx.author):
+            if staff_role is None:
+                return await ctx.send("You need to set a staff role first!")
+            if ctx.author.get_role(staff_role) is None:
+                return await ctx.send("You need to have the staff role to use this command!")
+        if not (bundled_data_path(self) / "welcome.xlsx").exists():
+            return await ctx.send("The excel file doesn't exist!")
+        await ctx.send(file=discord.File(bundled_data_path(self) / "welcome.xlsx"))

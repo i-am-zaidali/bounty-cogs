@@ -1,14 +1,23 @@
 import functools
 from typing import TYPE_CHECKING, Dict
+import time
+from pathlib import Path
 
 import discord
 import pandas as pd
 from discord.ui import Button, Modal, View, button
 from redbot.core.bot import Red
 from redbot.core.data_manager import bundled_data_path
+import string
+from gspread_asyncio import AsyncioGspreadClientManager as AGCM
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
 
 if TYPE_CHECKING:
     from .main import Welcome
+
+INDEX_LETTER = dict(enumerate(string.ascii_letters, 1))
 
 
 class AddToSheetsView(View):
@@ -40,31 +49,43 @@ class AddToSheetsView(View):
 
         return True
 
-    async def add_to_sheet(self, user: discord.Member):
+    async def save_locally(self, user: discord.Member):
         answers = await self.config.member(user).answers()
-        data_to_add = {"discord username": user.display_name, **answers}
+        data_to_add = {
+            "discord username": user.display_name,
+            **answers,
+        }
+        user_id = str(user.id)
         file_path = bundled_data_path(self.bot.get_cog("Welcome")) / "welcome.xlsx"
         try:
-            df = pd.read_excel(file_path)
-            pd.concat([df, pd.DataFrame(data_to_add, index=[str(user.id)])]).to_excel(
-                file_path, index=False
-            )
+            df = pd.read_excel(file_path, dtype=str)
+            df.set_index("discord user ID", inplace=True)
+            # Update data is required if the user already exists
+            if user.id in df.index:
+                df.loc[user.id, :] = data_to_add
+                print("after update\n", df)
+            else:
+                df = pd.concat([df, pd.DataFrame(data_to_add, index=[user_id])])
+                print("after concat\n", df)
         except FileNotFoundError:
-            df = pd.DataFrame(answers, index=[str(user.id)])
-        df.to_excel(file_path, index=False)
+            df = pd.DataFrame(data_to_add, index=[user_id])
+            print("After new\n", df)
+        df.to_excel(file_path, index_label="discord user ID")
         return file_path
 
-    @button(label="Add to Docs", style=discord.ButtonStyle.green, custom_id="add_to_docs")
-    async def add_to_docs(self, interaction: discord.Interaction, button: Button):
+    @button(label="Save excel file locally", style=discord.ButtonStyle.green, custom_id="save")
+    async def save_local(self, interaction: discord.Interaction, button: Button):
         await interaction.response.defer()
-        await interaction.followup.send("Adding to docs...", ephemeral=True)
+        msg = await interaction.followup.send("Saving Locally...", ephemeral=True, wait=True)
         user = interaction.guild.get_member(int(interaction.message.embeds[0].footer.text))
         if not user:
             return await interaction.followup.send(f"User not found.", ephemeral=True)
-        path = await self.add_to_sheet(user)
-        await interaction.followup.send(
-            f"The excel file was saved locally and can be found at {path}.", ephemeral=True
-        )
+
+        path = await self.save_locally(user)
+        # button.disabled = True
+        # await interaction.message.edit(view=self)
+        # button.disabled = False
+        await msg.edit(content=f"The excel file was saved locally and can be found at {path}.")
 
 
 class QuestionnaireModal(Modal):
@@ -112,16 +133,16 @@ class QuestionnaireView(View):
             but.callback = functools.partial(self._callback, but)
             self.add_item(but)
 
-    def get_answers_embed(self, user_id: int):
+    def get_answers_embed(self, user: discord.Member):
         embed = discord.Embed(
-            title="Questionnaire Answers",
+            title=f"Questionnaire Answers from {user.display_name} ({user.id})",
             color=discord.Color.blurple(),
-            description="",
+            description=f"Answered <t:{int(time.time())}:R> (<t:{int(time.time())}:F>))",
         )
         for key, value in self.answers.items():
             embed.add_field(name=self.questions[key], value=value, inline=False)
 
-        embed.set_footer(text=str(user_id))
+        embed.set_footer(text=str(user.id))
 
         return embed
 
@@ -141,7 +162,7 @@ class QuestionnaireView(View):
         if len(self.view.answers) == len(questionnaire):
             staff = await self.view.config.guild(interaction.guild).staff_channel()
             if staff and (chan := interaction.guild.get_channel(staff)):
-                embed = self.view.get_answers_embed(interaction.user.id)
+                embed = self.view.get_answers_embed(interaction.user)
                 await chan.send(
                     embed=embed,
                     view=self.view.cog.sheets_view,
@@ -149,6 +170,7 @@ class QuestionnaireView(View):
             await self.view.message.edit(
                 content="You have answered all the required questions.",
             )
+            self.view.stop()
 
     @staticmethod
     def _buttons_required(questions: dict):
@@ -221,11 +243,6 @@ class VerifyView(View):
     @button(label="I Agree", style=discord.ButtonStyle.green, custom_id="agree")
     async def agree(self, interaction: discord.Interaction, button: Button):
         await interaction.response.defer()
-        await interaction.user.add_roles(
-            interaction.guild.get_role(
-                (await self.cog.config.guild(interaction.guild).verified_role())
-            )
-        )
         if await self.cog.config.member(interaction.user).answers() or not (
             q := await self.cog.config.guild(interaction.guild).questionnaire()
         ):
@@ -234,9 +251,18 @@ class VerifyView(View):
         else:
             view = QuestionnaireView(self.cog, q)
             message = await interaction.followup.send(
-                "You are now verified. Please click the buttons below one by one to answers the required questions.",
+                "Please click the buttons below one by one to answers the required questions to be verified.",
                 ephemeral=True,
                 wait=True,
                 view=view,
             )
             view.message = message
+            await view.wait()
+            if view.answers:
+                await self.cog.config.member(interaction.user).answers.set(view.answers)
+
+        await interaction.user.add_roles(
+            interaction.guild.get_role(
+                (await self.cog.config.guild(interaction.guild).verified_role())
+            )
+        )

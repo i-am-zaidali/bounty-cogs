@@ -1,6 +1,6 @@
 import asyncio
 import operator
-from typing import Dict, Literal, Optional
+from typing import Dict, Literal, Optional, Union
 
 import discord
 from redbot.core import Config, commands
@@ -66,7 +66,7 @@ class ReactRole(commands.Cog):
         message: discord.Message,
         role: discord.Role,
         custom_id: str,
-        emoji: Optional[discord.Emoji],
+        emoji: Optional[Union[discord.Emoji, discord.PartialEmoji]],
         style: Optional[Literal[1, 2, 3, 4]] = 2,
         *,
         label: str,
