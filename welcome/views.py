@@ -1,11 +1,12 @@
 import functools
-from typing import TYPE_CHECKING, Dict
+import string
 import time
+from typing import TYPE_CHECKING, Dict
+
 import discord
 import pandas as pd
 from discord.ui import Button, Modal, View, button
 from redbot.core.data_manager import bundled_data_path
-import string
 
 if TYPE_CHECKING:
     from .main import Welcome
