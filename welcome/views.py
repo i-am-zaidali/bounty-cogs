@@ -1,18 +1,11 @@
 import functools
 from typing import TYPE_CHECKING, Dict
 import time
-from pathlib import Path
-
 import discord
 import pandas as pd
 from discord.ui import Button, Modal, View, button
-from redbot.core.bot import Red
 from redbot.core.data_manager import bundled_data_path
 import string
-from gspread_asyncio import AsyncioGspreadClientManager as AGCM
-from google.oauth2.credentials import Credentials
-from google.auth.transport.requests import Request
-from google_auth_oauthlib.flow import InstalledAppFlow
 
 if TYPE_CHECKING:
     from .main import Welcome
