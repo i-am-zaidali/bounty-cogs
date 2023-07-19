@@ -1,7 +1,7 @@
 import itertools
 import re
 from argparse import ArgumentParser
-from typing import Any, Callable, Dict, Generator, Tuple, TypeVar, Union
+from typing import Any, Callable, Dict, Generator, Tuple, TypeVar, Union, overload
 
 import discord
 from fuzzywuzzy import process
@@ -12,7 +12,28 @@ from redbot.core.utils import menus, mod
 
 _K = TypeVar("_K")
 _V = TypeVar("_V")
+_K1 = TypeVar("_K1")
+_V1 = TypeVar("_V1")
+_k2 = TypeVar("_K2")
+_V2 = TypeVar("_V2")
+_K3 = TypeVar("_K3")
+_V4 = TypeVar("_V3")
 
+@overload
+def similar_keys(dict1: Dict[_K1, _V1]):
+    ...
+
+@overload
+def similar_keys(dict1: Dict[_K1, _V1], dict2: Dict[_K2, _V2]) -> Generator[Tuple[Union[_K1, _K2], Tuple[_V1, _V2, ...]], None, None] :
+    ...
+
+@overload
+def similar_keys(dict1: Dict[_K1, _V1], dict2: Dict[_K2, _V2], dict3: Dict[_K3, _V3]):
+    ...
+
+@overload
+def similar_keys(*dicts: Dict[_k, _V]):
+    ...
 
 def similar_keys(*dicts: Dict[_K, _V]) -> Generator[Tuple[_K, Tuple[_V, ...]], None, None]:
     all_keys = set(itertools.chain.from_iterable(d.keys() for d in dicts))
