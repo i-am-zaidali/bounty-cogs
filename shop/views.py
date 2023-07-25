@@ -1,10 +1,12 @@
-import discord
-from discord.ui import View, Button, button, Select, Modal, TextInput, select
 import functools
-from typing import Union, List, TYPE_CHECKING
-from redbot.core import commands
-from .utils import OfferDict, mutual_viewable_channels, find_similar_dict_in
 import time
+from typing import TYPE_CHECKING, List, Union
+
+import discord
+from discord.ui import Button, Modal, Select, TextInput, View, button, select
+from redbot.core import commands
+
+from .utils import OfferDict, find_similar_dict_in, mutual_viewable_channels
 
 if TYPE_CHECKING:
     from .main import Shop
