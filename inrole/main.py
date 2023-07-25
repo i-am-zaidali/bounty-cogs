@@ -9,6 +9,7 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
 from redbot.core.utils import menus, mod
+
 from .views import Page, PaginationView
 
 _K = TypeVar("_K")
