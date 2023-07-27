@@ -1,11 +1,12 @@
-from redbot.core import commands, Config
-from redbot.core.bot import Red
-import discord
-import asyncio
-from typing import Literal
 import random
-from .wheel import get_animated_wheel
+from typing import Literal
+
+import discord
+from redbot.core import Config, commands
+from redbot.core.bot import Red
+
 from .views import TradeSelector
+from .wheel import get_animated_wheel
 
 
 class STW(commands.Cog):

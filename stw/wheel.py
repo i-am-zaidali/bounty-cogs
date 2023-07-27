@@ -1,10 +1,11 @@
 import io
 import math
 import random
-from typing import List, Tuple
-from PIL import Image, ImageDraw, ImageFont
 from collections import deque
+from typing import List, Tuple
+
 import imageio
+from PIL import Image, ImageDraw, ImageFont
 
 __all__ = ["get_animated_wheel", "draw_still_wheel"]
 

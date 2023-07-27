@@ -1,8 +1,9 @@
-from discord.ui import Button, Modal, View, button, TextInput
-import discord
 import operator
+from typing import TYPE_CHECKING, Tuple
+
+import discord
+from discord.ui import Button, Modal, TextInput, View, button
 from redbot.core import commands
-from typing import List, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .main import STW
