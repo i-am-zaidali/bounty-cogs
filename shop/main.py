@@ -1,13 +1,12 @@
-from typing import Optional, overload, Dict, Union, List
+from typing import Dict, Optional, Union, overload
 
-from redbot.core.bot import Red
-from redbot.core import commands, Config
-from redbot.core.utils import chat_formatting as cf
-from redbot.core import bank
 import discord
+from redbot.core import Config, bank, commands
+from redbot.core.bot import Red
+from redbot.core.utils import chat_formatting as cf
 
-from .views import YesOrNoView, PaginationView, Trade, ADTView
-from .utils import find_similar_dict_in, group_embeds_by_fields, OfferDict, SoldDict
+from .utils import OfferDict, SoldDict, find_similar_dict_in, group_embeds_by_fields
+from .views import ADTView, PaginationView, Trade, YesOrNoView
 
 
 class Shop(commands.Cog):
@@ -78,7 +77,6 @@ class Shop(commands.Cog):
     @commands.guild_only()
     async def shop(self, ctx: commands.Context):
         """Shop commands."""
-        pass
 
     @shop.command(name="createitem", aliases=["ci"])
     @commands.is_owner()

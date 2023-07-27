@@ -1,4 +1,5 @@
-from typing import Dict, Union, List, TypedDict
+from typing import Dict, List, TypedDict, Union
+
 import discord
 from redbot.core.bot import Red
 
