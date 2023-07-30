@@ -85,7 +85,7 @@ class STW(commands.Cog):
         items = await self.config.items()
         if not items:
             return await ctx.send("There are no items on the wheel")
-        await ctx.send(cf.humanize_list(list(map(cf.box, items))))
+        await ctx.send(cf.humanize_list(list(map("`{}`".format, items))))
 
     @stw.command(name="steal")
     async def stw_r(
