@@ -4,6 +4,7 @@ from typing import Literal
 import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
+from redbot.core.utils import chat_formatting as cf
 
 from .views import TradeSelector
 from .wheel import get_animated_wheel
@@ -77,6 +78,14 @@ class STW(commands.Cog):
                 return await ctx.send("There are no items to remove")
             items.remove(item)
         await ctx.tick()
+
+    @stw.command(name="listitems", aliases=["li"])
+    async def stw_li(self, ctx: commands.Context):
+        """List all the items on the wheel"""
+        items = await self.config.items()
+        if not items:
+            return await ctx.send("There are no items on the wheel")
+        await ctx.send(cf.humanize_list(list(map(cf.box, items))))
 
     @stw.command(name="steal")
     async def stw_r(

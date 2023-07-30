@@ -133,7 +133,7 @@ def draw_labels(
     iteration: int = 1,
 ) -> None:
     draw: ImageDraw.ImageDraw = ImageDraw.Draw(img)
-    font: ImageFont.FreeTypeFont = ImageFont.truetype("arial.ttf", 20)
+    font = ImageFont.load_default()
     for j in range(1, num_sections + 1):
         sa: float = j * section_angle
         mid_angle: float = math.radians(sa)
