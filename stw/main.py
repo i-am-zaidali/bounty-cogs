@@ -109,6 +109,8 @@ class STW(commands.Cog):
                 )
 
             inventory[item] -= amount
+            if inventory[item] == 0:
+                del inventory[item]
 
             await ctx.send("Successfully stolen")
 
@@ -140,7 +142,9 @@ class STW(commands.Cog):
         embed = discord.Embed(
             title=f"{user.display_name}'s inventory",
             description="- "
-            + "\n- ".join(f"{count:,} `{item}`" for item, count in inventory.items()),
+            + "\n- ".join(
+                f"{count:,} `{item}`" for item, count in inventory.items() if count != 0
+            ),
         )
         await ctx.send(embed=embed)
 

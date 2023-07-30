@@ -6,11 +6,13 @@ from typing import List, Tuple
 
 import imageio
 from PIL import Image, ImageDraw, ImageFont
+from redbot.core.data_manager import bundled_data_path
 
 __all__ = ["get_animated_wheel", "draw_still_wheel"]
 
 
 def get_animated_wheel(
+    cog,
     section_labels: List[str],
     section_colors: List[Tuple[int, int, int]],
     width: int,
@@ -43,7 +45,7 @@ def get_animated_wheel(
         colors.appendleft(colors.pop())
 
         draw_sections(img, num_sections, section_angle, colors, center, radius, offset)
-        draw_labels(img, num_sections, section_angle, section_labels, center, radius, i - 1)
+        draw_labels(cog, img, num_sections, section_angle, section_labels, center, radius, i - 1)
         draw_arrow(img, center, radius)
 
         images.append(img)
@@ -124,6 +126,7 @@ def draw_sections(
 
 
 def draw_labels(
+    cog,
     img: Image.Image,
     num_sections: int,
     section_angle: float,
@@ -133,7 +136,7 @@ def draw_labels(
     iteration: int = 1,
 ) -> None:
     draw: ImageDraw.ImageDraw = ImageDraw.Draw(img)
-    font = ImageFont.load_default()
+    font = ImageFont.truetype(str(bundled_data_path(cog) / "fonts/arial.ttf"), 20)
     for j in range(1, num_sections + 1):
         sa: float = j * section_angle
         mid_angle: float = math.radians(sa)

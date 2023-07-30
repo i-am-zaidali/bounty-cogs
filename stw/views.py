@@ -135,6 +135,7 @@ class TradeSelector(ViewDisableOnTimeout):
         self.buttons_to_add = [
             Button(label=item, style=discord.ButtonStyle.green, custom_id=f"trade_{item}")
             for item in set.union(set(self.user1_inv.keys()), set(self.user2_inv.keys()))
+            if self.user1_inv.get(item) or self.user2_inv.get(item)
         ] + [Button(label="Whole Inventory", style=discord.ButtonStyle.green, custom_id="all")]
         super().__init__(timeout=30)
         for button in self.buttons_to_add:
