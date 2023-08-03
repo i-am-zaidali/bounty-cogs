@@ -40,7 +40,7 @@ class STW(commands.Cog):
         height = wheel_size
 
         img, selected = get_animated_wheel(
-            items, list(self.get_random_colors(len(items))), width, height, 60
+            self, items, list(self.get_random_colors(len(items))), width, height, 60
         )
         async with self.config.user(user).inventory() as inventory:
             inventory.setdefault(selected, 0)
