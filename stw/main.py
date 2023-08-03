@@ -61,7 +61,7 @@ class STW(commands.Cog):
     ):
         """Add an item to the wheel"""
         async with self.config.items() as items:
-            #if len(items) == 25:
+            # if len(items) == 25:
             #    return await ctx.send("There are already 25 items on the wheel. Cannot add more.")
             if item in items:
                 return await ctx.send("That item is already on the wheel")
