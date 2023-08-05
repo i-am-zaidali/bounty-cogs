@@ -12,7 +12,7 @@ from redbot.core.data_manager import bundled_data_path
 __all__ = ["get_animated_wheel", "draw_still_wheel"]
 
 
-async def get_animated_wheel(
+def get_animated_wheel(
     cog,
     section_labels: List[str],
     section_colors: List[Tuple[int, int, int]],
@@ -50,7 +50,6 @@ async def get_animated_wheel(
         draw_arrow(img, center, radius)
 
         images.append(img)
-        await asyncio.sleep(0)
 
     # # Randomly spin the wheel
     # random_spin: int = random.randint(0, spins - 1)
@@ -89,7 +88,7 @@ def draw_still_wheel(
     img: Image.Image = Image.new("RGB", (width, height), (255, 255, 255))
 
     draw_sections(img, num_sections, section_angle, colors, center, radius, offset)
-    draw_labels(cog, img, num_sections, section_angle, section_labels, center, radius, i - 1)
+    draw_labels(cog, img, num_sections, section_angle, section_labels, center, radius)
     draw_arrow(img, center, radius)
 
     # Save the frames as animated GIF to BytesIO

@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import logging
 import random
 from io import BytesIO
@@ -7,7 +8,6 @@ from typing import Literal, Tuple
 import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
-from redbot.core.utils import chat_formatting as cf
 
 from .views import TradeSelector
 from .wheel import draw_still_wheel, get_animated_wheel
@@ -47,7 +47,7 @@ class STW(commands.Cog):
 
         message = await ctx.send("Spinning the wheel...")
 
-        async def callback(task: asyncio.Task[Tuple[BytesIO, str]]):
+        async def callback(task: asyncio.Future[Tuple[BytesIO, str]]):
             try:
                 exc = task.exception()
             except asyncio.CancelledError:
@@ -70,13 +70,20 @@ class STW(commands.Cog):
             )
             self.tasks.remove(task)
 
-        task = asyncio.create_task(
-            get_animated_wheel(
-                self, items, list(self.get_random_colors(len(items))), width, height, 60
-            )
+        fut = asyncio.get_event_loop().run_in_executor(
+            None,
+            functools.partial(
+                get_animated_wheel,
+                self,
+                items,
+                list(self.get_random_colors(len(items))),
+                width,
+                height,
+                60,
+            ),
         )
-        task.add_done_callback(lambda x: asyncio.create_task(callback(x)))
-        self.tasks.append(task)
+        fut.add_done_callback(lambda x: asyncio.create_task(callback(x)))
+        self.tasks.append(fut)
 
     @stw.command(name="createitem", aliases=["ci"])
     async def stw_ci(
