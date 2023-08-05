@@ -1,5 +1,8 @@
+import asyncio
+from io import BytesIO
+import logging
 import random
-from typing import Literal
+from typing import Literal, Tuple
 
 import discord
 from redbot.core import Config, commands
@@ -7,7 +10,9 @@ from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
 
 from .views import TradeSelector
-from .wheel import get_animated_wheel
+from .wheel import get_animated_wheel, draw_still_wheel
+
+log = logging.getLogger("red.bounty.stw")
 
 
 class STW(commands.Cog):
@@ -39,17 +44,35 @@ class STW(commands.Cog):
         width = wheel_size + max_name_length * 10
         height = wheel_size
 
-        img, selected = get_animated_wheel(
-            self, items, list(self.get_random_colors(len(items))), width, height, 60
-        )
-        async with self.config.user(user).inventory() as inventory:
-            inventory.setdefault(selected, 0)
-            inventory[selected] += 1
+        message = await ctx.send("Spinning the wheel...")
 
-        await ctx.send(
-            f"{user.mention} won `{selected}`. It has been added to their inventory and they can check with `{ctx.clean_prefix}inventory`",
-            file=discord.File(img, "wheel.gif"),
-        )
+        async def callback(task: asyncio.Task[Tuple[BytesIO, str]]):
+            try:
+                exc = task.exception()
+            except asyncio.CancelledError:
+                return await ctx.send(
+                    "The image creation task seems to have been cancelled. Try running the command again."
+                )
+            if exc:
+                log.exception("An error occurred while creating the image", exc_info=exc)
+                return await ctx.send(
+                    f"An error occurred while spinning the wheel: `{exc}`. Check logs for more info."
+                )
+            img, selected = task.result()
+            async with self.config.user(user).inventory() as inventory:
+                inventory.setdefault(selected, 0)
+                inventory[selected] += 1
+            await message.delete()
+            await ctx.send(
+                f"{user.mention} won `{selected}`. It has been added to their inventory and they can check with `{ctx.clean_prefix}inventory`",
+                file=discord.File(img, "wheel.gif"),
+            )
+
+        asyncio.create_task(
+            get_animated_wheel(
+                self, items, list(self.get_random_colors(len(items))), width, height, 60
+            )
+        ).add_done_callback(lambda x: asyncio.create_task(callback(x)))
 
     @stw.command(name="createitem", aliases=["ci"])
     async def stw_ci(
@@ -66,7 +89,20 @@ class STW(commands.Cog):
             if item in items:
                 return await ctx.send("That item is already on the wheel")
             items.append(item)
-        await ctx.tick()
+            await ctx.tick()
+            max_name_length = max(len(item) for item in items)
+            wheel_size = len(items) * 150
+            width = wheel_size + max_name_length * 10
+            height = wheel_size
+            await ctx.send(
+                "Here's a preview of the wheel: ",
+                file=discord.File(
+                    draw_still_wheel(
+                        self, items, list(self.get_random_colors(len(items))), width, height
+                    ),
+                    "wheel.png",
+                ),
+            )
 
     @stw.command(name="deleteitem", aliases=["di"])
     async def stw_di(
@@ -77,7 +113,14 @@ class STW(commands.Cog):
             if not item in items:
                 return await ctx.send("There are no items to remove")
             items.remove(item)
-        await ctx.tick()
+            await ctx.tick()
+            await ctx.send(
+                "Here's a preview of the wheel: ",
+                file=discord.File(
+                    draw_still_wheel(items, list(self.get_random_colors(len(items))), 500, 500),
+                    "wheel.png",
+                ),
+            )
 
     @stw.command(name="listitems", aliases=["li"])
     async def stw_li(self, ctx: commands.Context):
@@ -138,12 +181,14 @@ class STW(commands.Cog):
         inventory = await self.config.user(user).inventory()
         if not inventory:
             return await ctx.send("You have no items in your inventory")
-        newline = "\n"
+        existing_items = await self.config.items()
         embed = discord.Embed(
             title=f"{user.display_name}'s inventory",
             description="- "
             + "\n- ".join(
-                f"{count:,} `{item}`" for item, count in inventory.items() if count != 0
+                f"{count:,} `{item}`"
+                for item, count in inventory.items()
+                if count != 0 and item in existing_items
             ),
         )
         await ctx.send(embed=embed)

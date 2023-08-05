@@ -1,3 +1,4 @@
+import asyncio
 import io
 import math
 import random
@@ -11,7 +12,7 @@ from redbot.core.data_manager import bundled_data_path
 __all__ = ["get_animated_wheel", "draw_still_wheel"]
 
 
-def get_animated_wheel(
+async def get_animated_wheel(
     cog,
     section_labels: List[str],
     section_colors: List[Tuple[int, int, int]],
@@ -49,6 +50,7 @@ def get_animated_wheel(
         draw_arrow(img, center, radius)
 
         images.append(img)
+        await asyncio.sleep(0)
 
     # # Randomly spin the wheel
     # random_spin: int = random.randint(0, spins - 1)
@@ -56,7 +58,7 @@ def get_animated_wheel(
     # part2 = images[:random_spin]
     # images = part1 + part2
 
-    # Save the frames as animated GIF to BytesIO and show them with pillow as a gif
+    # Save the frames as animated GIF to BytesIO
     animated_gif = io.BytesIO()
     imageio.mimsave(animated_gif, images, format="GIF", duration=1000 * 1 / 60)
     animated_gif.seek(0)
@@ -65,37 +67,37 @@ def get_animated_wheel(
 
 
 def draw_still_wheel(
-    num_sections: int,
+    cog,
     section_labels: List[str],
     section_colors: List[Tuple[int, int, int]],
     width: int,
     height: int,
 ):
-    # Define the center and radius of the wheel
-    center: Tuple[int, int] = (width // 2, height // 2)
-    radius: float = min(center) * 0.8
+    num_sections = len(section_labels)
+    random.shuffle(section_colors)
+    random.shuffle(section_labels)
+    colors = deque(section_colors)
 
-    # Define the angle of each section
+    center: Tuple[int, int] = (width // 2, height // 2)
+    radius: float = min(center) * 0.9
+
     section_angle: float = 360 / num_sections
 
-    # Define the offset for each section
     offset: float = section_angle / 2
 
     # Create a new image
     img: Image.Image = Image.new("RGB", (width, height), (255, 255, 255))
 
-    # Draw the sections
-    draw_sections(img, num_sections, section_angle, section_colors, center, radius, offset)
-
-    # Draw the labels
-    draw_labels(img, num_sections, section_angle, section_labels, center, radius)
-
-    # Draw the arrow
+    draw_sections(img, num_sections, section_angle, colors, center, radius, offset)
+    draw_labels(cog, img, num_sections, section_angle, section_labels, center, radius, i - 1)
     draw_arrow(img, center, radius)
 
-    bs = io.BytesIO()
-    img.save(bs, format="PNG")
-    return bs
+    # Save the frames as animated GIF to BytesIO
+    image = io.BytesIO()
+    img.save(image, format="PNG")
+    image.seek(0)
+    # Return the color and text label of the section
+    return image
 
 
 def draw_sections(
@@ -136,7 +138,7 @@ def draw_labels(
     iteration: int = 1,
 ) -> None:
     draw: ImageDraw.ImageDraw = ImageDraw.Draw(img)
-    font = ImageFont.truetype(str(bundled_data_path(cog) / "arial.ttf"), 20)
+    font = ImageFont.truetype(str(bundled_data_path(cog) / "arial.ttf"), 30)
     for j in range(1, num_sections + 1):
         sa: float = j * section_angle
         mid_angle: float = math.radians(sa)

@@ -1,4 +1,5 @@
 import operator
+import random
 from typing import TYPE_CHECKING, Tuple
 
 import discord
@@ -134,7 +135,9 @@ class TradeSelector(ViewDisableOnTimeout):
         self.to_trade = {}
         self.buttons_to_add = [
             Button(label=item, style=discord.ButtonStyle.green, custom_id=f"trade_{item}")
-            for item in set.union(set(self.user1_inv.keys()), set(self.user2_inv.keys()))
+            for item in random.sample(
+                set.union(set(self.user1_inv.keys()), set(self.user2_inv.keys())), 20
+            )
             if self.user1_inv.get(item) or self.user2_inv.get(item)
         ] + [Button(label="Whole Inventory", style=discord.ButtonStyle.green, custom_id="all")]
         super().__init__(timeout=30)
