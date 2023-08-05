@@ -18,6 +18,7 @@ log = logging.getLogger("red.bounty.stw")
 class STW(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
+        self.tasks = []
         self.config = Config.get_conf(self, identifier=1234567890)
         self.config.register_global(items=[])
         self.config.register_user(inventory={})
@@ -67,12 +68,15 @@ class STW(commands.Cog):
                 f"{user.mention} won `{selected}`. It has been added to their inventory and they can check with `{ctx.clean_prefix}inventory`",
                 file=discord.File(img, "wheel.gif"),
             )
+            self.tasks.remove(task)
 
-        asyncio.create_task(
+        task = asyncio.create_task(
             get_animated_wheel(
                 self, items, list(self.get_random_colors(len(items))), width, height, 60
             )
-        ).add_done_callback(lambda x: asyncio.create_task(callback(x)))
+        )
+        task.add_done_callback(lambda x: asyncio.create_task(callback(x)))
+        self.tasks.append(task)
 
     @stw.command(name="createitem", aliases=["ci"])
     async def stw_ci(
