@@ -1,7 +1,7 @@
 import asyncio
-from io import BytesIO
 import logging
 import random
+from io import BytesIO
 from typing import Literal, Tuple
 
 import discord
@@ -10,7 +10,7 @@ from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
 
 from .views import TradeSelector
-from .wheel import get_animated_wheel, draw_still_wheel
+from .wheel import draw_still_wheel, get_animated_wheel
 
 log = logging.getLogger("red.bounty.stw")
 
