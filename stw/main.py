@@ -1,15 +1,14 @@
 import asyncio
-from concurrent.futures import ProcessPoolExecutor
-import functools
 import logging
 import random
+from concurrent.futures import ProcessPoolExecutor
 from io import BytesIO
 from typing import Literal, Tuple
 
 import discord
 from redbot.core import Config, commands
-from redbot.core.data_manager import bundled_data_path
 from redbot.core.bot import Red
+from redbot.core.data_manager import bundled_data_path
 
 from .views import TradeSelector
 from .wheel import draw_still_wheel, get_animated_wheel
