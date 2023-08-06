@@ -77,31 +77,31 @@ class STW(commands.Cog):
             await message.delete()
             return await ctx.send("The user couldn't win anything. Try again later.")
         else:
-            with ProcessPoolExecutor() as pool:
-                # img, selected = await asyncio.get_event_loop().run_in_executor(
-                #     pool,
-                #     functools.partial(
-                #         get_animated_wheel,
-                #         bundled_data_path(self),
-                #         items,
-                #         list(self.get_random_colors(len(items))),
-                #         width,
-                #         height,
-                #         30,
-                #     ),
-                # )
-                # img, selected = await fut
-                selected = random.choice(items)
-                async with self.config.user(user).inventory() as inventory:
-                    inventory.setdefault(selected, 0)
-                    inventory[selected] += 1
-                await message.delete()
-                await ctx.send(
-                    f"{user.mention} won `{selected}`. It has been added to their inventory and they can check with `{ctx.clean_prefix}inventory`",
-                    #   file=discord.File(img, "wheel.gif"),
-                )
-                # fut.add_done_callback(lambda x: asyncio.create_task(callback(x)))
-                # self.tasks.append(fut)
+            # with ProcessPoolExecutor() as pool:
+            # img, selected = await asyncio.get_event_loop().run_in_executor(
+            #     pool,
+            #     functools.partial(
+            #         get_animated_wheel,
+            #         bundled_data_path(self),
+            #         items,
+            #         list(self.get_random_colors(len(items))),
+            #         width,
+            #         height,
+            #         30,
+            #     ),
+            # )
+            # img, selected = await fut
+            selected = random.choice(items)
+            async with self.config.user(user).inventory() as inventory:
+                inventory.setdefault(selected, 0)
+                inventory[selected] += 1
+            await message.delete()
+            await ctx.send(
+                f"{user.mention} won `{selected}`. It has been added to their inventory and they can check with `{ctx.clean_prefix}inventory`",
+                #   file=discord.File(img, "wheel.gif"),
+            )
+            # fut.add_done_callback(lambda x: asyncio.create_task(callback(x)))
+            # self.tasks.append(fut)
 
     @stw.command(name="createitem", aliases=["ci"])
     async def stw_ci(
