@@ -2,17 +2,17 @@ import io
 import math
 import random
 from collections import deque
+from pathlib import Path
 from typing import List, Tuple
 
 import imageio
 from PIL import Image, ImageDraw, ImageFont
-from redbot.core.data_manager import bundled_data_path
 
 __all__ = ["get_animated_wheel", "draw_still_wheel"]
 
 
 def get_animated_wheel(
-    cog,
+    cog_path: Path,
     section_labels: List[str],
     section_colors: List[Tuple[int, int, int]],
     width: int,
@@ -45,7 +45,9 @@ def get_animated_wheel(
         colors.appendleft(colors.pop())
 
         draw_sections(img, num_sections, section_angle, colors, center, radius, offset)
-        draw_labels(cog, img, num_sections, section_angle, section_labels, center, radius, i - 1)
+        draw_labels(
+            cog_path, img, num_sections, section_angle, section_labels, center, radius, i - 1
+        )
         draw_arrow(img, center, radius)
 
         images.append(img)
@@ -65,7 +67,7 @@ def get_animated_wheel(
 
 
 def draw_still_wheel(
-    cog,
+    cog_path: Path,
     section_labels: List[str],
     section_colors: List[Tuple[int, int, int]],
     width: int,
@@ -87,7 +89,7 @@ def draw_still_wheel(
     img: Image.Image = Image.new("RGB", (width, height), (255, 255, 255))
 
     draw_sections(img, num_sections, section_angle, colors, center, radius, offset)
-    draw_labels(cog, img, num_sections, section_angle, section_labels, center, radius)
+    draw_labels(cog_path, img, num_sections, section_angle, section_labels, center, radius)
     draw_arrow(img, center, radius)
 
     # Save the frames as animated GIF to BytesIO
@@ -126,7 +128,7 @@ def draw_sections(
 
 
 def draw_labels(
-    cog,
+    cog_path: Path,
     img: Image.Image,
     num_sections: int,
     section_angle: float,
@@ -136,7 +138,7 @@ def draw_labels(
     iteration: int = 1,
 ) -> None:
     draw: ImageDraw.ImageDraw = ImageDraw.Draw(img)
-    font = ImageFont.truetype(str(bundled_data_path(cog) / "arial.ttf"), 30)
+    font = ImageFont.truetype(str(cog_path / "arial.ttf"), 30)
     for j in range(1, num_sections + 1):
         sa: float = j * section_angle
         mid_angle: float = math.radians(sa)
@@ -152,10 +154,11 @@ def draw_labels(
 
 def draw_arrow(img: Image.Image, center: Tuple[int, int], radius: float) -> None:
     draw: ImageDraw.ImageDraw = ImageDraw.Draw(img)
+    arrow_size = radius / 10  # Increase arrow size based on radius
     arrow_points: List[Tuple[int, int]] = [
-        (center[0] + radius + 20, center[1] - 40 / 2),
+        (center[0] + radius + arrow_size, center[1] - arrow_size / 2),
         (center[0] + radius, center[1]),
-        (center[0] + radius + 20, center[1] + 40 / 2),
+        (center[0] + radius + arrow_size, center[1] + arrow_size / 2),
     ]
     draw.polygon(arrow_points, fill=(0, 0, 0))
 

@@ -1,4 +1,5 @@
 import asyncio
+from concurrent.futures import ProcessPoolExecutor
 import functools
 import logging
 import random
@@ -7,6 +8,7 @@ from typing import Literal, Tuple
 
 import discord
 from redbot.core import Config, commands
+from redbot.core.data_manager import bundled_data_path
 from redbot.core.bot import Red
 
 from .views import TradeSelector
@@ -70,20 +72,36 @@ class STW(commands.Cog):
             )
             self.tasks.remove(task)
 
-        fut = asyncio.get_event_loop().run_in_executor(
-            None,
-            functools.partial(
-                get_animated_wheel,
-                self,
-                items,
-                list(self.get_random_colors(len(items))),
-                width,
-                height,
-                60,
-            ),
-        )
-        fut.add_done_callback(lambda x: asyncio.create_task(callback(x)))
-        self.tasks.append(fut)
+        if random.random() < 0.2:
+            await asyncio.sleep(2)
+            await message.delete()
+            return await ctx.send("The user couldn't win anything. Try again later.")
+        else:
+            with ProcessPoolExecutor() as pool:
+                # img, selected = await asyncio.get_event_loop().run_in_executor(
+                #     pool,
+                #     functools.partial(
+                #         get_animated_wheel,
+                #         bundled_data_path(self),
+                #         items,
+                #         list(self.get_random_colors(len(items))),
+                #         width,
+                #         height,
+                #         30,
+                #     ),
+                # )
+                # img, selected = await fut
+                selected = random.choice(items)
+                async with self.config.user(user).inventory() as inventory:
+                    inventory.setdefault(selected, 0)
+                    inventory[selected] += 1
+                await message.delete()
+                await ctx.send(
+                    f"{user.mention} won `{selected}`. It has been added to their inventory and they can check with `{ctx.clean_prefix}inventory`",
+                    #   file=discord.File(img, "wheel.gif"),
+                )
+                # fut.add_done_callback(lambda x: asyncio.create_task(callback(x)))
+                # self.tasks.append(fut)
 
     @stw.command(name="createitem", aliases=["ci"])
     async def stw_ci(
@@ -109,7 +127,11 @@ class STW(commands.Cog):
                 "Here's a preview of the wheel: ",
                 file=discord.File(
                     draw_still_wheel(
-                        self, items, list(self.get_random_colors(len(items))), width, height
+                        bundled_data_path(self),
+                        items,
+                        list(self.get_random_colors(len(items))),
+                        width,
+                        height,
                     ),
                     "wheel.png",
                 ),
@@ -117,7 +139,10 @@ class STW(commands.Cog):
 
     @stw.command(name="deleteitem", aliases=["di"])
     async def stw_di(
-        self, ctx: commands.Context, *, item: str = commands.parameter(converter=str.lower)
+        self,
+        ctx: commands.Context,
+        *,
+        item: str = commands.parameter(converter=str.lower),
     ):
         """Remove an item from the wheel"""
         async with self.config.items() as items:
@@ -125,10 +150,20 @@ class STW(commands.Cog):
                 return await ctx.send("There are no items to remove")
             items.remove(item)
             await ctx.tick()
+            max_name_length = max(len(item) for item in items)
+            wheel_size = len(items) * 150
+            width = wheel_size + max_name_length * 10
+            height = wheel_size
             await ctx.send(
                 "Here's a preview of the wheel: ",
                 file=discord.File(
-                    draw_still_wheel(items, list(self.get_random_colors(len(items))), 500, 500),
+                    draw_still_wheel(
+                        bundled_data_path(self),
+                        items,
+                        list(self.get_random_colors(len(items))),
+                        width,
+                        height,
+                    ),
                     "wheel.png",
                 ),
             )
