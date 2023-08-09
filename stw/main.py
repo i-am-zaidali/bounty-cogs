@@ -40,8 +40,8 @@ class STW(commands.Cog):
         sub_role = await self.config.guild(ctx.guild).subscriber_role(default=0)
         if (
             not ctx.author.get_role(sub_role)
-            or not ctx.author.guild_permissions.administrator
-            or not ctx.bot.is_owner(ctx.author)
+            and not ctx.author.guild_permissions.administrator
+            and not ctx.bot.is_owner(ctx.author)
         ):
             return await ctx.send("You don't have permission to use this command")
         items = await self.config.items()
