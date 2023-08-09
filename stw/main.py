@@ -4,6 +4,7 @@ import logging
 import random
 from io import BytesIO
 from typing import Literal, Tuple
+from concurrent.futures import ProcessPoolExecutor
 
 import discord
 from redbot.core import Config, commands
@@ -36,7 +37,7 @@ class STW(commands.Cog):
     @commands.group(name="spinthewheel", aliases=["stw"], invoke_without_command=True)
     async def stw(self, ctx: commands.Context, user: discord.Member):
         """Spin the wheel and win prizes"""
-        sub_role = await self.config.guild(ctx.guild).subscriber_role()
+        sub_role = await self.config.guild(ctx.guild).subscriber_role(default=0)
         if (
             not ctx.author.get_role(sub_role)
             or not ctx.author.guild_permissions.administrator
