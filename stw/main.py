@@ -2,13 +2,9 @@ import asyncio
 import functools
 import logging
 import random
-<<<<<<< HEAD
 from io import BytesIO
 from typing import Literal, Tuple
 from concurrent.futures import ProcessPoolExecutor
-=======
-from typing import Literal
->>>>>>> 9df636e584f4b04ba0a3d32a21ff45c9f0a4f5dd
 
 import discord
 from redbot.core import Config, commands
