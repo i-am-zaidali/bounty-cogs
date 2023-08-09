@@ -3,7 +3,7 @@ import functools
 import logging
 import random
 from concurrent.futures import ProcessPoolExecutor
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 import discord
@@ -16,8 +16,10 @@ from .wheel import draw_still_wheel, get_animated_wheel
 
 log = logging.getLogger("red.bounty.stw")
 
+
 def next_day_start():
     return (datetime.now(timezone.utc) + timedelta(days=1)).replace(hours=0, minutes=0, seconds=0)
+
 
 class STW(commands.Cog):
     def __init__(self, bot: Red):
@@ -49,7 +51,11 @@ class STW(commands.Cog):
             return await ctx.send("You don't have permission to use this command")
 
         last_spin = await self.config.user(user).last_spin()
-        if last_spin and datetime.now(timezone.utc).day == datetime.fromtimestamp(last_spin, tz=timezone.utc).day:
+        if (
+            last_spin
+            and datetime.now(timezone.utc).day
+            == datetime.fromtimestamp(last_spin, tz=timezone.utc).day
+        ):
             return await ctx.send(f"{user.mention} has already claimed their spin for today")
         items = await self.config.items()
         if not items:
