@@ -2,9 +2,8 @@ import asyncio
 import functools
 import logging
 import random
-from io import BytesIO
-from typing import Literal, Tuple
 from concurrent.futures import ProcessPoolExecutor
+from typing import Literal
 
 import discord
 from redbot.core import Config, commands
