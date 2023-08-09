@@ -87,8 +87,7 @@ class STW(commands.Cog):
         #     )
         #     self.tasks.remove(task)
 
-        await self.config.user(user).last_spin.set(datetime
-                                                   now().timestamp())
+        await self.config.user(user).last_spin.set(datetime.now().timestamp())
 
         if random.random() < 0.2:
             await asyncio.sleep(2)
