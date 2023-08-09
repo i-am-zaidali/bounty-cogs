@@ -3,6 +3,7 @@ import functools
 import logging
 import random
 from concurrent.futures import ProcessPoolExecutor
+from datetime import datetime, timezone, timedelta
 from typing import Literal
 
 import discord
@@ -15,6 +16,8 @@ from .wheel import draw_still_wheel, get_animated_wheel
 
 log = logging.getLogger("red.bounty.stw")
 
+def next_day_start():
+    return (datetime.now(timezone.utc) + timedelta(days=1)).replace(hours=0, minutes=0, seconds=0)
 
 class STW(commands.Cog):
     def __init__(self, bot: Red):
@@ -22,6 +25,7 @@ class STW(commands.Cog):
         self.tasks = []
         self.config = Config.get_conf(self, identifier=1234567890)
         self.config.register_global(items=[])
+        self.config.register_user(last_spin=None)
         self.config.register_guild(subscriber_role=None)
         self.config.register_user(inventory={})
 
@@ -43,6 +47,10 @@ class STW(commands.Cog):
             and not ctx.bot.is_owner(ctx.author)
         ):
             return await ctx.send("You don't have permission to use this command")
+
+        last_spin = await self.config.user(user).last_spin()
+        if last_spin and datetime.now(timezone.utc).day == datetime.fromtimestamp(last_spin, tz=timezone.utc).day:
+            return await ctx.send(f"{user.mention} has already claimed their spin for today")
         items = await self.config.items()
         if not items:
             return await ctx.send("There are no items to win")
@@ -78,6 +86,9 @@ class STW(commands.Cog):
         #         file=discord.File(img, "wheel.gif"),
         #     )
         #     self.tasks.remove(task)
+
+        await self.config.user(user).last_spin.set(datetime
+                                                   now().timestamp())
 
         if random.random() < 0.2:
             await asyncio.sleep(2)
