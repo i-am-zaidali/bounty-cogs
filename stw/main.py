@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import logging
 import random
 from concurrent.futures import ProcessPoolExecutor
@@ -22,6 +23,7 @@ class STW(commands.Cog):
         self.tasks = []
         self.config = Config.get_conf(self, identifier=1234567890)
         self.config.register_global(items=[])
+        self.config.register_guild(subscriber_role=None)
         self.config.register_user(inventory={})
 
     @staticmethod
@@ -33,9 +35,15 @@ class STW(commands.Cog):
             yield (r, g, b)
 
     @commands.group(name="spinthewheel", aliases=["stw"], invoke_without_command=True)
-    @commands.is_owner()
     async def stw(self, ctx: commands.Context, user: discord.Member):
         """Spin the wheel and win prizes"""
+        sub_role = await self.config.guild(ctx.guild).subscriber_role()
+        if (
+            not ctx.author.get_role(sub_role)
+            or not ctx.author.guild_permissions.administrator
+            or not ctx.bot.is_owner(ctx.author)
+        ):
+            return await ctx.send("You don't have permission to use this command")
         items = await self.config.items()
         if not items:
             return await ctx.send("There are no items to win")
@@ -43,24 +51,54 @@ class STW(commands.Cog):
         # Calculate the width and height based on the number of items and the length of the biggest name
         max_name_length = max(len(item) for item in items)
         wheel_size = len(items) * 150
+        wheel_size = wheel_size if wheel_size <= 1500 else 1500
         width = wheel_size + max_name_length * 10
         height = wheel_size
 
         message = await ctx.send("Spinning the wheel...")
 
-        async def callback(task: asyncio.Future[Tuple[BytesIO, str]]):
-            try:
-                exc = task.exception()
-            except asyncio.CancelledError:
-                return await ctx.send(
-                    "The image creation task seems to have been cancelled. Try running the command again."
+        # async def callback(task: asyncio.Future[Tuple[BytesIO, str]]):
+        #     try:
+        #         exc = task.exception()
+        #     except asyncio.CancelledError:
+        #         return await ctx.send(
+        #             "The image creation task seems to have been cancelled. Try running the command again."
+        #         )
+        #     if exc:
+        #         log.exception("An error occurred while creating the image", exc_info=exc)
+        #         return await ctx.send(
+        #             f"An error occurred while spinning the wheel: `{exc}`. Check logs for more info."
+        #         )
+        #     img, selected = task.result()
+        #     async with self.config.user(user).inventory() as inventory:
+        #         inventory.setdefault(selected, 0)
+        #         inventory[selected] += 1
+        #     await message.delete()
+        #     await ctx.send(
+        #         f"{user.mention} won `{selected}`. It has been added to their inventory and they can check with `{ctx.clean_prefix}inventory`",
+        #         file=discord.File(img, "wheel.gif"),
+        #     )
+        #     self.tasks.remove(task)
+
+        if random.random() < 0.2:
+            await asyncio.sleep(2)
+            await message.delete()
+            return await ctx.send("The user couldn't win anything. Try again later.")
+        else:
+            with ProcessPoolExecutor() as pool:
+                img, selected = await asyncio.get_event_loop().run_in_executor(
+                    pool,
+                    functools.partial(
+                        get_animated_wheel,
+                        bundled_data_path(self),
+                        items,
+                        list(self.get_random_colors(len(items))),
+                        width,
+                        height,
+                        30,
+                    ),
                 )
-            if exc:
-                log.exception("An error occurred while creating the image", exc_info=exc)
-                return await ctx.send(
-                    f"An error occurred while spinning the wheel: `{exc}`. Check logs for more info."
-                )
-            img, selected = task.result()
+            # selected = random.choice(items)
             async with self.config.user(user).inventory() as inventory:
                 inventory.setdefault(selected, 0)
                 inventory[selected] += 1
@@ -69,40 +107,11 @@ class STW(commands.Cog):
                 f"{user.mention} won `{selected}`. It has been added to their inventory and they can check with `{ctx.clean_prefix}inventory`",
                 file=discord.File(img, "wheel.gif"),
             )
-            self.tasks.remove(task)
-
-        if random.random() < 0.2:
-            await asyncio.sleep(2)
-            await message.delete()
-            return await ctx.send("The user couldn't win anything. Try again later.")
-        else:
-            # with ProcessPoolExecutor() as pool:
-            # img, selected = await asyncio.get_event_loop().run_in_executor(
-            #     pool,
-            #     functools.partial(
-            #         get_animated_wheel,
-            #         bundled_data_path(self),
-            #         items,
-            #         list(self.get_random_colors(len(items))),
-            #         width,
-            #         height,
-            #         30,
-            #     ),
-            # )
-            # img, selected = await fut
-            selected = random.choice(items)
-            async with self.config.user(user).inventory() as inventory:
-                inventory.setdefault(selected, 0)
-                inventory[selected] += 1
-            await message.delete()
-            await ctx.send(
-                f"{user.mention} won `{selected}`. It has been added to their inventory and they can check with `{ctx.clean_prefix}inventory`",
-                #   file=discord.File(img, "wheel.gif"),
-            )
             # fut.add_done_callback(lambda x: asyncio.create_task(callback(x)))
             # self.tasks.append(fut)
 
     @stw.command(name="createitem", aliases=["ci"])
+    @commands.is_owner()
     async def stw_ci(
         self,
         ctx: commands.Context,
@@ -120,12 +129,14 @@ class STW(commands.Cog):
             await ctx.tick()
             max_name_length = max(len(item) for item in items)
             wheel_size = len(items) * 150
+            wheel_size = wheel_size if wheel_size <= 1500 else 1500
             width = wheel_size + max_name_length * 10
             height = wheel_size
             await ctx.send(
                 "Here's a preview of the wheel: ",
                 file=discord.File(
-                    draw_still_wheel(
+                    await asyncio.to_thread(
+                        draw_still_wheel,
                         bundled_data_path(self),
                         items,
                         list(self.get_random_colors(len(items))),
@@ -137,6 +148,7 @@ class STW(commands.Cog):
             )
 
     @stw.command(name="deleteitem", aliases=["di"])
+    @commands.is_owner()
     async def stw_di(
         self,
         ctx: commands.Context,
@@ -151,12 +163,14 @@ class STW(commands.Cog):
             await ctx.tick()
             max_name_length = max(len(item) for item in items)
             wheel_size = len(items) * 150
+            wheel_size = wheel_size if wheel_size <= 1500 else 1500
             width = wheel_size + max_name_length * 10
             height = wheel_size
             await ctx.send(
                 "Here's a preview of the wheel: ",
                 file=discord.File(
-                    draw_still_wheel(
+                    await asyncio.to_thread(
+                        draw_still_wheel,
                         bundled_data_path(self),
                         items,
                         list(self.get_random_colors(len(items))),
@@ -167,7 +181,35 @@ class STW(commands.Cog):
                 ),
             )
 
+    @stw.command(name="preview")
+    @commands.is_owner()
+    async def stw_preview(self, ctx: commands.Context):
+        """Preview the wheel"""
+        items = await self.config.items()
+        if not items:
+            return await ctx.send("There are no items on the wheel")
+        max_name_length = max(len(item) for item in items)
+        wheel_size = len(items) * 150
+        wheel_size = wheel_size if wheel_size <= 1500 else 1500
+        width = wheel_size + max_name_length * 10
+        height = wheel_size
+        await ctx.send(
+            "Here's a preview of the wheel: ",
+            file=discord.File(
+                await asyncio.to_thread(
+                    draw_still_wheel,
+                    bundled_data_path(self),
+                    items,
+                    list(self.get_random_colors(len(items))),
+                    width,
+                    height,
+                ),
+                "wheel.png",
+            ),
+        )
+
     @stw.command(name="listitems", aliases=["li"])
+    @commands.is_owner()
     async def stw_li(self, ctx: commands.Context):
         """List all the items on the wheel"""
         items = await self.config.items()
@@ -176,6 +218,7 @@ class STW(commands.Cog):
         await ctx.send("- " + "\n- ".join(items))
 
     @stw.command(name="steal")
+    @commands.is_owner()
     async def stw_r(
         self,
         ctx: commands.Context,
@@ -203,6 +246,7 @@ class STW(commands.Cog):
             await ctx.send("Successfully stolen")
 
     @stw.command(name="give")
+    @commands.is_owner()
     async def stw_g(
         self,
         ctx: commands.Context,
@@ -219,6 +263,13 @@ class STW(commands.Cog):
             inventory[item] += amount
 
         await ctx.send("Successfully given")
+
+    @stw.command(name="subscriber", aliases=["subrole"])
+    @commands.is_owner()
+    async def stw_sr(self, ctx: commands.Context, role: discord.Role):
+        """Set the subscriber role"""
+        await self.config.guild(ctx.guild).subscriber_role.set(role.id)
+        await ctx.tick()
 
     @commands.command(name="inventory", aliases=["inv"])
     async def inv(self, ctx: commands.Context, user=commands.Author):

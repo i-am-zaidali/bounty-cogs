@@ -146,10 +146,15 @@ def draw_labels(
         label_bbox: Tuple[int, int, int, int] = font.getbbox(label)
         label_width: float = label_bbox[2] - label_bbox[0]
         label_height: float = label_bbox[3] - label_bbox[1]
-        label_angle: float = mid_angle + iteration * math.radians(section_angle)
+        label_angle: float = mid_angle + math.radians(iteration * section_angle)
         label_x: float = center[0] + (radius * 0.7) * math.cos(label_angle) - label_width / 2
         label_y: float = center[1] + (radius * 0.7) * math.sin(label_angle) - label_height / 2
-        draw.text((label_x, label_y), label, font=font, fill=(0, 0, 0))
+        draw.text(
+            (label_x, label_y),
+            label,
+            font=font,
+            fill=(0, 0, 0),
+        )
 
 
 def draw_arrow(img: Image.Image, center: Tuple[int, int], radius: float) -> None:
