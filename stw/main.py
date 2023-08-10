@@ -98,7 +98,7 @@ class STW(commands.Cog):
         if random.random() < 0.2:
             await asyncio.sleep(2)
             await message.delete()
-            return await ctx.send("The user couldn't win anything. Try again later.")
+            return await ctx.send("Sorry! You didnt win anything! Better luck next time!")
         else:
             with ProcessPoolExecutor() as pool:
                 img, selected = await asyncio.get_event_loop().run_in_executor(
