@@ -3,7 +3,7 @@ import functools
 import logging
 import random
 from concurrent.futures import ProcessPoolExecutor
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 from typing import Literal
 
 import discord
@@ -27,7 +27,9 @@ class STW(commands.Cog):
         self.tasks = []
         self.config = Config.get_conf(self, identifier=1234567890)
         self.config.register_global(items=[])
-        self.config.register_user(last_spin=None)
+        self.config.register_user(
+            last_spins=[date.fromtimestamp(0).toordinal(), date.fromtimestamp(0).toordinal()]
+        )
         self.config.register_guild(subscriber_role=None)
         self.config.register_user(inventory={})
 
@@ -39,6 +41,14 @@ class STW(commands.Cog):
             b = random.randint(0, 255)
             yield (r, g, b)
 
+    @staticmethod
+    def get_current_week_range():
+        # yield every date object of the current week
+        today = date.today()
+        start = today - timedelta(days=today.weekday())
+        for i in range(7):
+            yield start + timedelta(days=i)
+
     @commands.group(name="spinthewheel", aliases=["stw"], invoke_without_command=True)
     async def stw(self, ctx: commands.Context, user: discord.Member):
         """Spin the wheel and win prizes"""
@@ -49,14 +59,39 @@ class STW(commands.Cog):
             and not ctx.bot.is_owner(ctx.author)
         ):
             return await ctx.send("You don't have permission to use this command")
-
-        last_spin = await self.config.user(user).last_spin()
-        if (
-            last_spin
-            and datetime.now(timezone.utc).day
-            == datetime.fromtimestamp(last_spin, tz=timezone.utc).day
+        elif (
+            not ctx.author.guild_permissions.administrator
+            and not ctx.bot.is_owner(ctx.author)
+            and ctx.author.get_role(sub_role)
+            and user != ctx.author
         ):
-            return await ctx.send(f"{user.mention} has already claimed their spin for today")
+            return await ctx.send("You can only spin the wheel for yourself")
+
+        last_spins = await self.config.user(user).last_spins()
+        this_week = list(self.get_current_week_range())
+        last_spins = [date.fromordinal(x) for x in last_spins]
+        print(f"{last_spins=}\n{this_week=}")
+        spun = list(set.intersection(set(last_spins), set(this_week)))
+        print(f"{spun=}")
+        if len(spun) == 2:
+            return await ctx.send(
+                f"{user.mention} has already claimed their two spins for this week"
+            )
+        elif len(spun) == 1:
+            if last_spins[0] == last_spins[1]:
+                return await ctx.send(
+                    f"{user.mention} has already claimed their two spins for this week"
+                )
+            ind = last_spins.index(spun[0]) - 1
+            last_spins[ind] = date.today()
+            print(f"after {last_spins=}")
+
+        else:
+            last_spins[0] = date.today()
+            print(f"after2 {last_spins=}")
+
+        await self.config.user(user).last_spins.set([x.toordinal() for x in last_spins])
+
         items = await self.config.items()
         if not items:
             return await ctx.send("There are no items to win")
@@ -92,8 +127,6 @@ class STW(commands.Cog):
         #         file=discord.File(img, "wheel.gif"),
         #     )
         #     self.tasks.remove(task)
-
-        await self.config.user(user).last_spin.set(datetime.now().timestamp())
 
         if random.random() < 0.2:
             await asyncio.sleep(2)
