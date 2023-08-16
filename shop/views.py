@@ -471,7 +471,6 @@ class ChannelSelectView(ViewDisableOnTimeout):
         super().__init__(timeout=180)
         # 25 channels per select menu
         for i in range(0, len(viewable_channels), 25):
-            print(i)
             select = Select(
                 placeholder="Select a channel:",
                 options=[

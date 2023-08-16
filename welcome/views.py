@@ -57,13 +57,10 @@ class AddToSheetsView(View):
             # Update data is required if the user already exists
             if user.id in df.index:
                 df.loc[user.id, :] = data_to_add
-                print("after update\n", df)
             else:
                 df = pd.concat([df, pd.DataFrame(data_to_add, index=[user_id])])
-                print("after concat\n", df)
         except FileNotFoundError:
             df = pd.DataFrame(data_to_add, index=[user_id])
-            print("After new\n", df)
         df.to_excel(file_path, index_label="discord user ID")
         return file_path
 

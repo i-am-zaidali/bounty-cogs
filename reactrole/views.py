@@ -103,7 +103,6 @@ class RoleView(View):
             return msg
 
     async def interaction_check(self, inter: discord.Interaction):
-        print("lmfao")
         button: RoleButton = next(
             filter(lambda x: x.custom_id == inter.data["custom_id"], self.children), None
         )

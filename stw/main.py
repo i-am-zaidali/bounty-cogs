@@ -70,9 +70,7 @@ class STW(commands.Cog):
         last_spins = await self.config.user(user).last_spins()
         this_week = list(self.get_current_week_range())
         last_spins = [date.fromordinal(x) for x in last_spins]
-        print(f"{last_spins=}\n{this_week=}")
         spun = list(set.intersection(set(last_spins), set(this_week)))
-        print(f"{spun=}")
         if len(spun) == 2:
             return await ctx.send(
                 f"{user.mention} has already claimed their two spins for this week"
@@ -84,11 +82,9 @@ class STW(commands.Cog):
                 )
             ind = last_spins.index(spun[0]) - 1
             last_spins[ind] = date.today()
-            print(f"after {last_spins=}")
 
         else:
             last_spins[0] = date.today()
-            print(f"after2 {last_spins=}")
 
         await self.config.user(user).last_spins.set([x.toordinal() for x in last_spins])
 

@@ -96,7 +96,6 @@ class ReactRole(commands.Cog):
         old_buttons = await self.config.custom(
             "RR", ctx.guild.id, message.channel.id, message.id
         ).all()
-        print("1st fetch", old_buttons)
         if not old_buttons:
             old_buttons = {
                 "buttons": [conf],
@@ -104,7 +103,6 @@ class ReactRole(commands.Cog):
                 "channel": message.channel.id,
                 "guild": ctx.guild.id,
             }
-            print("reassigning", old_buttons)
 
         else:
             butts = old_buttons["buttons"]
@@ -123,13 +121,8 @@ class ReactRole(commands.Cog):
         old_view.stop()
         new_view = RoleView(self.bot, old_buttons.copy())
         await message.edit(view=new_view)
-        print("hehe", old_buttons)
         await self.config.custom("RR", ctx.guild.id, message.channel.id, message.id).set(
             old_buttons
-        )
-        print(
-            "eheh",
-            await self.config.custom("RR", ctx.guild.id, message.channel.id, message.id).all(),
         )
 
         self.views[message] = new_view

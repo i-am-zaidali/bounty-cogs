@@ -151,9 +151,7 @@ class Shop(commands.Cog):
                         lambda x: x["name"] == item and x["offered_by"] == ctx.author.id,
                         offers.copy(),
                     ):
-                        print(offer, offers)
                         offers.remove(offer)
-                        print(offers)
 
                 offers.append(offer_dict)
                 offered[item] = offer_dict
