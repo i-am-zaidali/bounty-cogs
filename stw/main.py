@@ -282,8 +282,8 @@ class STW(commands.Cog):
         async with self.config.items() as items:
             if not item in items:
                 return await ctx.send("That item is not on the wheel")
-            del items[item]
-            items[flags.name] = RARITY_WEIGHTS[flags.rarity or WEIGHTS_RARITY[items[item]]]
+            weight = items.pop(item)
+            items[flags.name] = RARITY_WEIGHTS[flags.rarity or weight]
             await ctx.tick()
             max_name_length = max(len(item) for item in items)
             wheel_size = len(items) * 150
@@ -296,7 +296,7 @@ class STW(commands.Cog):
                     await asyncio.to_thread(
                         draw_still_wheel,
                         bundled_data_path(self),
-                        items,
+                        items.items(),
                         list(self.get_random_colors(len(items))),
                         width,
                         height,
