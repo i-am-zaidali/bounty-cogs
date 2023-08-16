@@ -3,8 +3,8 @@ import functools
 import logging
 import random
 from concurrent.futures import ProcessPoolExecutor
-from datetime import date, datetime, timedelta, timezone
-from typing import Literal
+from datetime import date, timedelta
+from typing import Literal, Optional
 
 import discord
 from redbot.core import Config, commands
@@ -16,9 +16,13 @@ from .wheel import draw_still_wheel, get_animated_wheel
 
 log = logging.getLogger("red.bounty.stw")
 
+RARITY_WEIGHTS = {"common": 5, "rare": 2, "legendary": 1}
+WEIGHTS_RARITY = {5: "common", 2: "rare", 1: "legendary"}
 
-def next_day_start():
-    return (datetime.now(timezone.utc) + timedelta(days=1)).replace(hours=0, minutes=0, seconds=0)
+
+class ItemFlags(commands.FlagConverter):
+    name: str = commands.flag(default=lambda ctx: ctx.args[2])
+    rarity: Optional[Literal["common", "rare", "legendary"]] = None
 
 
 class STW(commands.Cog):
@@ -26,7 +30,7 @@ class STW(commands.Cog):
         self.bot = bot
         self.tasks = []
         self.config = Config.get_conf(self, identifier=1234567890)
-        self.config.register_global(items=[])
+        self.config.register_global(items={})
         self.config.register_user(
             last_spins=[date.fromtimestamp(0).toordinal(), date.fromtimestamp(0).toordinal()]
         )
@@ -67,26 +71,27 @@ class STW(commands.Cog):
         ):
             return await ctx.send("You can only spin the wheel for yourself")
 
-        last_spins = await self.config.user(user).last_spins()
-        this_week = list(self.get_current_week_range())
-        last_spins = [date.fromordinal(x) for x in last_spins]
-        spun = list(set.intersection(set(last_spins), set(this_week)))
-        if len(spun) == 2:
-            return await ctx.send(
-                f"{user.mention} has already claimed their two spins for this week"
-            )
-        elif len(spun) == 1:
-            if last_spins[0] == last_spins[1]:
+        if not ctx.bot.is_owner(ctx.author):
+            last_spins = await self.config.user(user).last_spins()
+            this_week = list(self.get_current_week_range())
+            last_spins = [date.fromordinal(x) for x in last_spins]
+            spun = list(set.intersection(set(last_spins), set(this_week)))
+            if len(spun) == 2:
                 return await ctx.send(
                     f"{user.mention} has already claimed their two spins for this week"
                 )
-            ind = last_spins.index(spun[0]) - 1
-            last_spins[ind] = date.today()
+            elif len(spun) == 1:
+                if last_spins[0] == last_spins[1]:
+                    return await ctx.send(
+                        f"{user.mention} has already claimed their two spins for this week"
+                    )
+                ind = last_spins.index(spun[0]) - 1
+                last_spins[ind] = date.today()
 
-        else:
-            last_spins[0] = date.today()
+            else:
+                last_spins[0] = date.today()
 
-        await self.config.user(user).last_spins.set([x.toordinal() for x in last_spins])
+            await self.config.user(user).last_spins.set([x.toordinal() for x in last_spins])
 
         items = await self.config.items()
         if not items:
@@ -135,7 +140,7 @@ class STW(commands.Cog):
                     functools.partial(
                         get_animated_wheel,
                         bundled_data_path(self),
-                        items,
+                        list(items.items()),
                         list(self.get_random_colors(len(items))),
                         width,
                         height,
@@ -169,7 +174,7 @@ class STW(commands.Cog):
             #    return await ctx.send("There are already 25 items on the wheel. Cannot add more.")
             if item in items:
                 return await ctx.send("That item is already on the wheel")
-            items.append(item)
+            items[item] = RARITY_WEIGHTS[rarity]
             await ctx.tick()
             max_name_length = max(len(item) for item in items)
             wheel_size = len(items) * 150
@@ -182,7 +187,7 @@ class STW(commands.Cog):
                     await asyncio.to_thread(
                         draw_still_wheel,
                         bundled_data_path(self),
-                        items,
+                        list(items.items()),
                         list(self.get_random_colors(len(items))),
                         width,
                         height,
@@ -203,7 +208,7 @@ class STW(commands.Cog):
         async with self.config.items() as items:
             if not item in items:
                 return await ctx.send("There are no items to remove")
-            items.remove(item)
+            del items[item]
             await ctx.tick()
             max_name_length = max(len(item) for item in items)
             wheel_size = len(items) * 150
@@ -216,7 +221,7 @@ class STW(commands.Cog):
                     await asyncio.to_thread(
                         draw_still_wheel,
                         bundled_data_path(self),
-                        items,
+                        list(items.items()),
                         list(self.get_random_colors(len(items))),
                         width,
                         height,
@@ -243,7 +248,7 @@ class STW(commands.Cog):
                 await asyncio.to_thread(
                     draw_still_wheel,
                     bundled_data_path(self),
-                    items,
+                    list(items.items()),
                     list(self.get_random_colors(len(items))),
                     width,
                     height,
@@ -259,7 +264,46 @@ class STW(commands.Cog):
         items = await self.config.items()
         if not items:
             return await ctx.send("There are no items on the wheel")
-        await ctx.send("- " + "\n- ".join(items))
+        await ctx.send(
+            "NAME: (RARITY LEVEL)\n\n- "
+            + "\n- ".join(map(lambda x: f"`{x[0]}: ({WEIGHTS_RARITY[x[1]]})`", items.items()))
+        )
+
+    @stw.command(name="edititem", aliases=["ei"])
+    @commands.is_owner()
+    async def stw_ei(
+        self,
+        ctx: commands.Context,
+        item: str = commands.param(converter=str.lower),
+        *,
+        flags: ItemFlags,
+    ):
+        """Edit an item on the wheel"""
+        async with self.config.items() as items:
+            if not item in items:
+                return await ctx.send("That item is not on the wheel")
+            del items[item]
+            items[flags.name] = RARITY_WEIGHTS[flags.rarity or WEIGHTS_RARITY[items[item]]]
+            await ctx.tick()
+            max_name_length = max(len(item) for item in items)
+            wheel_size = len(items) * 150
+            wheel_size = wheel_size if wheel_size <= 1500 else 1500
+            width = wheel_size + max_name_length * 10
+            height = wheel_size
+            await ctx.send(
+                "Here's a preview of the wheel: ",
+                file=discord.File(
+                    await asyncio.to_thread(
+                        draw_still_wheel,
+                        bundled_data_path(self),
+                        items,
+                        list(self.get_random_colors(len(items))),
+                        width,
+                        height,
+                    ),
+                    "wheel.png",
+                ),
+            )
 
     @stw.command(name="steal")
     @commands.is_owner()

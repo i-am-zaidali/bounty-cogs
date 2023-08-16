@@ -13,18 +13,21 @@ __all__ = ["get_animated_wheel", "draw_still_wheel"]
 
 def get_animated_wheel(
     cog_path: Path,
-    section_labels: List[str],
+    section_labels: List[Tuple[str, int]],
     section_colors: List[Tuple[int, int, int]],
     width: int,
     height: int,
-    num_frames: int,
+    num_frames: int = 60,
 ):
     num_sections = len(section_labels)
+    labels: List[str]
+    weights: List[int]
+    labels, weights = map(list, zip(*section_labels))
     random.shuffle(section_colors)
-    random.shuffle(section_labels)
+    random.shuffle(labels)
     colors = deque(section_colors)
 
-    color_label_map = dict(zip(colors, section_labels[1:] + section_labels[:2]))
+    color_label_map = dict(zip(colors, labels[1:] + labels[:2]))
 
     center: Tuple[int, int] = (width // 2, height // 2)
     radius: float = min(center) * 0.9
@@ -35,19 +38,22 @@ def get_animated_wheel(
 
     images: List[Image.Image] = []
 
-    spins = random.randrange(round(num_frames / 2), num_frames) + 1
+    final = random.choices(labels, weights=weights)[0]
+    index_final = labels.index(final)
+
+    closest_multiple = (num_frames // num_sections) * num_sections
+
+    spins = closest_multiple + (abs(index_final - num_sections) - 1)
 
     # Create the frames
-    for i in range(1, spins):
+    for i in range(spins):
         # Create a new image
         img: Image.Image = Image.new("RGB", (width, height), (255, 255, 255))
 
         colors.appendleft(colors.pop())
 
         draw_sections(img, num_sections, section_angle, colors, center, radius, offset)
-        draw_labels(
-            cog_path, img, num_sections, section_angle, section_labels, center, radius, i - 1
-        )
+        draw_labels(cog_path, img, num_sections, section_angle, labels, center, radius, i)
         draw_arrow(img, center, radius)
 
         images.append(img)
@@ -74,8 +80,9 @@ def draw_still_wheel(
     height: int,
 ):
     num_sections = len(section_labels)
+    labels, weights = map(list, zip(*section_labels))
     random.shuffle(section_colors)
-    random.shuffle(section_labels)
+    random.shuffle(labels)
     colors = deque(section_colors)
 
     center: Tuple[int, int] = (width // 2, height // 2)
@@ -89,7 +96,7 @@ def draw_still_wheel(
     img: Image.Image = Image.new("RGB", (width, height), (255, 255, 255))
 
     draw_sections(img, num_sections, section_angle, colors, center, radius, offset)
-    draw_labels(cog_path, img, num_sections, section_angle, section_labels, center, radius)
+    draw_labels(cog_path, img, num_sections, section_angle, labels, center, radius)
     draw_arrow(img, center, radius)
 
     # Save the frames as animated GIF to BytesIO
