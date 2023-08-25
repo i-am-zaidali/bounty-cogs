@@ -1,5 +1,5 @@
 import discord
-from discord.ui import View, Select
+from discord.ui import Select, View
 from redbot.core import commands
 
 

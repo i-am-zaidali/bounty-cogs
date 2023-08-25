@@ -1,7 +1,9 @@
-from redbot.core.bot import Red
-from redbot.core import app_commands, commands, Config
-import discord
 from operator import attrgetter
+
+import discord
+from redbot.core import Config, app_commands, commands
+from redbot.core.bot import Red
+
 from .views import GuildSelectView
 
 
