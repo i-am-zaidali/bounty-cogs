@@ -76,7 +76,6 @@ class StringToPage(commands.Converter[Page]):
                 em = await self.create_embed(ctx, embed)
                 data["embeds"].append(em)
 
-        
         if self.validate:
             await self.validate_data(ctx, data.get("embeds", []), content=content)
         return data
