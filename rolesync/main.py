@@ -9,6 +9,7 @@ from .views import GuildSelectView
 
 class RoleSync(commands.Cog):
     """A cog that syncs roles and their properties across multiple servers."""
+
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
