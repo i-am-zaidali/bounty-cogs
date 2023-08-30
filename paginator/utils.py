@@ -72,13 +72,12 @@ class StringToPage(commands.Converter[Page]):
             self.check_data_type(ctx, embeds, data_type=list)
             data["embeds"].clear()
 
-        for embed in embeds:
-            em = await self.create_embed(ctx, embed)
-            data["embeds"].append(em)
+            for embed in embeds:
+                em = await self.create_embed(ctx, embed)
+                data["embeds"].append(em)
 
-        content = data["content"]
         if self.validate:
-            await self.validate_data(ctx, data["embeds"], content=content)
+            await self.validate_data(ctx, data.get("embeds", []), content=content)
         return data
 
     def check_data_type(self, ctx: commands.Context, data, *, data_type=dict):
