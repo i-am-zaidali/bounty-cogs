@@ -60,6 +60,7 @@ class TimeRole(commands.Cog):
         self.role_task = self.role_loop.start()
 
         self.config = Config.get_conf(self, 25, True)
+        self.config.register_global(loop_every=60 * 60)
         self.config.register_guild(
             remove_roles={}, add_roles={}, announce_channel=None, check_bots=False, reapply=False
         )
@@ -297,6 +298,11 @@ class TimeRole(commands.Cog):
 
         log.debug("Cache initialized with %s guilds", len(self.cache))
 
+        delay = await self.config.loop_every()
+        self.role_loop.change_interval(seconds=delay)
+
+        log.debug("Role loop interval set to %s seconds", delay)
+
         log.debug("TimedRoles loaded. role_task started.")
 
     @commands.group(name="timerole", invoke_without_command=True)
@@ -498,6 +504,17 @@ class TimeRole(commands.Cog):
         return await ctx.send(
             f"Adding timeroles will be {'checked' if status else 'no longer checked'} for bots."
         )
+
+    @timerole.command(name="setdelay", aliases=["delay"])
+    @commands.is_owner()
+    async def timerole_setdelay(self, ctx: commands.Context, delay: TimeConverter):
+        """
+        Set the delay between each role loop.
+
+        This is in seconds. Default is 3600 (1 hour)."""
+        await self.config.loop_every.set(delay)
+        self.role_loop.change_interval(seconds=delay)
+        return await ctx.send(f"Delay between role checking set to {delay} seconds.")
 
     @timerole.command(name="showsettings", aliases=["settings", "ss", "show"])
     async def timerole_showsettings(self, ctx: commands.Context):
