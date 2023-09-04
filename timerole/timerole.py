@@ -531,11 +531,13 @@ class TimeRole(commands.Cog):
 
         check_bots = humanize_bool(await self.config.guild(ctx.guild).check_bots())
 
+        delay = humanize_timedelta(seconds=await self.config.loop_every())
+
         data = [
             ("Announcement Channel", chan_str),
             ("Reapply", reapply),
             ("Check Bots", check_bots),
-        ]
+        ] + ([("Delay", delay)] if ctx.author.id in ctx.bot.owner_ids else [])
 
         headers = ["Setting", "Value"]
 
