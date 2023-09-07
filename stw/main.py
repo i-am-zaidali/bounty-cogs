@@ -308,7 +308,7 @@ class STW(commands.Cog):
             )
 
     @stw.command(name="steal")
-    @commands.is_owner()
+    @commands.mod()
     async def stw_r(
         self,
         ctx: commands.Context,
@@ -336,7 +336,7 @@ class STW(commands.Cog):
             await ctx.send("Successfully stolen")
 
     @stw.command(name="give")
-    @commands.is_owner()
+    @commands.mod()
     async def stw_g(
         self,
         ctx: commands.Context,
