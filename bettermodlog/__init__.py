@@ -30,7 +30,7 @@ class BetterModlog(commands.Cog):
     async def listcases(
         self,
         ctx: commands.Context,
-        per_embed: Optional[int] = 6,
+        per_embed: Optional[commands.Range[int, 1, 19]] = 6,
         *,
         member: Union[discord.Member, int],
     ):
