@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import TypedDict
 
@@ -7,7 +8,6 @@ from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.modlog import create_case
 from redbot.core.utils import chat_formatting as cf
-import logging
 
 
 class RTDict(TypedDict):
