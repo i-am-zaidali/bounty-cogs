@@ -1,12 +1,13 @@
+from datetime import datetime, timezone
+from typing import List, Optional, TypeVar, Union
+
+import discord
+from redbot.cogs.modlog import ModLog
 from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.modlog import Case, get_cases_for_member, get_casetype
-from redbot.cogs.modlog import ModLog
 from redbot.core.utils import chat_formatting as cf
 from redbot.core.utils.menus import menu
-from typing import Union, TypeVar, List, Optional
-from datetime import datetime, timezone
-import discord
 
 _T = TypeVar("_T")
 
