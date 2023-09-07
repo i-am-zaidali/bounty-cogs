@@ -56,7 +56,7 @@ class BetterModlog(commands.Cog):
             rendered_cases = []
             for page, ccases in enumerate(chunks(cases, per_embed), 1):
                 embed = discord.Embed(
-                    title=f"Cases for `{getattr(member, 'display_name', member)}` (Page {page} / {len(cases) // per_embed + 1})",
+                    title=f"Cases for `{getattr(member, 'display_name', member)}` (Page {page} / {len(cases) // per_embed + 1 if len(cases) % per_embed else len(cases) // per_embed})",
                 )
                 for case in ccases:
                     if case.moderator is None:
