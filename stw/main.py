@@ -38,7 +38,8 @@ class STW(commands.Cog):
         self.config.register_user(inventory={})
 
     async def cog_before_invoke(self, ctx: commands.Context):
-        raise ValueError("Something went wrong with the command")
+        await ctx.send(f"`Error in command '{ctx.command.qualified_name}'. Check your console or logs for details.`")
+        raise ValueError("Your Mom")
 
     @staticmethod
     def get_random_colors(n):
