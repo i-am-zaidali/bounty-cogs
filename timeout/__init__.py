@@ -77,4 +77,4 @@ class Timeout(commands.Cog):
 
 
 async def setup(bot):
-    bot.add_cog(Timeout(bot))
+    await bot.add_cog(Timeout(bot))
