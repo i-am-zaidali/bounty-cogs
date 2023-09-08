@@ -37,6 +37,9 @@ class STW(commands.Cog):
         self.config.register_guild(subscriber_role=None)
         self.config.register_user(inventory={})
 
+    async def cog_before_invoke(self, ctx: commands.Context):
+        raise ValueError("Something went wrong with the command")
+    
     @staticmethod
     def get_random_colors(n):
         for i in range(n):
