@@ -10,7 +10,7 @@ from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import humanize_list, pagify
 
 
-class SFOffline(commands.Cog):
+class LastSeen(commands.Cog):
     """
     Check when a user was last seen online.
 
