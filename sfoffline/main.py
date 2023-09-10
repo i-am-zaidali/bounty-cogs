@@ -19,7 +19,7 @@ class SFOffline(commands.Cog):
     online_statuses = [discord.Status.online, discord.Status.idle, discord.Status.dnd]
     offline_status = discord.Status.offline
 
-    __version__ = "1.0.2"  # fix for last seen being updated on cog load
+    __version__ = "1.0.3"  # dpy2
     __author__ = ["crayyy_zee#2900"]
 
     def __init__(self, bot: Red):
@@ -151,8 +151,8 @@ class SFOffline(commands.Cog):
         return f"<t:{t}:F> - <t:{t}:R>"
 
     @commands.group(name="lastonline", aliases=["lastseen", "seen"], invoke_without_command=True)
-    @commands.guild_only()
-    async def lastonline(self, ctx: commands.Context, user: discord.Member):
+    #@commands.guild_only()
+    async def lastonline(self, ctx: commands.Context, user: typing.Union[discord.Member, discord.User]):
         """
         See when the given user was last online."""
         if user.bot:
