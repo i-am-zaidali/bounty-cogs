@@ -151,8 +151,10 @@ class SFOffline(commands.Cog):
         return f"<t:{t}:F> - <t:{t}:R>"
 
     @commands.group(name="lastonline", aliases=["lastseen", "seen"], invoke_without_command=True)
-    #@commands.guild_only()
-    async def lastonline(self, ctx: commands.Context, user: typing.Union[discord.Member, discord.User]):
+    # @commands.guild_only()
+    async def lastonline(
+        self, ctx: commands.Context, user: typing.Union[discord.Member, discord.User]
+    ):
         """
         See when the given user was last online."""
         if user.bot:
