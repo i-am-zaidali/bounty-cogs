@@ -1,15 +1,15 @@
-import aiohttp
 import json
 import math
-from typing import TYPE_CHECKING, List, Union, Generator, Tuple, Optional
+from logging import getLogger
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
+import aiohttp
 import discord
 from discord.interactions import Interaction
 from discord.ui import Button, Modal, Select, TextInput, View, button, select
 from redbot.core import commands
 from redbot.core.utils.views import SimpleMenu
 from redbot.vendored.discord.ext import menus
-from logging import getLogger
 
 log = getLogger("red.bounty.gamebanana.views")
 

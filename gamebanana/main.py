@@ -1,11 +1,11 @@
-from redbot.core.bot import Red
-from redbot.core import commands, Config, app_commands
-import asyncio
-import discord
-import aiohttp
-from typing import TypedDict, List
+from typing import List, TypedDict
 
-from .views import Paginator, NewQuery, PageSource
+import aiohttp
+import discord
+from redbot.core import Config, app_commands, commands
+from redbot.core.bot import Red
+
+from .views import NewQuery, PageSource, Paginator
 
 prefixes = {"_s": str, "_n": int, "_b": bool, "_ts": int, "_a": dict}  # timestamps
 
