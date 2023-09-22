@@ -1,12 +1,14 @@
-import discord
-from redbot.core.bot import Red
-from redbot.core import commands, Config
-from redbot.core.utils import chat_formatting as cf
-from typing import Any, Optional, Union
 import operator
 import re
-from .views import InvalidStatsView, ClearOrNot
+from typing import Any, Optional, Union
+
+import discord
+from redbot.core import Config, commands
+from redbot.core.bot import Red
+from redbot.core.utils import chat_formatting as cf
 from tabulate import tabulate
+
+from .views import ClearOrNot, InvalidStatsView
 
 # the format of the stats in a message would be <vehicle name with spaces and/or hyphens> <two spaces> <number>
 base_regex = re.compile(r"(?P<vehicle_name>[\w\s-]+)\s{4}(?P<amount>\d+)")
