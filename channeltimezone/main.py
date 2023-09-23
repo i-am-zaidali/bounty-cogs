@@ -219,7 +219,7 @@ class ChannelTimezone(commands.Cog):
 
         if not all_chans:
             return
-            
+
         closest = all_min(all_chans.items(), key=distance_to_hour, sortkey=distance_to_hour)
 
         self.next_to_edit = timestamps = dict(
