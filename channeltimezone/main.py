@@ -217,6 +217,9 @@ class ChannelTimezone(commands.Cog):
 
         all_chans: dict[int, dict[str, str | int]] = await self.config.all_channels()
 
+        if not all_chans:
+            return
+            
         closest = all_min(all_chans.items(), key=distance_to_hour, sortkey=distance_to_hour)
 
         self.next_to_edit = timestamps = dict(
