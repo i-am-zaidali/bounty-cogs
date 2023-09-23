@@ -547,9 +547,9 @@ class InvalidStatsView(View):
                 cf.humanize_list(interaction.extras["unknown_vehicles"]),
             )
             await interaction.message.edit(embed=new_embed)
-            await cog.config.member(interaction.extras["message"].author).stats.set(
-                interaction.extras["vehicles_amount"]
-            )
+        await cog.config.member(interaction.extras["message"].author).stats.set(
+            interaction.extras["vehicles_amount"]
+        )
 
     @button(label="Ignore", custom_id="_ignore", style=discord.ButtonStyle.blurple)
     async def ignore(self, interaction: discord.Interaction, button: Button):
