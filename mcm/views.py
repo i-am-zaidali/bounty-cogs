@@ -1,16 +1,15 @@
 import functools
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union, Any
-from copy import copy
+from typing import List, Optional
 
 import aiohttp
 import discord
 from discord.interactions import Interaction
-from discord.utils import maybe_coroutine
 from discord.ui import Button, Modal, Select, TextInput, View, button, select
-from redbot.vendored.discord.ext import menus
+from discord.utils import maybe_coroutine
 from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
+from redbot.vendored.discord.ext import menus
 from tabulate import tabulate
 
 
@@ -352,7 +351,7 @@ class MergeISView(ViewDisableOnTimeout):
             await self.original_interaction.message.edit(embed=new_embed)
 
         else:
-            self_copy = InvalidStatsView(self.bot)
+            self_copy = InvalidStatsView(interaction.client)
             disable_items(self_copy)
             await self.original_interaction.message.edit(view=self_copy)
             await self.original_interaction.extras["message"].clear_reactions()

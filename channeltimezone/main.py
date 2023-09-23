@@ -1,14 +1,16 @@
-from datetime import datetime
-import discord
-from discord.ext import tasks
-from redbot.core.bot import Red
-from redbot.core import commands, Config
-from redbot.core.utils import chat_formatting as cf, menus
-import pytz
-from fuzzywuzzy import fuzz, process
-from typing import Iterable, TypeVar, Callable, Any, Optional
 import itertools
 import operator
+from datetime import datetime
+from typing import Any, Callable, Iterable, Optional, TypeVar
+
+import discord
+import pytz
+from discord.ext import tasks
+from fuzzywuzzy import fuzz, process
+from redbot.core import Config, commands
+from redbot.core.bot import Red
+from redbot.core.utils import chat_formatting as cf
+from redbot.core.utils import menus
 
 _T = TypeVar("_T")
 
@@ -214,6 +216,9 @@ class ChannelTimezone(commands.Cog):
             return res
 
         all_chans: dict[int, dict[str, str | int]] = await self.config.all_channels()
+
+        if not all_chans:
+            return
 
         closest = all_min(all_chans.items(), key=distance_to_hour, sortkey=distance_to_hour)
 
