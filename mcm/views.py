@@ -351,7 +351,7 @@ class MergeISView(ViewDisableOnTimeout):
             await self.original_interaction.message.edit(embed=new_embed)
 
         else:
-            self_copy = InvalidStatsView(self.bot)
+            self_copy = InvalidStatsView(interaction.client)
             disable_items(self_copy)
             await self.original_interaction.message.edit(view=self_copy)
             await self.original_interaction.extras["message"].clear_reactions()
