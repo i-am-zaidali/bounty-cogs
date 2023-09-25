@@ -101,7 +101,7 @@ class MissionChiefMetrics(commands.Cog):
             vehicle_amount = self.parse_vehicles(message.content)
 
         except ValueError as e:
-            return await message.reply(e.args[0])
+            return await message.reply(e.args[0], delete_after=30)
 
         # if we get here, all lines match the regex
         if (mid := await self.config.member(message.author).message_id()) is not None:
