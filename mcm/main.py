@@ -101,6 +101,7 @@ class MissionChiefMetrics(commands.Cog):
             vehicle_amount = self.parse_vehicles(message.content)
 
         except ValueError as e:
+            await message.delete(delay=31)
             return await message.reply(e.args[0], delete_after=30)
 
         # if we get here, all lines match the regex
