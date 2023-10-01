@@ -228,10 +228,7 @@ class ChannelTimezone(commands.Cog):
                     x[0],
                     {**x[1], "datetime": datetime.now(pytz.timezone(x[1]["timezone"]))},
                 ),
-                all_min(
-                    all_chans.items(),
-                    key=distance_to_hour,
-                ),
+                closest,
             )
         )
 
