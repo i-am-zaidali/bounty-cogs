@@ -1,26 +1,33 @@
 import functools
-from typing import List, Optional
+import itertools
+from typing import List, Optional, TYPE_CHECKING
 
-import aiohttp
 import discord
 from discord.interactions import Interaction
 from discord.ui import Button, Modal, Select, TextInput, View, button, select
-from discord.utils import maybe_coroutine
 from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
 from redbot.vendored.discord.ext import menus
+from pprint import pprint
 from tabulate import tabulate
+
+if TYPE_CHECKING:
+    from . import MissionChiefMetrics
 
 
 def disable_items(self: View):
     for i in self.children:
         i.disabled = True
 
+    return self
+
 
 def enable_items(self: View):
     for i in self.children:
         i.disabled = False
+
+    return self
 
 
 def chunks(lst: list, n: int):
@@ -55,13 +62,19 @@ class ViewDisableOnTimeout(View):
 
         self.stop()
 
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        if (
+            msg := getattr(self.ctx, "message", self.message)
+        ) and interaction.user.id != msg.author.id:
+            await interaction.response.send_message(
+                "You aren't allowed to interact with this bruh. Back Off!", ephemeral=True
+            )
+            return False
 
-class PaginatorButton(Button["Paginator"]):
-    def __init__(self, *, emoji=None, label=None, style=discord.ButtonStyle.green, disabled=False):
-        super().__init__(style=style, label=label, emoji=emoji, disabled=disabled)
+        return True
 
 
-class CloseButton(Button["Paginator"]):
+class CloseButton(Button):
     def __init__(self):
         super().__init__(
             style=discord.ButtonStyle.red, label="Close", emoji="<a:ml_cross:1050019930617155624>"
@@ -70,241 +83,6 @@ class CloseButton(Button["Paginator"]):
     async def callback(self, interaction: discord.Interaction):
         await (self.view.message or interaction.message).delete()
         self.view.stop()
-
-
-class ForwardButton(PaginatorButton):
-    def __init__(self):
-        super().__init__(emoji="\N{BLACK RIGHT-POINTING TRIANGLE}\N{VARIATION SELECTOR-16}")
-
-    async def callback(self, interaction: discord.Interaction):
-        if self.view.current_page == await self.view.source.get_max_pages():
-            self.view.current_page = 1
-        else:
-            self.view.current_page += 1
-
-        await self.view.edit_message(interaction)
-
-
-class BackwardButton(PaginatorButton):
-    def __init__(self):
-        super().__init__(emoji="\N{BLACK LEFT-POINTING TRIANGLE}\N{VARIATION SELECTOR-16}")
-
-    async def callback(self, interaction: discord.Interaction):
-        if self.view.current_page == 1:
-            self.view.current_page = await self.view.source.get_max_pages()
-        else:
-            self.view.current_page -= 1
-
-        await self.view.edit_message(interaction)
-
-
-class LastItemButton(PaginatorButton):
-    def __init__(self):
-        super().__init__(
-            emoji="\N{BLACK RIGHT-POINTING DOUBLE TRIANGLE WITH VERTICAL BAR}\N{VARIATION SELECTOR-16}"
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-        self.view.current_page = await self.view.source.get_max_pages()
-
-        await self.view.edit_message(interaction)
-
-
-class FirstItemButton(PaginatorButton):
-    def __init__(self):
-        super().__init__(
-            emoji="\N{BLACK LEFT-POINTING DOUBLE TRIANGLE WITH VERTICAL BAR}\N{VARIATION SELECTOR-16}"
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-        self.view.current_page = 1
-
-        await self.view.edit_message(interaction)
-
-
-class PageButton(PaginatorButton):
-    def __init__(self):
-        super().__init__(style=discord.ButtonStyle.gray, disabled=True)
-
-    def _change_label(self):
-        self.label = f"Page {self.view.current_page}/{self.view.source._max_pages}"
-
-
-class PaginatorSelect(Select["Paginator"]):
-    @classmethod
-    async def with_pages(cls, view: "Paginator", placeholder: str = "Select a page:"):
-        pages: int
-        pages: int = await view.source.get_max_pages() or 0
-        if pages > 25:
-            minus_diff = 0
-            plus_diff = 25
-            if 12 < view.current_page < pages - 25:
-                minus_diff = view.current_page - 12
-                plus_diff = view.current_page + 13
-            elif view.current_page >= pages - 25:
-                minus_diff = pages - 25
-                plus_diff = pages
-            options = [
-                discord.SelectOption(
-                    label=f"Page #{i+1}", value=i, description=f"Go to page {i+1}"
-                )
-                for i in range(minus_diff, plus_diff)
-            ]
-        else:
-            options = [
-                discord.SelectOption(label=f"Page #{i}", value=i, description=f"Go to page {i}")
-                for i in range(1, pages + 1)
-            ]
-
-        return cls(options=options, placeholder=placeholder, min_values=1, max_values=1)
-
-    async def callback(self, interaction: discord.Interaction):
-        self.view.current_page = int(self.values[0])
-
-        await self.view.edit_message(interaction)
-
-
-class Paginator(ViewDisableOnTimeout):
-    def __init__(
-        self,
-        source: menus.PageSource,
-        start_index: int = 1,
-        timeout: int = 30,
-        use_select: bool = False,
-        extra_items: List[discord.ui.Item] = None,
-    ):
-        super().__init__(timeout=timeout)
-
-        self.ctx: commands.Context
-        self._source = source
-        self.use_select: bool = use_select
-        self.current_page: int = start_index
-        self.extra_items: list[discord.ui.Item] = extra_items or []
-
-    @property
-    def source(self):
-        return self._source
-
-    async def update_buttons(self, edit=False):
-        self.clear_items()
-        pages = await self.source.get_max_pages() or 0
-        buttons_to_add: List[Button] = (
-            [FirstItemButton(), BackwardButton(), PageButton(), ForwardButton(), LastItemButton()]
-            if pages > 2
-            else [BackwardButton(), PageButton(), ForwardButton()]
-            if pages > 1
-            else []
-        )
-        if self.use_select and pages > 1:
-            buttons_to_add.append(await PaginatorSelect.with_pages(self))
-
-        buttons_to_add.append(CloseButton())
-
-        for button in buttons_to_add:
-            self.add_item(button)
-
-        for item in self.extra_items:
-            self.add_item(item)
-
-        await self.update_items(edit)
-
-    async def update_items(self, edit: bool = False):
-        pages = await self.source.get_max_pages() or 0
-        for i in self.children:
-            if isinstance(i, PageButton):
-                i._change_label()
-                continue
-
-            elif self.current_page == 1 and isinstance(i, FirstItemButton):
-                i.disabled = True
-                continue
-
-            elif self.current_page == pages and isinstance(i, LastItemButton):
-                i.disabled = True
-                continue
-
-            elif (um := getattr(i, "update", None)) and callable(um) and edit:
-                i.update()
-
-            i.disabled = False
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        return await interaction_check(self.ctx, interaction)
-
-    async def edit_message(self, inter: discord.Interaction):
-        page = await self.get_page(self.current_page)
-
-        await self.update_buttons(True)
-        await inter.response.edit_message(**page)
-        self.message = inter.message
-
-    async def change_source(
-        self,
-        source,
-        start: bool = False,
-        ctx: Optional[commands.Context] = None,
-        ephemeral: bool = True,
-    ):
-        """|coro|
-
-        Changes the :class:`PageSource` to a different one at runtime.
-
-        Once the change has been set, the menu is moved to the first
-        page of the new source if it was started. This effectively
-        changes the :attr:`current_page` to 0.
-
-        Raises
-        --------
-        TypeError
-            A :class:`PageSource` was not passed.
-        """
-
-        if not isinstance(source, menus.PageSource):
-            raise TypeError("Expected {0!r} not {1.__class__!r}.".format(menus.PageSource, source))
-
-        self._source = source
-        self.current_page = 1
-        await source._prepare_once()
-        if start:
-            if ctx is None:
-                raise RuntimeError("Cannot start without a context object.")
-            await self.start(ctx, ephemeral=ephemeral)
-
-        return self
-
-    async def get_page(self, page_num: int) -> dict:
-        await self.update_buttons()
-        try:
-            page = await self.source.get_page(page_num)
-        except IndexError:
-            self.current_page = 0
-            page = await self.source.get_page(self.current_page)
-        value = await self.source.format_page(self, page)
-        ret = {"view": self}
-        if isinstance(value, dict):
-            ret.update(value)
-        elif isinstance(value, str):
-            ret.update({"content": value, "embed": None})
-        elif isinstance(value, discord.Embed):
-            ret.update({"embed": value, "content": None})
-        return ret
-
-    async def start(self, ctx: commands.Context, ephemeral: bool = True):
-        """
-        Used to start the menu displaying the first page requested.
-
-        Parameters
-        ----------
-            ctx: `commands.Context`
-                The context to start the menu in.
-        """
-        await self.source._prepare_once()
-        self.author = ctx.author
-        self.ctx = ctx
-        kwargs = await self.get_page(self.current_page)
-        self.message: discord.Message = await getattr(self.message, "edit", ctx.send)(
-            **kwargs, ephemeral=ephemeral
-        )
 
 
 def dehumanize_list(l: str):
@@ -641,3 +419,216 @@ class ClearOrNot(View):
     @button(label="No, let it stay", custom_id="_no_clear_stats", style=discord.ButtonStyle.green)
     async def no_clear_stats(self, interaction: discord.Interaction, button: Button):
         await interaction.followup.send("Okay, I won't clear their stats.")
+
+
+class NewCategory(ViewDisableOnTimeout):
+    def __init__(self, cog: "MissionChiefMetrics", ctx: commands.Context):
+        self.bot = cog.bot
+        self.config = cog.config
+
+        super().__init__(timeout=60, ctx=ctx)
+
+        self.add_item(CloseButton())
+
+    @button(label="Add Category", custom_id="_add_category", style=discord.ButtonStyle.green)
+    async def ac_callback(self, inter: discord.Interaction, button: Button):
+        modal = Modal(title="New Category", timeout=60)
+        modal.add_item(
+            ti := TextInput(
+                label="Category Name", custom_id="_category_name", placeholder="Category Name"
+            )
+        )
+        setattr(modal, "on_submit", functools.partial(self.modal_cb, modal))
+        modal.ti = ti
+
+        await inter.response.send_modal(modal)
+
+    async def modal_cb(self, modal: Modal, inter: discord.Interaction):
+        ti: TextInput = modal.ti
+        if not ti.value.strip():
+            await inter.response.send_message("You need to enter a category name.")
+            return
+
+        all_categories = await self.config.guild(inter.guild).vehicle_categories()
+        if ti.value.strip().lower() in all_categories:
+            return await inter.response.send_message(
+                "That category already exists.", ephemeral=True
+            )
+        await inter.response.defer()
+        await self.further_handling(inter, ti.value.strip().lower())
+
+    async def further_handling(self, inter: discord.Interaction, category_name: str):
+        all_categories = await self.config.guild(inter.guild).vehicle_categories()
+        all_vehicles = await self.config.guild(inter.guild).vehicles()
+        all_values_categories = list(itertools.chain.from_iterable(all_categories.values()))
+
+        self.remaining = list(set(all_vehicles) - set(all_values_categories))
+        if not self.remaining:
+            await inter.followup.send(
+                "There are no vehicles left to add to a category. Categories can not have common vehicles."
+            )
+            return
+
+        async with self.config.guild(inter.guild).vehicle_categories() as categories:
+            categories.setdefault(category_name, [])
+
+        self.category = category_name
+
+        view = ViewDisableOnTimeout(timeout=60, ctx=self.ctx)
+        view.selected = []
+        await self.get_selects(view, inter.guild)
+
+        view.message = await inter.followup.send(
+            f"Use the below selects for the purposes mentioned on their placeholders to make changes to the category: `{category_name.capitalize()}`",
+            view=view,
+            wait=True,
+        )
+
+        if not await view.wait():
+            async with self.config.guild(inter.guild).vehicle_categories() as categories:
+                if not view.selected and not categories[category_name]:
+                    del categories[category_name]
+                    await inter.followup.send("Cancelled.")
+                    return
+
+                else:
+                    categories[category_name] = list(
+                        set(categories[category_name]).difference(self.remaining)
+                    )
+                    categories[category_name].extend(view.selected)
+                    categories[category_name] = list(set(categories[category_name]))
+                    await inter.followup.send("Updated vehicles in the category.")
+                    await view.message.edit(view=disable_items(view))
+                    return
+
+    async def select_cb(self, select: Select, inter: discord.Interaction):
+        view = select.view
+        view.selected.extend(select.values)
+        view.selected = list(set(view.selected))
+        for val in select.values:
+            self.remaining.remove(val)
+
+        print(self.remaining, view.selected)
+
+        view.clear_items()
+        await self.get_selects(view, inter.guild)
+
+        await inter.response.edit_message(view=view)
+
+        close_view = ViewDisableOnTimeout(timeout=60, ctx=self.ctx)
+        close_view.add_item(CloseButton())
+
+        close_view.message = await inter.followup.send(
+            f"Currently selected vehicles: {cf.humanize_list(view.selected)}\nIf that's all, click on the close button to finish the process."
+            if view.selected
+            else "If that's all, click on the close button to finish the process.",
+            ephemeral=True,
+            view=close_view,
+        )
+
+        if await close_view.wait():
+            return
+
+        else:
+            view.stop()
+
+    async def remove_select_cb(self, select: Select, inter: discord.Interaction):
+        view = select.view
+        self.remaining.extend(select.values)
+        self.remaining = list(set(self.remaining))
+        for val in select.values:
+            if val in view.selected:
+                view.selected.remove(val)
+
+        view.clear_items()
+        await self.get_selects(view, inter.guild)
+
+        await inter.response.edit_message(view=view)
+
+        close_view = ViewDisableOnTimeout(timeout=60, ctx=self.ctx)
+        close_view.add_item(CloseButton())
+
+        close_view.message = await inter.followup.send(
+            f"Currently selected vehicles to add: {cf.humanize_list(view.selected)}\nIf that's all, click on the close button to finish the process."
+            if view.selected
+            else "If that's all, click on the close button to finish the process.",
+            ephemeral=True,
+            view=close_view,
+        )
+
+        if await close_view.wait():
+            return
+
+        else:
+            view.stop()
+
+    async def get_selects(self, view: View, guild: discord.Guild):
+        [
+            *(
+                (
+                    s := Select(
+                        custom_id=f"_vehicles_select_{ind}",
+                        placeholder="Select the vehicles to add to the category:",
+                        min_values=1,
+                        max_values=len(chunk),
+                        options=[
+                            discord.SelectOption(label=name.capitalize(), value=name)
+                            for name in chunk
+                        ],
+                    ),
+                    setattr(s, "callback", functools.partial(self.select_cb, s)),
+                    view.add_item(s),
+                    pprint(s.options),
+                )
+                for ind, chunk in enumerate(chunks(self.remaining, 25), 1)
+            ),
+        ]
+        options = [
+            discord.SelectOption(label=name.capitalize(), value=name)
+            for name in set().union(
+                await self.config.guild(guild).vehicle_categories.get_attr(self.category)(),
+                view.selected,
+            )
+            if name not in self.remaining
+        ]
+        if options:
+            pprint(options)
+            s = Select(
+                custom_id="_vehicles_select_last",
+                placeholder="Select the vehicles to remove from the category:",
+                min_values=1,
+                options=options,
+                max_values=len(options),
+            )
+            s.callback = functools.partial(self.remove_select_cb, s)
+            view.add_item(s)
+
+
+class UpdateCategory(NewCategory):
+    def __init__(
+        self, cog: "MissionChiefMetrics", ctx: commands.Context, all_categories: list[str]
+    ):
+        super().__init__(cog, ctx)
+        self.category_select = Select(
+            custom_id="_category_select",
+            placeholder="Select the category to update:",
+            min_values=1,
+            max_values=1,
+            options=[
+                discord.SelectOption(label=name.capitalize(), value=name)
+                for name in all_categories
+            ],
+            row=1,
+        )
+        self.remove_item(self.children[0])
+        self.add_item(self.category_select)
+        setattr(
+            self.category_select,
+            "callback",
+            functools.partial(self.cat_select_cb, self.category_select),
+        )
+
+    async def cat_select_cb(self, select: Select, inter: discord.Interaction):
+        disable_items(self)
+        await inter.response.edit_message(view=self)
+        await self.further_handling(inter, select.values[0])

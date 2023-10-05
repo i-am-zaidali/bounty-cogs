@@ -1,17 +1,25 @@
+import collections
+import functools
+import itertools
 import operator
 import re
+import yaml
 from typing import Any, Optional, Union
 
 import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
+from redbot.vendored.discord.ext.menus import ListPageSource, GroupByPageSource
 from tabulate import tabulate
 
-from .views import ClearOrNot, InvalidStatsView
+from .views import ClearOrNot, InvalidStatsView, NewCategory, UpdateCategory
+from .paginator import Paginator
 
-# the format of the stats in a message would be <vehicle name with spaces and/or hyphens> <two spaces> <number>
+# the format of the stats in a message would be <vehicle name with spaces and/or hyphens> <four spaces> <number>
 base_regex = re.compile(r"(?P<vehicle_name>[\w\s-]+)\s{4}(?P<amount>\d+)")
+
+lower_str_param = commands.param(converter=str.lower)
 
 
 def union_dicts(*dicts: dict[Any, Any], fillvalue=None):
@@ -28,7 +36,14 @@ class MissionChiefMetrics(commands.Cog):
         self.config = Config.get_conf(self, identifier=1234567890)
         self.config.register_member(stats={}, message_id=None)
         self.config.register_guild(
-            logchannel=None, alertchannel=None, vehicles=[], trackchannel=None
+            logchannel=None,
+            alertchannel=None,
+            trackchannel=None,
+            coursechannel=None,
+            vehicles=[],
+            vehicle_categories={},
+            course_shorthands={},
+            course_role=None,
         )
         self.config.init_custom("message", 3)
         self.config.register_custom("message", view_type=None)
@@ -83,7 +98,7 @@ class MissionChiefMetrics(commands.Cog):
         data = await self.config.guild(message.guild).all()
         if not all(
             [
-                *data.values(),
+                *data["vehicles"],
                 message.guild.get_channel(data["trackchannel"]),
                 message.guild.get_channel(data["alertchannel"]),
                 message.guild.get_channel(data["logchannel"]),
@@ -158,14 +173,12 @@ class MissionChiefMetrics(commands.Cog):
         self, user: discord.Member, old_stats: dict[str, int], new_stats: dict[str, int]
     ):
         """Log the new stats of a user"""
-        print(old_stats, new_stats, sep="\n")
         logchan = self.bot.get_channel((await self.config.guild(user.guild).logchannel()))
         assert isinstance(logchan, discord.abc.GuildChannel)
         diff = {
             vehicle: v2 - v1
             for vehicle, (v1, v2) in union_dicts(old_stats, new_stats, fillvalue=0).items()
         }
-        print(diff)
         vehicles = await self.config.guild(user.guild).vehicles()
         tab_data = [
             (f"+ {k}" if v3 > 0 else f"- {k}" if v3 < 0 else f"  {k}", v1, v2, f"{v3:+}")
@@ -179,7 +192,7 @@ class MissionChiefMetrics(commands.Cog):
             description=cf.box(
                 tabulate(
                     tab_data,
-                    headers=["Vehicle", "Old Amount", "New Amount", "Difference"],
+                    headers=["Vehicle", "Old Amt.", "New Amt.", "Diff."],
                     tablefmt="simple",
                     colalign=("left", "center", "center", "center"),
                 ),
@@ -193,7 +206,7 @@ class MissionChiefMetrics(commands.Cog):
         data = await self.config.guild(member.guild).all()
         if not all(
             [
-                *data.values(),
+                *data["vehicles"],
                 member.guild.get_channel(data["trackchannel"]),
                 member.guild.get_channel(data["alertchannel"]),
                 logchan := member.guild.get_channel(data["logchannel"]),
@@ -222,6 +235,56 @@ class MissionChiefMetrics(commands.Cog):
     async def mcm_vehicle(self, ctx: commands.Context):
         """Vehicle management"""
         return await ctx.send_help()
+
+    @mcm_vehicle.group(name="category", aliases=["categories", "cat"], invoke_without_command=True)
+    async def mcm_vehicle_category(self, ctx: commands.Context):
+        """Vehicle category management"""
+        return await ctx.send_help()
+
+    @mcm_vehicle_category.command(name="create")
+    async def mcm_vehicle_category_create(self, ctx: commands.Context):
+        """Create a vehicle category"""
+        view.message = await ctx.send(
+            "Create categories using the button below:", view=(view := NewCategory(self, ctx))
+        )
+
+    @mcm_vehicle_category.command(name="delete")
+    async def mcm_vehicle_category_delete(
+        self, ctx: commands.Context, category: str = lower_str_param
+    ):
+        """Delete a vehicle category"""
+        async with self.config.guild(ctx.guild).vehicle_categories() as vc:
+            if category not in vc:
+                return await ctx.send("That category does not exist.")
+            vc.pop(category)
+        await ctx.tick()
+
+    @mcm_vehicle_category.command(name="update")
+    async def mcm_vehicle_category_update(
+        self,
+        ctx: commands.Context,
+    ):
+        """Update the vehicle categories"""
+        # check if the same vehicle is not under multiple category names
+        await ctx.send(
+            "Select a category from the dropdown below:",
+            view=UpdateCategory(
+                self, ctx, await self.config.guild(ctx.guild).vehicle_categories()
+            ),
+        )
+
+    @mcm_vehicle_category.command(name="list")
+    async def mcm_vehicle_category_list(self, ctx: commands.Context):
+        """List the vehicle categories"""
+        categories = await self.config.guild(ctx.guild).vehicle_categories()
+        if not categories:
+            return await ctx.send("No vehicle categories have been added yet.")
+        message = ""
+        for category, vehicles in categories.items():
+            message += f"{category}:\n"
+            message += "\n".join([f"  - {vehicle}" for vehicle in vehicles]) + "\n"
+
+        await ctx.send(cf.box(message, "yaml"))
 
     @mcm_vehicle.command(name="add")
     async def mcm_vehicle_add(self, ctx: commands.Context, *vehicles: str.lower):
@@ -286,12 +349,19 @@ class MissionChiefMetrics(commands.Cog):
         await self.config.guild(ctx.guild).logchannel.set(channel.id)
         await ctx.tick()
 
+    @mcm_channel.command(name="course")
+    async def mcm_courses_channel(self, ctx: commands.Context, channel: discord.TextChannel):
+        """Set the channel to announce courses in"""
+        await self.config.guild(ctx.guild).coursechannel.set(channel.id)
+        await ctx.tick()
+
     @mcm_channel.command(name="show")
     async def mcm_channel_show(self, ctx: commands.Context):
         """Show the current channels"""
         data = await self.config.guild(ctx.guild).all()
         embed = discord.Embed(title="Channels")
         data.pop("vehicles")
+        data.pop("vehicle_categories")
         for name, channel_id in data.items():
             embed.add_field(name=name, value=f"<#{channel_id}>" if channel_id else "Not set")
         await ctx.send(embed=embed)
@@ -303,33 +373,85 @@ class MissionChiefMetrics(commands.Cog):
         return await ctx.send_help()
 
     @mcm_userstats.command(name="show")
-    async def mcm_userstats_show(
-        self,
-        ctx: commands.Context,
-        user: discord.Member = commands.param(
-            converter=Optional[discord.Member],
-            default=operator.attrgetter("author"),
-            displayed_default="<You>",
-        ),
-    ):
+    async def mcm_userstats_show(self, ctx: commands.Context, *users: discord.Member):
         """Show the stats of a user"""
-        stats = await self.config.member(user).stats()
+        users = users or [
+            ctx.author,
+        ]
         vehicles = await self.config.guild(ctx.guild).vehicles()
-        if not stats or not vehicles:
-            return await ctx.send("No stats found for this user.")
+        categories = await self.config.guild(ctx.guild).vehicle_categories()
 
-        embed = discord.Embed(
-            title=f"{user}'s stats",
-            description=cf.box(
-                tabulate(
-                    filter(lambda x: x[0] in vehicles, stats.items()),
-                    headers=["Vehicle", "Amount"],
-                    tablefmt="fancy_grid",
-                    colalign=("center", "center"),
+        all_users = [(user, await self.config.member(user).stats()) for user in users]
+        if len(users) > 1:
+            # combined stats of all users:
+            all_users.insert(
+                0,
+                (
+                    None,
+                    dict(
+                        sum(
+                            (collections.Counter(user[1]) for user in all_users),
+                            collections.Counter(),
+                        )
+                    ),
+                ),
+            )
+        source = ListPageSource(all_users, per_page=1)
+
+        async def format_page(
+            s: ListPageSource, menu: Paginator, entry: tuple[Optional[discord.Member], dict]
+        ):
+            category_totals = {
+                category: sum(entry[1].get(vehicle, 0) for vehicle in cat_vc)
+                for category, cat_vc in categories.items()
+            }
+            category_individuals = {
+                category: {
+                    vehicle: entry[1].get(vehicle, 0)
+                    for vehicle in cat_vc
+                    if entry[1].get(vehicle, 0) > 0
+                }
+                for category, cat_vc in categories.items()
+            }
+            category_individuals.update(
+                {
+                    "uncategorised": {
+                        vehicle: entry[1].get(vehicle, 0)
+                        for vehicle in vehicles
+                        if vehicle not in itertools.chain.from_iterable(categories.values())
+                        and entry[1].get(vehicle, 0) > 0
+                    }
+                }
+            )
+            category_totals.update(
+                {"uncategorised": sum(category_individuals["uncategorised"].values())}
+            )
+            embed = discord.Embed(
+                title=f"{entry[0]}'s stats"
+                if entry[0]
+                else "Combined stats of all previous users",
+                description=f"**Uncategorised**\nTotal: {category_totals.pop('uncategorised')}\n{cf.box(tabulate(category_individuals.pop('uncategorised').items(), headers=['Vehicle', 'Amount'], tablefmt='simple', colalign=('left', 'center')))}",
+            )
+            for cat, s in category_totals.items():
+                embed.add_field(
+                    name=f"**{cat}**\nTotal: {s}",
+                    value=cf.box(
+                        tabulate(
+                            category_individuals[cat].items(),
+                            headers=["Vehicle", "Amount"],
+                            tablefmt="simple",
+                            colalign=("left", "center"),
+                        )
+                    )
+                    if category_individuals[cat]
+                    else f"No stats available for this category.",
+                    inline=False,
                 )
-            ),
-        )
-        await ctx.send(embed=embed)
+
+            return embed
+
+        setattr(source, "format_page", functools.partial(format_page, source))
+        await Paginator(source, 0, use_select=True).start(ctx)
 
     @mcm_userstats.command(name="clear", usage="<user = YOU>")
     async def mcm_userstats_clear(
@@ -374,7 +496,83 @@ class MissionChiefMetrics(commands.Cog):
         except ValueError as e:
             return await ctx.send(e.args[0])
 
+        await self.log_new_stats(user, await self.config.member(user).stats(), vehicle_amount)
         await self.config.member(user).stats.set(vehicle_amount)
+        await ctx.tick()
+
+    @mcm.group(name="courses", aliases=["c", "course"], invoke_without_command=True)
+    async def mcm_courses(
+        self, ctx: commands.Context, shorthand: str, days: int, cost: int, *, location: str
+    ):
+        """Ping for a course announcement
+
+        Use subcommands for more options"""
+        if not (role := ctx.guild.get_role((await self.config.guild(ctx.guild).role()))):
+            return await ctx.send("The course ping role has not been set yet.")
+
+        if not (
+            course := (await self.config.guild(ctx.guild).course_shorthands()).get(
+                shorthand.lower()
+            )
+        ):
+            return await ctx.send("That course shorthand does not exist.")
+
+        embed = discord.Embed(
+            title="NEW COURSE!",
+            description=f"New course started!\n\n"
+            f"**TYPE:** {course}\n"
+            f"**LOCATION:** {location}\n"
+            f"**Start Time**: {days} days\n"
+            f"**Cost per person per day**: {cost}\n",
+            color=0x202026,
+        )
+
+        await ctx.send(role.mention, embed=embed)
+
+    @mcm_courses.group(name="shorthand", aliases=["shorthands", "sh"], invoke_without_command=True)
+    async def mcm_courses_shorthand(self, ctx: commands.Context):
+        """Course shorthand management"""
+        return await ctx.send_help()
+
+    @mcm_courses_shorthand.command(name="add")
+    async def mcm_courses_shorthand_add(
+        self, ctx: commands.Context, shorthand: str = lower_str_param, *, course: str
+    ):
+        """Add a course shorthand"""
+        async with self.config.guild(ctx.guild).course_shorthands() as shorthands:
+            shorthands[shorthand] = course
+        await ctx.tick()
+
+    @mcm_courses_shorthand.command(name="remove")
+    async def mcm_courses_shorthand_remove(
+        self, ctx: commands.Context, shorthand: str = lower_str_param
+    ):
+        """Remove a course shorthand"""
+        async with self.config.guild(ctx.guild).course_shorthands() as shorthands:
+            if shorthand not in shorthands:
+                return await ctx.send("That shorthand does not exist.")
+            shorthands.pop(shorthand)
+        await ctx.tick()
+
+    @mcm_courses_shorthand.command(name="list")
+    async def mcm_courses_shorthand_list(self, ctx: commands.Context):
+        """List the course shorthands"""
+        shorthands = await self.config.guild(ctx.guild).course_shorthands()
+        if not shorthands:
+            return await ctx.send("No course shorthands have been added yet.")
+        message = ""
+        for shorthand, course in shorthands.items():
+            message += f"{shorthand}: {course}\n"
+        await ctx.send(message)
+
+    @mcm_courses.command(name="role")
+    async def mcm_courses_role(self, ctx: commands.Context, role: Optional[discord.Role] = None):
+        """Set the role to ping for courses"""
+        if role is None:
+            return await ctx.send(
+                f"The course ping role is {getattr(ctx.guild.get_role((await self.config.guild(ctx.guild).role())), 'mention', '`NOT SET`')}"
+            )
+        await self.config.guild(ctx.guild).course_role.set(role.id)
         await ctx.tick()
 
     @mcm.command(name="totalstats")
@@ -382,6 +580,7 @@ class MissionChiefMetrics(commands.Cog):
         """Show the total stats of all users"""
         data = await self.config.all_members(ctx.guild)
         vehicles = await self.config.guild(ctx.guild).vehicles()
+        categories = await self.config.guild(ctx.guild).vehicle_categories()
         if not vehicles:
             return await ctx.send("No vehicles have been added yet.")
         total_stats = dict.fromkeys(vehicles, 0)
@@ -390,19 +589,37 @@ class MissionChiefMetrics(commands.Cog):
                 if not vehicle in total_stats:
                     continue
                 total_stats[vehicle] += amount
+        category_counts = [
+            *{
+                category: sum(total_stats.get(vehicle, 0) for vehicle in cat_vc)
+                for category, cat_vc in categories.items()
+            }.items()
+        ]
 
-        embed = discord.Embed(
-            title="Total Stats",
-            description=cf.box(
-                tabulate(
-                    total_stats.items(),
-                    headers=["Vehicle", "Amount"],
-                    tablefmt="fancy_grid",
-                    colalign=("center", "center"),
-                )
-            ),
-        )
-        await ctx.send(embed=embed)
+        # the page source should show the total_stats of each vehicle in a paginated way. On the last page, it should just have the total count of each category.
+        # source = ListPageSource(list(total_stats.items()), per_page=10)
+        items = list(total_stats.items()) + list(category_counts)
+        source = GroupByPageSource(items, key=lambda x: x[0] in vehicles, per_page=20, sort=False)
+
+        async def format_page(
+            s: ListPageSource, menu: Paginator, entry: tuple[str, tuple[str, int]]
+        ):
+            embed = discord.Embed(
+                title="Total Stats",
+                description=cf.box(
+                    tabulate(
+                        entry[1],
+                        headers=["Vehicle" if entry.key is True else "Category", "Amount"],
+                        tablefmt="fancy_grid",
+                        colalign=("left", "center"),
+                    )
+                ),
+            ).set_footer(text=f"Page {menu.current_page + 1}/{s.get_max_pages()}")
+            return embed
+
+        setattr(source, "format_page", functools.partial(format_page, source))
+
+        await Paginator(source, 0, use_select=True).start(ctx)
 
     @mcm.command(name="export")
     @commands.is_owner()
@@ -421,3 +638,18 @@ class MissionChiefMetrics(commands.Cog):
 
         csv = "\n".join([f"{vehicle},{amount}" for vehicle, amount in total_stats.items()])
         await ctx.send(file=cf.text_to_file(csv, filename="stats.csv"))
+
+    @mcm.command(name="purge", aliases=["clearall"], usage="")
+    @commands.is_owner()
+    async def mcm_purge(self, ctx: commands.Context, ARE_YOU_SURE: bool = False):
+        """Purge EVERYTHING.
+
+        This will delete all settings. from set channels, to allowed vehicles, to stats. EVERYTHING.
+        """
+        if not ARE_YOU_SURE:
+            return await ctx.send(
+                f"Are you sure you want to purge all stats? If so, run the command again with `True` as the first argument."
+            )
+        await self.config.clear_all_members(ctx.guild)
+        await self.config.guild(ctx.guild).clear()
+        await ctx.tick()
