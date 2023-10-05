@@ -1,6 +1,7 @@
 import functools
 import itertools
-from typing import List, Optional, TYPE_CHECKING
+from pprint import pprint
+from typing import TYPE_CHECKING, Optional
 
 import discord
 from discord.interactions import Interaction
@@ -9,7 +10,6 @@ from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
 from redbot.vendored.discord.ext import menus
-from pprint import pprint
 from tabulate import tabulate
 
 if TYPE_CHECKING:

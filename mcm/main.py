@@ -3,18 +3,18 @@ import functools
 import itertools
 import operator
 import re
-import yaml
 from typing import Any, Optional, Union
 
 import discord
+import yaml
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
-from redbot.vendored.discord.ext.menus import ListPageSource, GroupByPageSource
+from redbot.vendored.discord.ext.menus import GroupByPageSource, ListPageSource
 from tabulate import tabulate
 
-from .views import ClearOrNot, InvalidStatsView, NewCategory, UpdateCategory
 from .paginator import Paginator
+from .views import ClearOrNot, InvalidStatsView, NewCategory, UpdateCategory
 
 # the format of the stats in a message would be <vehicle name with spaces and/or hyphens> <four spaces> <number>
 base_regex = re.compile(r"(?P<vehicle_name>[\w\s-]+)\s{4}(?P<amount>\d+)")

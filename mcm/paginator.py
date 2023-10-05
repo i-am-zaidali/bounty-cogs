@@ -1,15 +1,16 @@
+from typing import List, Optional
+
 import discord
-from redbot.vendored.discord.ext import menus
 from discord.ui import Button, Select, View
 from redbot.core import commands
-from typing import Optional, List
+from redbot.vendored.discord.ext import menus
 
 from .views import (
+    CloseButton,
     ViewDisableOnTimeout,
     disable_items,
     enable_items,
     interaction_check,
-    CloseButton,
 )
 
 
