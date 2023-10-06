@@ -578,7 +578,7 @@ class NewCategory(ViewDisableOnTimeout):
                     ),
                     setattr(s, "callback", functools.partial(self.select_cb, s)),
                     view.add_item(s),
-                    pprint(s.options),
+                    
                 )
                 for ind, chunk in enumerate(chunks(self.remaining, 25), 1)
             ),
@@ -592,7 +592,7 @@ class NewCategory(ViewDisableOnTimeout):
             if name not in self.remaining
         ]
         if options:
-            pprint(options)
+            
             s = Select(
                 custom_id="_vehicles_select_last",
                 placeholder="Select the vehicles to remove from the category:",
