@@ -507,7 +507,7 @@ class MissionChiefMetrics(commands.Cog):
         """Ping for a course announcement
 
         Use subcommands for more options"""
-        if not (role := ctx.guild.get_role((await self.config.guild(ctx.guild).role()))):
+        if not (role := ctx.guild.get_role((await self.config.guild(ctx.guild).course_role()))):
             return await ctx.send("The course ping role has not been set yet.")
 
         if not (
