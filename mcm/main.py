@@ -517,6 +517,7 @@ class MissionChiefMetrics(commands.Cog):
         ):
             return await ctx.send("That course shorthand does not exist.")
 
+        channel = ctx.guild.get_channel(await self.config.guild(ctx.guild).coursechannel())
         embed = discord.Embed(
             title="NEW COURSE!",
             description=f"New course started!\n\n"
@@ -527,7 +528,7 @@ class MissionChiefMetrics(commands.Cog):
             color=0x202026,
         )
 
-        await ctx.send(role.mention, embed=embed)
+        await (channel or ctx).send(role.mention, embed=embed)
 
     @mcm_courses.group(name="shorthand", aliases=["shorthands", "sh"], invoke_without_command=True)
     async def mcm_courses_shorthand(self, ctx: commands.Context):
@@ -570,7 +571,7 @@ class MissionChiefMetrics(commands.Cog):
         """Set the role to ping for courses"""
         if role is None:
             return await ctx.send(
-                f"The course ping role is {getattr(ctx.guild.get_role((await self.config.guild(ctx.guild).role())), 'mention', '`NOT SET`')}"
+                f"The course ping role is {getattr(ctx.guild.get_role((await self.config.guild(ctx.guild).course_role())), 'mention', '`NOT SET`')}"
             )
         await self.config.guild(ctx.guild).course_role.set(role.id)
         await ctx.tick()
