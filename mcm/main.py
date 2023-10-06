@@ -528,7 +528,9 @@ class MissionChiefMetrics(commands.Cog):
             color=0x202026,
         )
 
-        await (channel or ctx).send(role.mention, embed=embed, allowed_mentions=discord.AllowedMentions(roles=True))
+        await (channel or ctx).send(
+            role.mention, embed=embed, allowed_mentions=discord.AllowedMentions(roles=True)
+        )
 
     @mcm_courses.group(name="shorthand", aliases=["shorthands", "sh"], invoke_without_command=True)
     async def mcm_courses_shorthand(self, ctx: commands.Context):
