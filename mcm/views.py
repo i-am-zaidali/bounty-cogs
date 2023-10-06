@@ -1,6 +1,5 @@
 import functools
 import itertools
-from pprint import pprint
 from typing import TYPE_CHECKING, Optional
 
 import discord
@@ -578,7 +577,6 @@ class NewCategory(ViewDisableOnTimeout):
                     ),
                     setattr(s, "callback", functools.partial(self.select_cb, s)),
                     view.add_item(s),
-                    
                 )
                 for ind, chunk in enumerate(chunks(self.remaining, 25), 1)
             ),
@@ -592,7 +590,6 @@ class NewCategory(ViewDisableOnTimeout):
             if name not in self.remaining
         ]
         if options:
-            
             s = Select(
                 custom_id="_vehicles_select_last",
                 placeholder="Select the vehicles to remove from the category:",
