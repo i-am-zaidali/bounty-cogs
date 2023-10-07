@@ -63,8 +63,9 @@ class ViewDisableOnTimeout(View):
         self.stop()
 
     async def interaction_check(self, interaction: Interaction) -> bool:
-        if (user:=self.user or
-            getattr(getattr(self.ctx, "message", self.message), "author", None)
+        if (
+            user := self.user
+            or getattr(getattr(self.ctx, "message", self.message), "author", None)
         ) and interaction.user.id != user.id:
             await interaction.response.send_message(
                 "You aren't allowed to interact with this bruh. Back Off!", ephemeral=True
@@ -101,7 +102,7 @@ def dehumanize_list(l: str):
 
 class MergeISView(ViewDisableOnTimeout):
     def __init__(self, original_interaction: discord.Interaction):
-        super().__init__(timeout=120, user = original_interaction.user)
+        super().__init__(timeout=120, user=original_interaction.user)
         self.original_interaction = original_interaction
         self.unknown_vehicles = original_interaction.extras["unknown_vehicles"]
         for vehicle in self.unknown_vehicles:
@@ -146,7 +147,7 @@ class MergeISView(ViewDisableOnTimeout):
         select.view.stop()
 
     async def merge_button(self, button: Button, interaction: discord.Interaction):
-        view = ViewDisableOnTimeout(timeout=60, user = interaction.user)
+        view = ViewDisableOnTimeout(timeout=60, user=interaction.user)
         for ind, vehicles in enumerate(
             chunks(
                 await interaction.client.get_cog("MissionChiefMetrics")
