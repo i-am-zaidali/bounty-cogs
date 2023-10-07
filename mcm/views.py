@@ -50,6 +50,7 @@ class ViewDisableOnTimeout(View):
         self.message: Optional[discord.Message] = None
         self.ctx: Optional[commands.Context] = kwargs.pop("ctx", None)
         self.timeout_message: Optional[str] = kwargs.pop("timeout_message", None)
+        self.user: Optional[discord.User] = kwargs.pop("user", None)
         super().__init__(**kwargs)
 
     async def on_timeout(self):
@@ -62,9 +63,9 @@ class ViewDisableOnTimeout(View):
         self.stop()
 
     async def interaction_check(self, interaction: Interaction) -> bool:
-        if (
-            msg := getattr(self.ctx, "message", self.message)
-        ) and interaction.user.id != msg.author.id:
+        if (user:=self.user or
+            getattr(getattr(self.ctx, "message", self.message), "author", None)
+        ) and interaction.user.id != user.id:
             await interaction.response.send_message(
                 "You aren't allowed to interact with this bruh. Back Off!", ephemeral=True
             )
@@ -100,7 +101,7 @@ def dehumanize_list(l: str):
 
 class MergeISView(ViewDisableOnTimeout):
     def __init__(self, original_interaction: discord.Interaction):
-        super().__init__(timeout=120)
+        super().__init__(timeout=120, user = original_interaction.user)
         self.original_interaction = original_interaction
         self.unknown_vehicles = original_interaction.extras["unknown_vehicles"]
         for vehicle in self.unknown_vehicles:
@@ -145,7 +146,7 @@ class MergeISView(ViewDisableOnTimeout):
         select.view.stop()
 
     async def merge_button(self, button: Button, interaction: discord.Interaction):
-        view = View(timeout=60)
+        view = ViewDisableOnTimeout(timeout=60, user = interaction.user)
         for ind, vehicles in enumerate(
             chunks(
                 await interaction.client.get_cog("MissionChiefMetrics")
@@ -179,7 +180,7 @@ class MergeISView(ViewDisableOnTimeout):
 
 class AddWhichVehiclesView(ViewDisableOnTimeout):
     def __init__(self, original_interaction: discord.Interaction):
-        super().__init__(timeout=60)
+        super().__init__(timeout=60, user=original_interaction.user)
         self.original_interaction = original_interaction
         unknown = original_interaction.extras["unknown_vehicles"]
         for ind, vehicles in enumerate(chunks(unknown, 25), 1):
