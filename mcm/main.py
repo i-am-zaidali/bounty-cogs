@@ -17,7 +17,7 @@ from .paginator import Paginator
 from .views import ClearOrNot, InvalidStatsView, NewCategory, UpdateCategory
 
 # the format of the stats in a message would be <vehicle name with spaces and/or hyphens> <four spaces> <number>
-base_regex = re.compile(r"(?P<vehicle_name>[\w\s-]+)\s{4}(?P<amount>\d+)")
+base_regex = re.compile(r"(?P<vehicle_name>[\w\s-\\]+)\s{4}(?P<amount>\d+)")
 
 lower_str_param = commands.param(converter=str.lower)
 
@@ -382,6 +382,7 @@ class MissionChiefMetrics(commands.Cog):
         categories = await self.config.guild(ctx.guild).vehicle_categories()
 
         all_users = [(user, await self.config.member(user).stats()) for user in users]
+
         if len(users) > 1:
             # combined stats of all users:
             all_users.insert(
@@ -396,6 +397,10 @@ class MissionChiefMetrics(commands.Cog):
                     ),
                 ),
             )
+
+        else:
+            if not all_users[0][1]:
+                return await ctx.send("No stats available for this user")
         source = ListPageSource(all_users, per_page=1)
 
         async def format_page(
@@ -426,11 +431,14 @@ class MissionChiefMetrics(commands.Cog):
             category_totals.update(
                 {"uncategorised": sum(category_individuals["uncategorised"].values())}
             )
+
+            description = cf.box(tabulate((ci:=category_individuals.pop('uncategorised')).items(), headers=['Vehicle', 'Amount'], tablefmt='simple', colalign=('left', 'center'))) if ci else f"No stats available for this category."
+            
             embed = discord.Embed(
                 title=f"{entry[0]}'s stats"
                 if entry[0]
                 else "Combined stats of all previous users",
-                description=f"**Uncategorised**\nTotal: {category_totals.pop('uncategorised')}\n{cf.box(tabulate(category_individuals.pop('uncategorised').items(), headers=['Vehicle', 'Amount'], tablefmt='simple', colalign=('left', 'center')))}",
+                description=f"**Uncategorised**\nTotal: {category_totals.pop('uncategorised')}\n",
             )
             for cat, s in category_totals.items():
                 embed.add_field(
