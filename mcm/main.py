@@ -398,14 +398,15 @@ class MissionChiefMetrics(commands.Cog):
                 ),
             )
 
-        else:
-            if not all_users[0][1]:
-                return await ctx.send("No stats available for this user")
         source = ListPageSource(all_users, per_page=1)
 
         async def format_page(
             s: ListPageSource, menu: Paginator, entry: tuple[Optional[discord.Member], dict]
         ):
+            if not entry[1]:
+                return discord.Embed(title=f"{entry[0]}'s stats"
+                if entry[0]
+                else "Combined stats of all previous users", description="No stats available")
             category_totals = {
                 category: sum(entry[1].get(vehicle, 0) for vehicle in cat_vc)
                 for category, cat_vc in categories.items()
