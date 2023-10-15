@@ -432,8 +432,19 @@ class MissionChiefMetrics(commands.Cog):
                 {"uncategorised": sum(category_individuals["uncategorised"].values())}
             )
 
-            description = cf.box(tabulate((ci:=category_individuals.pop('uncategorised')).items(), headers=['Vehicle', 'Amount'], tablefmt='simple', colalign=('left', 'center'))) if ci else f"No stats available for this category."
-            
+            description = (
+                cf.box(
+                    tabulate(
+                        (ci := category_individuals.pop("uncategorised")).items(),
+                        headers=["Vehicle", "Amount"],
+                        tablefmt="simple",
+                        colalign=("left", "center"),
+                    )
+                )
+                if ci
+                else f"No stats available for this category."
+            )
+
             embed = discord.Embed(
                 title=f"{entry[0]}'s stats"
                 if entry[0]
