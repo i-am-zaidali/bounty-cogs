@@ -435,13 +435,13 @@ class MissionChiefMetrics(commands.Cog):
             description = (
                 cf.box(
                     tabulate(
-                        (ci := category_individuals.pop("uncategorised")).items(),
+                        ci.items(),
                         headers=["Vehicle", "Amount"],
                         tablefmt="simple",
                         colalign=("left", "center"),
                     )
                 )
-                if ci
+                if (ci := category_individuals.pop("uncategorised"))
                 else f"No stats available for this category."
             )
 
