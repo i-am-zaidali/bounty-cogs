@@ -17,7 +17,7 @@ from .paginator import Paginator
 from .views import ClearOrNot, InvalidStatsView, NewCategory, UpdateCategory
 
 # the format of the stats in a message would be <vehicle name with spaces and/or hyphens> <four spaces> <number>
-base_regex = re.compile(r"(?P<vehicle_name>[\w\s-\\]+)\s{4}(?P<amount>\d+)")
+base_regex = re.compile(r"(?P<vehicle_name>[a-zA-Z \t\-\/]+)\s{4}(?P<amount>\d+)")
 
 lower_str_param = commands.param(converter=str.lower)
 
