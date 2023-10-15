@@ -449,7 +449,7 @@ class MissionChiefMetrics(commands.Cog):
                 title=f"{entry[0]}'s stats"
                 if entry[0]
                 else "Combined stats of all previous users",
-                description=f"**Uncategorised**\nTotal: {category_totals.pop('uncategorised')}\n",
+                description=f"**Uncategorised**\nTotal: {category_totals.pop('uncategorised')}\n{description}",
             )
             for cat, s in category_totals.items():
                 embed.add_field(
