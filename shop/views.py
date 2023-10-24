@@ -470,7 +470,7 @@ class ADTView(View):
             )
 
         if (await bank.get_account(user)).balance < cod["counter_price"] * cod["want_to_buy"]:
-            await user.send(f"{inter.user} accepted your offer to buy {cod["want_to_buy"]} of {cod["name"]} at {cod["counter_price"]:,} each but you dont have enough money to buy them, so the trade has been cancelled.")
+            await user.send(f"{inter.user} accepted your offer to buy {cod['want_to_buy']} of {cod['name']} at {cod['counter_price']:,} each but you dont have enough money to buy them, so the trade has been cancelled.")
             async with self.cog.config.user(user).sent_offers() as sent:
                 sent.remove(cod)
             return await inter.response.send_message(
