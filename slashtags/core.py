@@ -40,8 +40,8 @@ from redbot.core.utils.chat_formatting import humanize_list
 
 from .abc import CompositeMetaClass
 from .errors import MissingTagPermissions
-from .models import InteractionWrapper
 from .mixins import Commands, Processor
+from .models import InteractionWrapper
 from .objects import ApplicationCommand, SlashTag
 from .views import ConfirmationView
 

@@ -29,11 +29,12 @@ from typing import List, Optional, Union
 
 import discord
 import TagScriptEngine as tse
-from redbot.core.app_commands import Choice
 from discord.app_commands.transformers import CommandParameter
-from redbot.core import app_commands, commands, Config
+from redbot.core import Config, app_commands, commands
+from redbot.core.app_commands import Choice
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import box, pagify
+
 from .errors import SlashTagException
 from .models import InteractionWrapper
 
