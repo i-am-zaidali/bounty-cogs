@@ -31,7 +31,7 @@ from copy import copy
 from typing import Dict, List, Union
 
 import discord
-from discord.app_commands.transformers import CommandParameter, Choice
+from discord.app_commands.transformers import Choice, CommandParameter
 from redbot.core import commands
 from redbot.core.utils.chat_formatting import box, pagify
 from redbot.core.utils.predicates import MessagePredicate
