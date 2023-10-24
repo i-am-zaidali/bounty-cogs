@@ -1,12 +1,14 @@
 import functools
 import time
 from typing import TYPE_CHECKING, List, Union
+from copy import deepcopy
 
 import discord
 from discord.ui import Button, Modal, Select, TextInput, View, button, select
 from redbot.core import commands
+from redbot.core import bank
 
-from .utils import OfferDict, find_similar_dict_in, mutual_viewable_channels
+from .utils import OfferDict, CounterOfferDict, find_similar_dict_in, mutual_viewable_channels
 
 if TYPE_CHECKING:
     from .main import Shop
@@ -101,12 +103,19 @@ class TradeDetails(Modal):
                 name="Amount of units offered to buy: ",
                 value=f"**~~{self.metadata['remaining']}~~** -> *{amount_value}*"
                 if amount_value != self.metadata["remaining"]
-                else f"All available",
+                else f"All available ({self.metadata['remaining']})",
             ),
             view=self.cog.adtview,
         )
         async with self.cog.config.user(interaction.user).sent_offers() as sent:
-            sent.append(self.metadata)
+            sent.append(
+                CounterOfferDict(
+                    countered_by=interaction.user.id,
+                    counter_price=self.negotiation.value,
+                    want_to_buy=self.amount.value,
+                    **self.metadata,
+                )
+            )
         await interaction.response.send_message(
             f"Your counter offer to {user.mention} has been sent.", ephemeral=True
         )
@@ -167,6 +176,97 @@ class YesOrNoView(ViewDisableOnTimeout):
             await self.ctx.send(self.no_response)
         self.value = False
         self.stop()
+
+
+class PaginationView(ViewDisableOnTimeout):
+    def __init__(
+        self,
+        context: commands.Context,
+        contents: Union[List[str], List[discord.Embed]],
+        timeout: int = 30,
+        use_select: bool = False,
+        extra_items: List[discord.ui.Item] = None,
+    ):
+        super().__init__(timeout=timeout, ctx=context)
+
+        self.ctx = context
+        self.contents = contents
+        self.use_select = use_select
+        self.index = 0
+        self.extra_items = extra_items or []
+        if not all(isinstance(x, discord.Embed) for x in contents) and not all(
+            isinstance(x, str) for x in contents
+        ):
+            raise TypeError("All pages must be of the same type. Either a string or an embed.")
+
+        self.update_buttons()
+
+    def update_buttons(self, edit=False):
+        self.clear_items()
+        buttons_to_add: List[Button] = (
+            [FirstItemButton(), BackwardButton(), PageButton(), ForwardButton(), LastItemButton()]
+            if len(self.contents) > 2
+            else [BackwardButton(), PageButton(), ForwardButton()]
+            if not len(self.contents) == 1
+            else []
+        )
+        if self.use_select:
+            buttons_to_add.append(
+                PaginatorSelect(placeholder="Select a page:", length=len(self.contents))
+            )
+
+        buttons_to_add.append(CloseButton())
+
+        for button in buttons_to_add:
+            self.add_item(button)
+
+        for item in self.extra_items:
+            self.add_item(item)
+
+        self.update_items(edit)
+
+    def update_items(self, edit: bool = False):
+        for i in self.children:
+            if isinstance(i, PageButton):
+                i._change_label()
+                continue
+
+            elif self.index == 0 and isinstance(i, FirstItemButton):
+                i.disabled = True
+                continue
+
+            elif self.index == len(self.contents) - 1 and isinstance(i, LastItemButton):
+                i.disabled = True
+                continue
+
+            elif (um := getattr(i, "update", None)) and callable(um) and edit:
+                i.update()
+
+            i.disabled = False
+
+    async def start(self):
+        if isinstance(self.contents[self.index], discord.Embed):
+            embed = self.contents[self.index]
+            content = ""
+        elif isinstance(self.contents[self.index], str):
+            embed = None
+            content = self.contents[self.index]
+        self.message = await self.ctx.send(content=content, embed=embed, view=self)
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return await interaction_check(self.ctx, interaction)
+
+    async def edit_message(self, inter: discord.Interaction):
+        if isinstance(self.contents[self.index], discord.Embed):
+            embed = self.contents[self.index]
+            content = ""
+        elif isinstance(self.contents[self.index], str):
+            embed = None
+            content = self.contents[self.index]
+
+        self.update_buttons(True)
+        await inter.response.edit_message(content=content, embed=embed, view=self)
+        self.message = inter.message
 
 
 class PaginatorButton(Button["PaginationView"]):
@@ -302,119 +402,40 @@ class Trade(Button["PaginationView"]):
         await interaction.message.edit(view=self.view)
 
 
-class PaginationView(ViewDisableOnTimeout):
-    def __init__(
-        self,
-        context: commands.Context,
-        contents: Union[List[str], List[discord.Embed]],
-        timeout: int = 30,
-        use_select: bool = False,
-        extra_items: List[discord.ui.Item] = None,
-    ):
-        super().__init__(timeout=timeout, ctx=context)
-
-        self.ctx = context
-        self.contents = contents
-        self.use_select = use_select
-        self.index = 0
-        self.extra_items = extra_items or []
-        if not all(isinstance(x, discord.Embed) for x in contents) and not all(
-            isinstance(x, str) for x in contents
-        ):
-            raise TypeError("All pages must be of the same type. Either a string or an embed.")
-
-        self.update_buttons()
-
-    def update_buttons(self, edit=False):
-        self.clear_items()
-        buttons_to_add: List[Button] = (
-            [FirstItemButton(), BackwardButton(), PageButton(), ForwardButton(), LastItemButton()]
-            if len(self.contents) > 2
-            else [BackwardButton(), PageButton(), ForwardButton()]
-            if not len(self.contents) == 1
-            else []
-        )
-        if self.use_select:
-            buttons_to_add.append(
-                PaginatorSelect(placeholder="Select a page:", length=len(self.contents))
-            )
-
-        buttons_to_add.append(CloseButton())
-
-        for button in buttons_to_add:
-            self.add_item(button)
-
-        for item in self.extra_items:
-            self.add_item(item)
-
-        self.update_items(edit)
-
-    def update_items(self, edit: bool = False):
-        for i in self.children:
-            if isinstance(i, PageButton):
-                i._change_label()
-                continue
-
-            elif self.index == 0 and isinstance(i, FirstItemButton):
-                i.disabled = True
-                continue
-
-            elif self.index == len(self.contents) - 1 and isinstance(i, LastItemButton):
-                i.disabled = True
-                continue
-
-            elif (um := getattr(i, "update", None)) and callable(um) and edit:
-                i.update()
-
-            i.disabled = False
-
-    async def start(self):
-        if isinstance(self.contents[self.index], discord.Embed):
-            embed = self.contents[self.index]
-            content = ""
-        elif isinstance(self.contents[self.index], str):
-            embed = None
-            content = self.contents[self.index]
-        self.message = await self.ctx.send(content=content, embed=embed, view=self)
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        return await interaction_check(self.ctx, interaction)
-
-    async def edit_message(self, inter: discord.Interaction):
-        if isinstance(self.contents[self.index], discord.Embed):
-            embed = self.contents[self.index]
-            content = ""
-        elif isinstance(self.contents[self.index], str):
-            embed = None
-            content = self.contents[self.index]
-
-        self.update_buttons(True)
-        await inter.response.edit_message(content=content, embed=embed, view=self)
-        self.message = inter.message
-
-
 class ADTView(View):
     def __init__(self, cog: "Shop"):
         self.cog = cog
 
         super().__init__(timeout=None)
 
-    def get_od_from_embed(self, embed: discord.Embed):
+    async def get_cod_from_embed(self, offered_by: discord.User, embed: discord.Embed):
         item_name = embed.title.split(" for ")[1].split(" from ")[0]
-        offered_by = int(embed.title.split(" from ")[1].split(" (")[1].split(")")[0])
+        countered_by = int(embed.title.split(" from ")[1].split(" (")[1].split(")")[0])
         price_field = embed.fields[0].value
         if "->" in price_field:
-            price = int(price_field.split("->")[1].strip("* "))
+            counter_price = int(price_field.split("->")[1].strip("* "))
+            original_price = int(price_field[4 : price_field[4:].find("~~**")])
         else:
-            price = int(price_field.strip("* "))
+            counter_price = int(price_field.strip("* "))
+            original_price = counter_price
 
         amount_field = embed.fields[1].value
         if "->" in amount_field:
-            amount = int(amount_field.split("->")[1].strip("* "))
+            want_to_buy = int(amount_field.split("->")[1].strip("* "))
+            original_amount = int(amount_field[4 : amount_field[4:].find("~~**")])
         else:
-            amount = -1
+            want_to_buy = int(amount_field[amount_field.find("(") + 1 : amount_field.find(")")])
+            original_amount = want_to_buy
 
-        return OfferDict(name=item_name, price=price, remaining=amount, offered_by=offered_by)
+        return CounterOfferDict(
+            name=item_name,
+            counter_price=counter_price,
+            want_to_buy=want_to_buy,
+            countered_by=countered_by,
+            offered_by=offered_by,
+            price=original_price,
+            remaining=original_amount,
+        )
 
     @button(
         label="Accept",
@@ -422,115 +443,139 @@ class ADTView(View):
         custom_id="shop_accept",
     )
     async def accept(self, inter: discord.Interaction, button: Button):
-        od = self.get_od_from_embed(inter.message.embeds[0])
-        if not (new_od := await self.cog.get_all_offers(item=od["name"], user_id=inter.user.id)):
+        cod = self.get_cod_from_embed(inter.user, inter.message.embeds[0])
+        if not (new_od := await self.cog.get_all_offers(item=cod["name"], user_id=inter.user.id)):
+            async with self.cog.config.user(inter.user).sent_offers() as sent:
+                sent.remove(cod)
             return await inter.response.send_message(
-                f"Offer for {od['name']} by <@{od['offered_by']}> not found. Maybe it was claimed by someone else?"
+                f"Offer for {cod['name']} by <@{cod['offered_by']}> not found. Maybe it was claimed by someone else?"
             )
-        if od["remaining"] == -1 or od["remaining"] > new_od["remaining"]:
-            od["remaining"] = new_od["remaining"]
+        if cod["remaining"] > new_od["remaining"]:
+            cod["remaining"] = new_od["remaining"]
+            cod["want_to_buy"] = new_od["remaining"]
 
-        disable_items(self)
-        await inter.message.edit(view=self)
+        if cod["price"] > new_od["price"]:
+            cod["price"] = new_od["price"]
+            if cod["counter_price"] > cod["price"]:
+                cod["counter_price"] = cod["price"]
 
-        view = ChannelSelectView(
-            self.cog,
-            od,
-            await mutual_viewable_channels(
-                inter.client, inter.user, inter.client.get_user(od["offered_by"])
+        copy = ADTView(self.cog)
+        disable_items(copy)
+        await inter.message.edit(view=copy)
+
+        user = inter.client.get_user(cod["countered_by"])
+        if not user:
+            await inter.response.send_message(
+                "I am unable to find the user who sent you this counter offer."
+            )
+
+        if (await bank.get_account(user)).balance < cod["counter_price"] * cod["want_to_buy"]:
+            await user.send(f"{inter.user} accepted your offer to buy {cod["want_to_buy"]} of {cod["name"]} at {cod["counter_price"]:,} each but you dont have enough money to buy them, so the trade has been cancelled.")
+            async with self.cog.config.user(user).sent_offers() as sent:
+                sent.remove(cod)
+            return await inter.response.send_message(
+                f"It seems the buyer doesnt have enough money to be able to buy {cod['want_to_buy']} of {cod['name']} at {cod['counter_price']:,} each, so the trade has been cancelled."
+            )
+
+        await user.send(
+            embed=discord.Embed(
+                title=f"Your counter offer to {inter.user.display_name} ({inter.user.id}) for {cod['name']} has been accepted.",
+                description=f"Details: \n"
+                f"- Price agreed upon: {cod['counter_price']:,}\n"
+                f"- Amount of items to be traded: {cod['want_to_buy']:,}\n\n"
+                f"If you want to complete the trade, click the Trade button below to pay the seller and receive the items in your inventory.",
             ),
+            #view=AcceptTradeView(self.cog),
         )
-        await inter.response.send_message(
-            "Please select a channel from the below select menu(s) where you wish to commence the trade with the seller.",
-            view=view,
-        )
-        await view.wait()
-        view = view.return_value
-        await view.wait()
-        if view.value is False:
-            enable_items(self)
-            await inter.message.edit(view=self)
 
-        self.stop()
+        await inter.response.send_message(
+            "The buyer has been informed of the trade being accepted. You will be informed when and if they accept it.",
+        )
 
     @button(label="Decline", custom_id="_decline", style=discord.ButtonStyle.red)
     async def decline(self, inter: discord.Interaction, button: Button):
         await inter.response.send_message("You have declined the offer.")
-        disable_items(self)
-        await inter.message.edit(view=self)
-        self.stop()
+        data = self.get_cod_from_embed(inter.user, inter.message.embeds[0])
+        user = inter.client.get_user(data["countered_by"])
+        if user:
+            await user.send(f"{inter.user.mention} has declined your offer for {data['name']}.")
+        async with self.cog.config.user_from_id(data["countered_by"]).sent_offers() as sent:
+            sent.remove(data)
+        copy = ADTView(self.cog)
+        disable_items(copy)
+        await inter.message.edit(view=copy)
 
 
-class ChannelSelectView(ViewDisableOnTimeout):
-    def __init__(
-        self, cog: "Shop", od: OfferDict, viewable_channels: List[discord.TextChannel] = []
-    ):
-        self.cog = cog
-        self.od = od
-        self.return_value = None
-        super().__init__(timeout=180)
-        # 25 channels per select menu
-        for i in range(0, len(viewable_channels), 25):
-            select = Select(
-                placeholder="Select a channel:",
-                options=[
-                    discord.SelectOption(
-                        label=f"#{channel.name} in {channel.guild.name}",
-                        value=str(channel.id),
-                    )
-                    for channel in viewable_channels[i : i + 25]
-                ],
-            )
-            select.callback = functools.partial(self._callback, select)
-            self.add_item(select)
-            if len(self.children) == 5:
-                break
+# class ChannelSelectView(ViewDisableOnTimeout):
+#     def __init__(
+#         self, cog: "Shop", od: OfferDict, viewable_channels: List[discord.TextChannel] = []
+#     ):
+#         self.cog = cog
+#         self.od = od
+#         self.return_value = None
+#         super().__init__(timeout=180)
+#         # 25 channels per select menu
+#         for i in range(0, len(viewable_channels), 25):
+#             select = Select(
+#                 placeholder="Select a channel:",
+#                 options=[
+#                     discord.SelectOption(
+#                         label=f"#{channel.name} in {channel.guild.name}",
+#                         value=str(channel.id),
+#                     )
+#                     for channel in viewable_channels[i : i + 25]
+#                 ],
+#             )
+#             select.callback = functools.partial(self._callback, select)
+#             self.add_item(select)
+#             if len(self.children) == 5:
+#                 break
 
-    async def _callback(self, select: Select, inter: discord.Interaction):
-        channel = int(select.values[0])
-        channel = self.cog.bot.get_channel(channel)
-        if not channel:
-            select.options.remove(
-                next(filter(lambda x: x.value == str(channel.id), select.options))
-            )
-            return await inter.response.send_message(
-                "Channel not found. Please Select any other option."
-            )
+#     async def _callback(self, select: Select, inter: discord.Interaction):
+#         channel = int(select.values[0])
+#         channel = self.cog.bot.get_channel(channel)
+#         if not channel:
+#             select.options.remove(
+#                 next(filter(lambda x: x.value == str(channel.id), select.options))
+#             )
+#             return await inter.response.send_message(
+#                 "Channel not found. Please Select any other option."
+#             )
 
-        embed = discord.Embed(
-            title="Trade Commenced",
-            description=f"""
-            Trade between {inter.user.mention} and <@{self.od['offered_by']}> for {self.od['name']} has been commenced in {channel.mention}
-            Details:
-            - Item name: {self.od['name']}
-            - Price agreed upon: {self.od['price']:,}
-            - Amount of items to be traded: {self.od['remaining']:,}
-            """,
-            color=discord.Color.green(),
-        )
-        view = SFView(self.cog, self.od)
-        msg = await channel.send(
-            f"{inter.user.mention} <@{self.od['offered_by']}>",
-            embed=embed,
-            view=view,
-            allowed_mentions=discord.AllowedMentions(users=True),
-        )
+#         embed = discord.Embed(
+#             title="Trade Commenced",
+#             description=f"""
+#             Trade between {inter.user.mention} and <@{self.od['offered_by']}> for {self.od['name']} has been commenced in {channel.mention}
+#             Details:
+#             - Item name: {self.od['name']}
+#             - Price agreed upon: {self.od['price']:,}
+#             - Amount of items to be traded: {self.od['remaining']:,}
+#             """,
+#             color=discord.Color.green(),
+#         )
+#         view = SFView(self.cog, self.od)
+#         msg = await channel.send(
+#             f"{inter.user.mention} <@{self.od['offered_by']}>",
+#             embed=embed,
+#             view=view,
+#             allowed_mentions=discord.AllowedMentions(users=True),
+#         )
 
-        buyer = channel.guild.get_member(self.od["offered_by"])
-        await buyer.send(
-            embed=discord.Embed(
-                title="Trade Commenced",
-                description=f"{inter.user.mention} has accepted your offer for {self.od['name']}\nTo seal the deal, click on the button below to be redirected to the channel chosen for this trade.",
-                color=discord.Color.green(),
-            ),
-            view=View().add_item(
-                Button(label="Go to channel", url=msg.jump_url, style=discord.ButtonStyle.url)
-            ),
-        )
-        disable_items(self)
-        await inter.response.edit_message(view=self)
-        self.return_value = view
-        self.stop()
+#         buyer = channel.guild.get_member(self.od["offered_by"])
+#         await buyer.send(
+#             embed=discord.Embed(
+#                 title="Trade Commenced",
+#                 description=f"{inter.user.mention} has accepted your offer for {self.od['name']}\nTo seal the deal, click on the button below to be redirected to the channel chosen for this trade.",
+#                 color=discord.Color.green(),
+#             ),
+#             view=View().add_item(
+#                 Button(label="Go to channel", url=msg.jump_url, style=discord.ButtonStyle.url)
+#             ),
+#         )
+#         disable_items(self)
+#         await inter.response.edit_message(view=self)
+#         self.return_value = view
+#         self.stop()
 
 
 class SFView(ViewDisableOnTimeout):

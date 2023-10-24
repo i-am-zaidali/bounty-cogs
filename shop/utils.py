@@ -11,6 +11,12 @@ class OfferDict(TypedDict):
     remaining: int
 
 
+class CounterOfferDict(OfferDict):
+    countered_by: int
+    counter_price: int
+    want_to_buy: int
+
+
 class SoldDict(TypedDict):
     name: str
     offered_by: int

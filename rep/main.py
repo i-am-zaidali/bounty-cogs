@@ -14,7 +14,7 @@ def is_staff():
         if await ctx.bot.is_owner(ctx.author):
             return True
 
-        if (await ctx.cog.config.guild(ctx.guild).staff_role()) in ctx.author._roles:
+        if ctx.author.get_role(await ctx.cog.config.guild(ctx.guild).staff_role()):
             return True
 
     return commands.check(predicate)
@@ -117,6 +117,7 @@ class RepManager(commands.Cog):
             pass
 
     @commands.group(name="rep", aliases=["reputation"], invoke_without_command=True)
+    @commands.guild_only()
     async def rep(self, ctx: commands.Context, member: discord.Member = None):
         """
         Check a user's reputation in your server.

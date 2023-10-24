@@ -1,0 +1,20 @@
+{
+    "name": "Better Modlog",
+    "short": "A cog that puts the listcases command's response from the builtin modlog cog into an embed",
+    "description": "This cog enhances the functionality of the builtin modlog cog by formatting the output of the `listcases` command into an embed, making it easier to read and understand.",
+    "end_user_data_statement": "This cog does not store any user data persistently.",
+    "install_msg": "Thanks for installing Better Modlog!\nPlease report any bugs/log output in *#support_other-cogs* on the cog support server (https://discord.gg/GET4DVk).",
+    "author": [
+        "crayyy_zee"
+    ],
+    "required_cogs": {
+        "ModLog": "The builtin ModLog cog is required for this cog to function properly."
+    },
+    "requirements": [],
+    "tags": [
+        "moderation",
+        "modlog",
+        "embed"
+    ],
+    "type": "COG"
+}

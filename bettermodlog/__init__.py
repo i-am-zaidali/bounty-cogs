@@ -23,8 +23,8 @@ class BetterModlog(commands.Cog):
         self._command = self.bot.remove_command("listcases")
 
     async def cog_unload(self) -> None:
-        if self._command:
-            await self.bot.add_command(self._command, "listcases")
+        if self._command and self.bot.get_cog("ModLog"):
+            await self.bot.add_command(self._command)
 
     @commands.command()
     @commands.guild_only()
@@ -62,7 +62,6 @@ class BetterModlog(commands.Cog):
                     if case.moderator is None:
                         moderator = "Unknown"
                     elif isinstance(case.moderator, int):
-                        # can't use _() inside f-string expressions, see bpo-36310 and red#3818
                         if case.moderator == 0xDE1:
                             moderator = "Deleted User."
                         else:
@@ -94,9 +93,6 @@ class BetterModlog(commands.Cog):
                 rendered_cases.append(embed)
 
         await menu(ctx, rendered_cases)
-
-
-org_listcases = None
 
 
 async def setup(bot: Red):

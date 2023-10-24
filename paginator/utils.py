@@ -63,18 +63,17 @@ class StringToPage(commands.Converter[Page]):
         if data.get("embed") and data.setdefault("embeds", []):
             raise commands.BadArgument("Only one of `embed` or `embeds` can be used.")
 
-        if data.get("embed"):
-            embeds = [data["embed"]]
-            del data["embed"]
+        embeds = (
+            [embed]
+            if (embed := data.pop("embed", None))
+            else embs
+            if (embs := data.pop("embeds", [])) and self.check_data_type(ctx, embs, data_type=list)
+            else []
+        )
 
-        if data.get("embeds"):
-            embeds = data.get("embeds").copy()
-            self.check_data_type(ctx, embeds, data_type=list)
-            data["embeds"].clear()
-
-            for embed in embeds:
-                em = await self.create_embed(ctx, embed)
-                data["embeds"].append(em)
+        for embed in embeds:
+            em = await self.create_embed(ctx, embed)
+            data.setdefault("embeds", []).append(em)
 
         if self.validate:
             await self.validate_data(ctx, data.get("embeds", []), content=content)
@@ -86,6 +85,8 @@ class StringToPage(commands.Converter[Page]):
                 f"This doesn't seem to be properly formatted page {self.conversion_type.upper()}. "
                 f"Refer to the link on `{ctx.clean_prefix}help {ctx.command.qualified_name}`."
             )
+
+        return True
 
     async def load_from_json(self, ctx: commands.Context, data: str, **kwargs) -> dict:
         try:

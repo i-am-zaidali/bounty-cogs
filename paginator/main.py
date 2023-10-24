@@ -11,13 +11,16 @@ from .views import PaginationView
 
 
 def jsonize_page(page: Page):
-    return {"content": page["content"], "embeds": [e.to_dict() for e in page["embeds"]]}
+    return {
+        "content": page.get("content"),
+        "embeds": [e.to_dict() for e in page.get("embeds", [])],
+    }
 
 
 def pythonize_page(page: dict):
     return {
-        "content": page["content"],
-        "embeds": [discord.Embed.from_dict(e) for e in page["embeds"]],
+        "content": page.get("content"),
+        "embeds": [discord.Embed.from_dict(e) for e in page.get("embeds", [])],
     }
 
 

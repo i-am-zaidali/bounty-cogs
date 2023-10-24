@@ -1,14 +1,19 @@
-
 {
-    "name": "EventManager",
-    "short": "Mange events",
-    "description": "Helps you to amange events",
-    "end_user_data_statement": "This cog stores End User Data when storing the donations of a user. If a user requests data-deletion, all their donations will be removed from the bot.",
-    "install_msg": "Thanks for installing EventManager. Load the cog with `[p]load eventmanager` and see all its commands with `[p]help dono` and `[p]help donoset`.",
+    "name": "WoWEventManager",
+    "short": "A cog for creating and managing World of Warcraft events",
+    "description": "This cog helps create events for World of Warcraft game where discord users can sign up through reactions on the event message and be notified when the event happens.",
+    "end_user_data_statement": "This cog stores user data persistently to manage events and user signups.",
+    "install_msg": "Thanks for installing EventManager!\nPlease report any bugs/log output in *#support_other-cogs* on the cog support server (https://discord.gg/GET4DVk).",
     "author": [
         "crayyy_zee"
     ],
     "required_cogs": {},
-    "requirements": ["dateparser"],
+    "requirements": [
+        "dateparser"
+    ],
+    "tags": [
+        "World of Warcraft",
+        "event management"
+    ],
     "type": "COG"
 }

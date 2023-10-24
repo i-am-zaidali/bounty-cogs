@@ -1,0 +1,18 @@
+{
+    "name": "rep",
+    "short": "Add or remove reputation points from members in your discord server.",
+    "description": "This cog allows you to add or remove reputation points from members in your discord server. It also allows you to add reputation points to everyone present in given voice channels.",
+    "end_user_data_statement": "This cog stores user ids to link with their reputation points.",
+    "install_msg": "Thanks for installing RepManager!\nPlease report any bugs/log output in *#support_other-cogs* on the cog support server (https://discord.gg/GET4DVk).",
+    "author": [
+        "crayyy_zee"
+    ],
+    "required_cogs": {},
+    "requirements": [],
+    "tags": [
+        "reputation",
+        "points",
+        "voice channels"
+    ],
+    "type": "COG"
+}

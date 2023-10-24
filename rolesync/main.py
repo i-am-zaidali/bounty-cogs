@@ -1,7 +1,7 @@
 from operator import attrgetter
 
 import discord
-from redbot.core import Config, app_commands, commands
+from redbot.core import Config, commands
 from redbot.core.bot import Red
 
 from .views import GuildSelectView

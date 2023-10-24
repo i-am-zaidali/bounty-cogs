@@ -1,0 +1,17 @@
+{
+    "name": "BanOnLeave",
+    "short": "Automatically bans users that leave the server.",
+    "description": "This cog automatically bans users that leave the server. It can be useful for preventing raiders or spammers from rejoining the server after being kicked or banned.",
+    "end_user_data_statement": "This cog does not store any user data persistently.",
+    "install_msg": "Thanks for installing BanOnLeave!\nPlease report any bugs/log output in *#support_other-cogs* on the cog support server (https://discord.gg/GET4DVk).",
+    "author": [
+        "crayyy_zee"
+    ],
+    "required_cogs": {},
+    "requirements": [],
+    "tags": [
+        "moderation",
+        "security"
+    ],
+    "type": "COG"
+}

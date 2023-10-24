@@ -1,0 +1,20 @@
+{
+    "name": "Channel Timezone",
+    "short": "Adds a timezone for a discord text channel where it sends a message for the current time in the given timezone and updates that message every :30 and :00 minutes",
+    "description": "This cog adds a timezone for a discord text channel where it sends a message for the current time in the given timezone and updates that message every :30 and :00 minutes",
+    "end_user_data_statement": "This cog does not store user data persistently",
+    "install_msg": "Thanks for installing Channel Timezone!\nPlease report any bugs/log output in *#support_other-cogs* on the cog support server (https://discord.gg/GET4DVk).",
+    "author": [
+        "crayyy_zee"
+    ],
+    "required_cogs": {},
+    "requirements": [
+        "pytz"
+    ],
+    "tags": [
+        "timezone",
+        "time",
+        "discord"
+    ],
+    "type": "COG"
+}

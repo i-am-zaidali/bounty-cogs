@@ -1,0 +1,18 @@
+{
+    "name": "InRole",
+    "short": "A cog that shows the members having a given discord role, with the ability to set filters that allow non admin users to see role members of roles that pass those filters",
+    "description": "InRole is a cog that allows users to view the members of a given discord role. It also provides the ability to set filters that allow non-admin users to see role members of roles that pass those filters. This cog is useful for server administrators who want to keep track of the members of a particular role.",
+    "end_user_data_statement": "This cog does not store user data persistently.",
+    "install_msg": "Thanks for installing InRole!\nPlease report any bugs/log output in *#support_other-cogs* on the cog support server (https://discord.gg/GET4DVk).",
+    "author": [
+        "crayyy_zee"
+    ],
+    "required_cogs": {},
+    "requirements": [],
+    "tags": [
+        "discord",
+        "role",
+        "members"
+    ],
+    "type": "COG"
+}

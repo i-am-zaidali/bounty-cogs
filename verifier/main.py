@@ -10,7 +10,7 @@ from redbot.core.utils.chat_formatting import humanize_list, pagify
 
 class Verifier(commands.Cog):
     """
-    Verify other users by mentioning gthem in a set channel."""
+    Verify other users by mentioning them in a set channel."""
 
     __version__ = "1.0.1"
     __author__ = ["crayyy_zee#2900"]
@@ -95,7 +95,10 @@ class Verifier(commands.Cog):
             await message.delete()
             return
 
-        if not (await self.config.member(message.author).has_been_verified()):
+        if not (
+            await self.config.member(message.author).has_been_verified()
+            or message.author.get_role(await self.config.guild(message.guild).role())
+        ):
             await message.delete()
             return await message.channel.send(
                 "You have not been verified yet so you cannot verify others.", delete_after=25

@@ -28,12 +28,12 @@ class AddToSheetsView(View):
             )
             return False
 
-        if not await self.bot.get_shared_api_tokens("sheets"):
-            await interaction.response.send_message(
-                f"The google sheets API token is missing. Ask the bot owner to add it with `{self.bot.get_valid_prefixes(interaction.guild)[0]}set api sheets token,<your token here>`.",
-                ephemeral=True,
-            )
-            return False
+        # if not await self.bot.get_shared_api_tokens("sheets"):
+        #     await interaction.response.send_message(
+        #         f"The google sheets API token is missing. Ask the bot owner to add it with `{self.bot.get_valid_prefixes(interaction.guild)[0]}set api sheets token,<your token here>`.",
+        #         ephemeral=True,
+        #     )
+        #     return False
 
         if not interaction.user.get(role):
             await interaction.response.send_message(
@@ -50,7 +50,9 @@ class AddToSheetsView(View):
             **answers,
         }
         user_id = str(user.id)
-        file_path = bundled_data_path(self.bot.get_cog("Welcome")) / "welcome.xlsx"
+        file_path = (
+            bundled_data_path(self.bot.get_cog("Welcome")) / f"welcome_{user.guild.id}.xlsx"
+        )
         try:
             df = pd.read_excel(file_path, dtype=str)
             df.set_index("discord user ID", inplace=True)

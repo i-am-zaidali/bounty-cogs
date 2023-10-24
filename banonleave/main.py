@@ -1,10 +1,13 @@
 import typing
+from logging import getLogger
 
 import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 
 humanize_bool = lambda b: "enabled" if b else "disabled"
+
+log = getLogger("red.bounty-cogs.banonleave")
 
 
 class BanOnLeave(commands.Cog):
@@ -51,17 +54,27 @@ class BanOnLeave(commands.Cog):
         guild = member.guild
         ban_on_leave = await self.config.guild(guild).ban_on_leave()
         if ban_on_leave:
-            await guild.ban(member, reason="Ban on leave", delete_message_days=0)
-            # send an embed to log channel
-            log_channel_id = await self.config.guild(guild).log()
-            if log_channel_id:
-                log_channel = guild.get_channel(log_channel_id)
-                if log_channel:
-                    embed = discord.Embed(
-                        title="Ban on Leave",
-                        description=f"{member.mention} was banned because they left the server.",
-                        color=discord.Color.red(),
+            try:
+                await guild.fetch_ban(member)
+            except discord.NotFound:
+                if not guild.me.guild_permissions.ban_members:
+                    log.error(
+                        "Missing permissions to ban members. Unable to ban %s for leaving the guild %s",
+                        member,
+                        guild,
                     )
-                    embed.set_author(name=str(member), icon_url=member.avatar_url)
-                    embed.set_footer(text=f"User ID: {member.id}")
-                    await log_channel.send(embed=embed)
+                    return
+                await guild.ban(member, reason="Ban on leave", delete_message_days=0)
+                # send an embed to log channel
+                log_channel_id = await self.config.guild(guild).log()
+                if log_channel_id:
+                    log_channel = guild.get_channel(log_channel_id)
+                    if log_channel:
+                        embed = discord.Embed(
+                            title="Ban on Leave",
+                            description=f"{member.mention} was banned because they left the server.",
+                            color=discord.Color.red(),
+                        )
+                        embed.set_author(name=str(member), icon_url=member.avatar_url)
+                        embed.set_footer(text=f"User ID: {member.id}")
+                        await log_channel.send(embed=embed)

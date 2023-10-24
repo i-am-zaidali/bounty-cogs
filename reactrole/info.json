@@ -1,5 +1,19 @@
 {
-    "requirements": [
-        "tabulate"
-    ]
+    "name": "reactrole",
+    "short": "Create react roles in Discord with the use of buttons",
+    "description": "This cog allows you to create react roles in Discord with the use of buttons.",
+    "end_user_data_statement": "This cog does not store user data persistently.",
+    "install_msg": "Thanks for installing ReactRole!\nPlease report any bugs/log output in *#support_other-cogs* on the cog support server (https://discord.gg/GET4DVk).",
+    "author": [
+        "crayyy_zee"
+    ],
+    "required_cogs": {},
+    "requirements": [],
+    "tags": [
+        "discord",
+        "react",
+        "role",
+        "button"
+    ],
+    "type": "COG"
 }

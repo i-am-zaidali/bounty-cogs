@@ -67,7 +67,7 @@ class ReactRole(commands.Cog):
         role: discord.Role,
         custom_id: str,
         emoji: Optional[Union[discord.Emoji, discord.PartialEmoji]],
-        style: Optional[Literal[1, 2, 3, 4]] = 2,
+        style: Optional[commands.Range[int, 1, 4]] = 2,
         *,
         label: str,
     ):

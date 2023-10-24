@@ -1,0 +1,19 @@
+{
+    "name": "Paginator",
+    "short": "A cog that allows users to create their own paginated menus within Discord consisting of embeds and/or non-embedded content.",
+    "description": "The Paginator cog provides a simple way for users to create paginated menus within Discord. These menus can consist of either embeds or non-embedded content, and can be customized to fit the user's needs. The Paginator cog is easy to use and can be a great addition to any Discord server.",
+    "end_user_data_statement": "The Paginator cog does not store user data persistently.",
+    "install_msg": "Thanks for installing Paginator!\nPlease report any bugs/log output in *#support_other-cogs* on the cog support server (https://discord.gg/GET4DVk).",
+    "author": [
+        "crayyy_zee"
+    ],
+    "required_cogs": {},
+    "requirements": [],
+    "tags": [
+        "pagination",
+        "menu",
+        "embeds",
+        "discord"
+    ],
+    "type": "COG"
+}

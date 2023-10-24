@@ -1,5 +1,20 @@
 {
+    "name": "welcome",
+    "short": "Asks given questions to users when they join a server and saves the answers to an excel file for review later.",
+    "description": "This cog asks a set of questions to users when they join a server and saves their answers to an excel file for review later. The questions can be customized by the server admin.",
+    "end_user_data_statement": "This cog stores user data persistently in an excel file.",
+    "install_msg": "Thanks for installing Welcome!\nPlease report any bugs/log output in *#support_other-cogs* on the cog support server (https://discord.gg/GET4DVk).",
+    "author": [
+        "crayyy_zee"
+    ],
+    "required_cogs": {},
     "requirements": [
         "pandas[excel]"
-    ]
+    ],
+    "tags": [
+        "welcome",
+        "questions",
+        "excel"
+    ],
+    "type": "COG"
 }
