@@ -214,6 +214,7 @@ class Processor(MixinMeta):
         # which would help me in knowing whether the interaction has been completed or not
         sent = await org_send(**kwargs)
         wrapper.responded = sent
+        return sent
 
     async def process_command(
         self,
