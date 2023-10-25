@@ -313,13 +313,13 @@ class Commands(MixinMeta):
             )
             required = False
 
+        choices = []
         if option_type in [
             discord.AppCommandOptionType.string,
             discord.AppCommandOptionType.integer,
             discord.AppCommandOptionType.number,
         ]:
             await ctx.send("Would you like to add pre-defined choices to this argument?")
-            choices = []
             if await ConfirmationView.confirm(ctx, text, cancel_message=None):
                 choices = await self.get_choices(ctx, option_type)
 
