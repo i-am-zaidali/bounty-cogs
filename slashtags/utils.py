@@ -62,7 +62,7 @@ async def validate_tagscriptengine(bot: Red, tse_version: str, *, reloaded: bool
     commands = [
         "`pip(3) uninstall -y TagScriptEngine`",
         "`pip(3) uninstall -y TagScript`",
-        f"`pip(3) install TagScript=={tse_version}`",
+        f"`pip(3) install AdvancedTagScriptEngine=={tse_version}`",
     ]
     commands = "\n".join(commands)
 
