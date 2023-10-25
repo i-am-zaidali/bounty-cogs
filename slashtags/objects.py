@@ -225,7 +225,6 @@ class ApplicationCommand:
         old = self.cog.bot.tree.get_command(self.name, guild=guild)
         if (
             getattr(old, "id", None) == self.id
-            and getattr(old, "description", None) == self.description
         ):
             self.cog.bot.tree.remove_command(self.name, guild=guild)
         if self.type == discord.AppCommandType.chat_input:
@@ -304,7 +303,7 @@ class ApplicationCommand:
         try:
             del self.cog.command_cache[self.id]
             self.bot.tree.remove_command(
-                self._dpy_command.name,
+                self.name,
                 guild=discord.Object(self.guild_id) if self.guild_id else None,
             )
         except KeyError:
