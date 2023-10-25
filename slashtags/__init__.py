@@ -36,7 +36,7 @@ from .models import *  # noqa
 from .objects import *  # noqa
 from .utils import validate_tagscriptengine
 
-VERSION_RE = re.compile(r"TagScript==(\d\.\d\.\d)")
+VERSION_RE = re.compile(r"AdvancedTagScriptEngine==(\d\.\d\.\d)")
 
 with open(Path(__file__).parent / "info.json") as fp:
     data = json.load(fp)
@@ -52,7 +52,7 @@ for requirement in data.get("requirements", []):
 
 if not tse_version:
     raise CogLoadError(
-        "Failed to find TagScriptEngine version number. Please report this to the cog author."
+        "Failed to find AdvancedTagScriptEngine version number. Please report this to the cog author."
     )
 
 
