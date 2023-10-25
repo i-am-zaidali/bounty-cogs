@@ -230,7 +230,7 @@ class ApplicationCommand:
         if self.type == discord.AppCommandType.chat_input:
             deco = self.bot.tree.command(name=self.name, description=self.description, guild=guild)
             describe = app_commands.describe(**{x.name: x.description for x in self.options})
-            choices = app_commands.choices(**{x.name: x.choices for x in filter(lambda y: y.type in [discord.AppCommandOptionType.string, discord.AppCommandOptionType.integer, discord.AppCommandOptionType.number], self.options})
+            choices = app_commands.choices(**{x.name: x.choices for x in filter(lambda y: y.type in [discord.AppCommandOptionType.string, discord.AppCommandOptionType.integer, discord.AppCommandOptionType.number], self.options)})
 
             decos.extend([deco, describe, choices])
 
