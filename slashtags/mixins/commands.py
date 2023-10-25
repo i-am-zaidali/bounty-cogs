@@ -487,11 +487,11 @@ class Commands(MixinMeta):
         """
         await self.show_slash_tag_usage(ctx, ctx.guild)
 
-    @commands.is_owner()
-    @slashtag.command("restore", hidden=True)
-    async def slashtag_restore(self, ctx: commands.Context):
-        """Restore all slash tags from the database."""
-        await self.restore_tags(ctx, ctx.guild)
+    #@commands.is_owner()
+    #@slashtag.command("restore", hidden=True)
+    #async def slashtag_restore(self, ctx: commands.Context):
+    #    """Restore all slash tags from the database."""
+    #    await self.restore_tags(ctx, ctx.guild)
 
     @commands.is_owner()
     @slashtag.command("clear", hidden=True)
