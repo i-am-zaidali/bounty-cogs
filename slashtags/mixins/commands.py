@@ -178,7 +178,13 @@ class Commands(MixinMeta):
             author_id=ctx.author.id,
             command=command,
         )
-        await ctx.send(await tag.initialize())
+        try:
+            resp = await tag.initialize()
+        except Exception:
+            await command.delete()
+            log.error("Failed to initialize tag {tag!r} on guild {ctx.guild!r}")
+            raise
+        await ctx.send(resp)
 
     async def get_options(
         self, ctx: commands.Context, options: List[CommandParameter]

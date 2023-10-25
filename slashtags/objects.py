@@ -211,10 +211,11 @@ class ApplicationCommand:
         self._parse_response_data(data)
 
     async def delete(self):
-        if self.guild_id:
-            await self.http.delete_guild_command(self.application_id, self.guild_id, self.id)
-        else:
-            await self.http.delete_global_command(self.application_id, self.id)
+        if self.id:
+            if self.guild_id:
+                await self.http.delete_guild_command(self.application_id, self.guild_id, self.id)
+            else:
+                await self.http.delete_global_command(self.application_id, self.id)
         self.remove_from_cache()
 
     def add_to_cache(self):
@@ -222,7 +223,10 @@ class ApplicationCommand:
         guild = discord.Object(self.guild_id) if self.guild_id else None
         decos = []
         old = self.cog.bot.tree.get_command(self.name, guild=guild)
-        if getattr(old, "id", None) == self.id and getattr(old, "description", None) == self.description:
+        if (
+            getattr(old, "id", None) == self.id
+            and getattr(old, "description", None) == self.description
+        ):
             self.cog.bot.tree.remove_command(self.name, guild=guild)
         if self.type == discord.AppCommandType.chat_input:
             deco = self.bot.tree.command(name=self.name, description=self.description, guild=guild)
