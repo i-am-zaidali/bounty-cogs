@@ -49,7 +49,7 @@ __all__ = (
 ACOT_to_DTA_mapping = {
     discord.AppCommandOptionType.boolean: "bool",
     discord.AppCommandOptionType.user: "Union[discord.Member, discord.User]",
-    discord.AppCommandOptionType.channel: "discord.abc.Messageable",
+    discord.AppCommandOptionType.channel: "discord.abc.GuildChannel",
     discord.AppCommandOptionType.role: "discord.Role",
     discord.AppCommandOptionType.string: "str",
     discord.AppCommandOptionType.integer: "int",
