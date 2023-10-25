@@ -50,7 +50,7 @@ class Paginator(commands.Cog):
     ):
         ...
 
-    @commands.group(name="paginator", invoke_without_command=True, aliases=["pg"])
+    @commands.group(name="paginator", invoke_without_command=True, aliases=["paginate", "page"])
     async def pg(self, ctx: commands.Context):
         """Commands to manage paginators."""
         return await ctx.send_help()
