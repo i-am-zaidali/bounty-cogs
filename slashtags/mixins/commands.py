@@ -226,11 +226,18 @@ class Commands(MixinMeta):
         await self.delete_quietly(message)
         return message.content
 
-    async def get_choices(self, ctx: commands.Context) -> List[Choice]:
+    async def get_choices(
+        self, ctx: commands.Context, option_type: discord.AppCommandOptionType
+    ) -> List[Choice]:
+        converters = {
+            discord.AppCommandOptionType.string: str,
+            discord.AppCommandOptionType.integer: int,
+            discord.AppCommandOptionType.number: float,
+        }
         query = (
             "Send the list of choice names and values you would like to add as choices to "
             "the tag. Choice names and values should be seperated by `:`, and each choice "
-            "should be seperated by `|`. Example:\n`dog:Doggo|cat:Catto`"
+            "should be seperated by `|`. Examples:\n**String option type**: `dog:Doggo|cat:Catto`\n**Integer option type**: `One:1|Two:2|Three:3`\n**Number option type**: `PI:3.14|E:2.71828`"
         )
         response = await self.send_and_query_response(ctx, query)
         choices = []
@@ -250,6 +257,18 @@ class Commands(MixinMeta):
                 )
                 continue
             name, value = choice_text.split(":", 1)
+            try:
+                value = converters[option_type](value)
+
+            except ValueError:
+                await ctx.send(
+                    f"Failed to parse `{choice_text}` to a choice as "
+                    f"its value couldn't be converted to a {option_type.name}.\n"
+                    f"If your option type is integer, make sure the value is a whole number. and simialrly for float, the value must be a decimal number. "
+                    f"For string option type, anything is accepted.",
+                    delete_after=15,
+                )
+                continue
             choice = Choice(name=name, value=value)
             choices.append(choice)
             if len(choices) >= CHOICE_LIMIT:
@@ -275,11 +294,6 @@ class Commands(MixinMeta):
         option_type = await OptionPickerView.pick(ctx, "What should the argument type be?")
         if option_type is None:
             raise asyncio.TimeoutError
-        choices = []
-        if option_type == -1:
-            choices = await self.get_choices(ctx)
-            option_type = discord.AppCommandOptionType.string
-
         if not added_required:
             text = (
                 "Is this argument required?\n*Keep in mind that if you choose to make this "
@@ -292,6 +306,16 @@ class Commands(MixinMeta):
                 delete_after=15,
             )
             required = False
+
+        if option_type in [
+            discord.AppCommandOptionType.string,
+            discord.AppCommandOptionType.integer,
+            discord.AppCommandOptionType.number,
+        ]:
+            await ctx.send("Would you like to add pre-defined choices to this argument?")
+            choices = []
+            if await ConfirmationView.confirm(ctx, text, cancel_message=None):
+                choices = await self.get_choices(ctx, option_type)
 
         return CommandParameter(
             name.lower(),
@@ -487,9 +511,9 @@ class Commands(MixinMeta):
         """
         await self.show_slash_tag_usage(ctx, ctx.guild)
 
-    #@commands.is_owner()
-    #@slashtag.command("restore", hidden=True)
-    #async def slashtag_restore(self, ctx: commands.Context):
+    # @commands.is_owner()
+    # @slashtag.command("restore", hidden=True)
+    # async def slashtag_restore(self, ctx: commands.Context):
     #    """Restore all slash tags from the database."""
     #    await self.restore_tags(ctx, ctx.guild)
 
@@ -640,9 +664,9 @@ class Commands(MixinMeta):
     async def slashtag_global_usage(self, ctx: commands.Context):
         await self.show_slash_tag_usage(ctx)
 
-    #@slashtag_global.command("restore", hidden=True)
-    #@copy_doc(slashtag_restore)
-    #async def slashtag_global_restore(self, ctx: commands.Context):
+    # @slashtag_global.command("restore", hidden=True)
+    # @copy_doc(slashtag_restore)
+    # async def slashtag_global_restore(self, ctx: commands.Context):
     #    await self.restore_tags(ctx, None)
 
     @commands.is_owner()

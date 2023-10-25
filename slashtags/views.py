@@ -66,13 +66,6 @@ class OptionPickerSelect(discord.ui.Select):
                 # default=member == SlashOptionType.STRING,
             )
             options.append(option)
-        options.append(
-            discord.SelectOption(
-                label="Choices",
-                value=-1,
-                description="Offers a list of string choices for the user to pick.",
-            )
-        )
         return options
 
     async def callback(self, interaction: discord.Interaction):
