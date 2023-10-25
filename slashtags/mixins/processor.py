@@ -209,7 +209,7 @@ class Processor(MixinMeta):
         await asyncio.gather(*command_tasks)
 
     @staticmethod
-    async def _send(self: commands.Context, org_send, wrapper: InteractionWrapper, content: str, **kwargs):
+    async def _send(self: commands.Context, org_send, wrapper: InteractionWrapper, content: str = None, **kwargs):
         # monkeypatching the ctx.send method so that I can store the returned message in the InteractionWrapper class
         # which would help me in knowing whether the interaction has been completed or not
         sent = await org_send(content=content, **kwargs)
