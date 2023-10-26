@@ -453,7 +453,7 @@ class SlashTag:
                 pass
         self.remove_from_cache()
         async with self.config_path.tags() as t:
-            del t[str(self.id)]
+            t.pop(str(self.id), None)
         return f"{self.name_prefix} `{self}` deleted."
 
     async def restore(self) -> str:
