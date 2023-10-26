@@ -510,7 +510,7 @@ class SlashTag:
         if option_info:
             e.add_field(name="Options", value="\n".join(option_info), inline=False)
 
-        e.set_author(name=ctx.guild, icon_url=ctx.guild.icon.url)
+        e.set_author(name=ctx.guild, icon_url=getattr(ctx.guild.icon,"url", None))
         return e
 
     async def send_info(self, ctx: commands.Context) -> discord.Message:
