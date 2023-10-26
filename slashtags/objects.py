@@ -249,6 +249,7 @@ class ApplicationCommand:
                 "self": self,
                 "InteractionWrapper": InteractionWrapper,
                 "Union": Union,
+                "Optional": Optional
             }
 
             exec(
