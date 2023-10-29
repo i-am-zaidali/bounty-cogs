@@ -177,6 +177,7 @@ class ApplicationCommand:
             CommandParameter(
                 type=discord.AppCommandOptionType(int(o.pop("type"))),
                 choices=[Choice(name=c["name"], value=c["value"]) for c in o.pop("choices", [])],
+                required=o.pop("required", False),
                 **dict(filter(lambda x: "localization" not in x[0], o.items())),
             )
             for o in data.get("options", [])
@@ -223,14 +224,25 @@ class ApplicationCommand:
         guild = discord.Object(self.guild_id) if self.guild_id else None
         decos = []
         old = self.cog.bot.tree.get_command(self.name, guild=guild)
-        if (
-            getattr(old, "id", None) == self.id
-        ):
+        if getattr(old, "id", None) == self.id:
             self.cog.bot.tree.remove_command(self.name, guild=guild)
         if self.type == discord.AppCommandType.chat_input:
             deco = self.bot.tree.command(name=self.name, description=self.description, guild=guild)
             describe = app_commands.describe(**{x.name: x.description for x in self.options})
-            choices = app_commands.choices(**{x.name: x.choices for x in filter(lambda y: y.type in [discord.AppCommandOptionType.string, discord.AppCommandOptionType.integer, discord.AppCommandOptionType.number], self.options)})
+            choices = app_commands.choices(
+                **{
+                    x.name: x.choices
+                    for x in filter(
+                        lambda y: y.type
+                        in [
+                            discord.AppCommandOptionType.string,
+                            discord.AppCommandOptionType.integer,
+                            discord.AppCommandOptionType.number,
+                        ],
+                        self.options,
+                    )
+                }
+            )
 
             decos.extend([deco, describe, choices])
 
@@ -249,7 +261,7 @@ class ApplicationCommand:
                 "self": self,
                 "InteractionWrapper": InteractionWrapper,
                 "Union": Union,
-                "Optional": Optional
+                "Optional": Optional,
             }
 
             exec(
@@ -510,7 +522,7 @@ class SlashTag:
         if option_info:
             e.add_field(name="Options", value="\n".join(option_info), inline=False)
 
-        e.set_author(name=ctx.guild, icon_url=getattr(ctx.guild.icon,"url", None))
+        e.set_author(name=ctx.guild, icon_url=getattr(ctx.guild.icon, "url", None))
         return e
 
     async def send_info(self, ctx: commands.Context) -> discord.Message:

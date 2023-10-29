@@ -32,6 +32,7 @@ from typing import List, Optional, Union
 import discord
 import TagScriptEngine as tse
 from redbot.core import commands
+from discord.ext.commands.context import Typing, DeferTyping
 
 from ..abc import MixinMeta
 from ..blocks import HideBlock
@@ -209,12 +210,24 @@ class Processor(MixinMeta):
         await asyncio.gather(*command_tasks)
 
     @staticmethod
-    async def _send(self: commands.Context, org_send, wrapper: InteractionWrapper, content: str = None, **kwargs):
+    async def _send(
+        self: commands.Context,
+        org_send,
+        wrapper: InteractionWrapper,
+        content: str = None,
+        **kwargs,
+    ):
         # monkeypatching the ctx.send method so that I can store the returned message in the InteractionWrapper class
         # which would help me in knowing whether the interaction has been completed or not
         sent = await org_send(content=content, **kwargs)
         wrapper.responded = sent
         return sent
+    
+    @staticmethod
+    async def _typing(self: commands.Context, ephemeral=False):
+        if self.interaction is None or self.interaction.response.is_done():
+            return Typing(self)
+        return DeferTyping(self, ephemeral=ephemeral)
 
     async def process_command(
         self,
@@ -224,6 +237,7 @@ class Processor(MixinMeta):
     ):
         ctx: commands.Context = await self.bot.get_context(message)
         ctx.interaction = wrapper.interaction
+        ctx.typing = self._typing
         ctx.send = partial(self._send, ctx, ctx.send, wrapper)
         if ctx.valid:
             if overrides:

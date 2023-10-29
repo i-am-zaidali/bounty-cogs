@@ -182,7 +182,7 @@ class Commands(MixinMeta):
             resp = await tag.initialize()
         except Exception:
             await command.delete()
-            log.error("Failed to initialize tag {tag!r} on guild {ctx.guild!r}")
+            log.exception("Failed to initialize tag {tag!r} on guild {ctx.guild!r}")
             raise
         await ctx.send(resp)
 
