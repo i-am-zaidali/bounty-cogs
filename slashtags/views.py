@@ -58,7 +58,7 @@ class OptionPickerSelect(discord.ui.Select):
     def create_options() -> List[discord.SelectOption]:
         options = []
         for name, member in discord.AppCommandOptionType.__members__.items():
-            if name.startswith("sub"):
+            if name.startswith("sub") or "attachment" == name:
                 continue
             option = discord.SelectOption(
                 label=name.title(),
