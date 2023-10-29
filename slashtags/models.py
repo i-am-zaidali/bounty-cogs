@@ -178,7 +178,7 @@ class InteractionWrapper:
         options = data.get("options", [])
         resolved = data.get("resolved", {})
         for o in options:
-            o_type = discord.AppCommandOptionType(o["type"])
+            o_type = o["type"] = discord.AppCommandOptionType(o["type"])
             handler_name = f"_handle_option_{o_type.name.lower()}"
             try:
                 handler = getattr(self, handler_name)
@@ -209,7 +209,7 @@ class InteractionWrapper:
                 )
         elif not (channel := self._state._get_private_channel(channel_id)):
             channel = discord.DMChannel(state=self._state, me=self.bot.user, data=resolved_channel)
-        option.setdefault("value", channel)
+        option["value"] = channel
         return option
 
     def _handle_option_user(self, data: dict, option: dict, resolved: Dict[str, Dict[str, dict]]):
@@ -221,7 +221,7 @@ class InteractionWrapper:
                 self.guild._add_member(user)
         else:
             user = self._state.store_user(resolved_user)
-        option.setdefault("value", user)
+        option["value"] = user
         return option
 
     def _handle_option_role(self, data: dict, option: dict, resolved: Dict[str, Dict[str, dict]]):
@@ -231,7 +231,7 @@ class InteractionWrapper:
             if not (role := self.guild.get_role(role_id)):
                 role = discord.Role(guild=self.guild, data=resolved_role, state=self)
                 self.guild._add_role(role)
-            option.setdefault("value", role)
+            option["value"] = role
         return option
 
 
