@@ -239,7 +239,7 @@ class Processor(MixinMeta):
     ):
         ctx: commands.Context = await self.bot.get_context(message)
         ctx.interaction = wrapper.interaction
-        ctx.typing = self._typing
+        ctx.typing = partial(self._typing, ctx)
         ctx.send = partial(self._send, ctx, ctx.send, wrapper)
         if ctx.valid:
             if overrides:
