@@ -55,6 +55,7 @@ class Processor(MixinMeta):
         discord.AppCommandOptionType.channel: tse.ChannelAdapter,
         discord.AppCommandOptionType.role: tse.SafeObjectAdapter,
         discord.AppCommandOptionType.number: tse.StringAdapter,
+        discord.AppCommandOptionType.mentionable: tse.SafeObjectAdapter,
     }
     EMPTY_ADAPTER = tse.StringAdapter("")
 

@@ -16,6 +16,7 @@ def get_optiontype_description(optiontype: discord.AppCommandOptionType) -> str:
         discord.AppCommandOptionType.channel: "Refers to a text, voice, or category channel in this server.",
         discord.AppCommandOptionType.role: "Refers to a server role, accepting role name or IDs as input.",
         discord.AppCommandOptionType.number: "Accepts any floating point number.",
+        discord.AppCommandOptionType.mentionable: "Refers to a role or user, accepting name or IDs as input.",
     }.get(optiontype, "No description available.")
 
 
