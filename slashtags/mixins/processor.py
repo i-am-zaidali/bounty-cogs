@@ -128,6 +128,7 @@ class Processor(MixinMeta):
         seed_variables["channel"] = tse.ChannelAdapter(channel)
         if guild:
             seed_variables["server"] = tse.GuildAdapter(guild)
+            seed_variables["guild"] = tse.GuildAdapter(guild)
 
         command_type = interaction.command_type
         if command_type == discord.AppCommandType.user:
@@ -222,7 +223,7 @@ class Processor(MixinMeta):
         sent = await org_send(content=content, **kwargs)
         wrapper.responded = sent
         return sent
-    
+
     @staticmethod
     async def _typing(self: commands.Context, ephemeral=False):
         if self.interaction is None or self.interaction.response.is_done():
