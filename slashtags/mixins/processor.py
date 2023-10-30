@@ -226,7 +226,7 @@ class Processor(MixinMeta):
         return sent
 
     @staticmethod
-    async def _typing(self: commands.Context, ephemeral=False):
+    def _typing(self: commands.Context, ephemeral=False):
         if self.interaction is None or self.interaction.response.is_done():
             return Typing(self)
         return DeferTyping(self, ephemeral=ephemeral)
