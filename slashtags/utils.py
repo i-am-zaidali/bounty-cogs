@@ -94,3 +94,24 @@ def chunks(l, n):
     """
     for i in range(0, len(l), n):
         yield l[i : i + n]
+
+
+class TemporaryAttributes:
+    def __init__(self, obj, **kwargs):
+        self.obj = obj
+        self.temp_attributes = kwargs
+        self.original_values = {}
+
+    def __enter__(self):
+        for attr, value in self.temp_attributes.items():
+            if hasattr(self.obj, attr):
+                self.original_values[attr] = getattr(self.obj, attr)
+            setattr(self.obj, attr, value)
+        return self.obj
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        for attr, value in self.original_values.items():
+            setattr(self.obj, attr, value)
+        for attr in self.temp_attributes.keys():
+            if attr not in self.original_values:
+                delattr(self.obj, attr)

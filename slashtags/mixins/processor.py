@@ -39,7 +39,7 @@ from ..blocks import HideBlock
 from ..errors import RequireCheckFailure
 from ..models import InteractionWrapper
 from ..objects import FakeMessage, SlashTag
-from ..utils import dev_check
+from ..utils import dev_check, TemporaryAttributes
 
 PL = commands.PrivilegeLevel
 RS = commands.Requires
@@ -221,15 +221,17 @@ class Processor(MixinMeta):
     ):
         # monkeypatching the ctx.send method so that I can store the returned message in the InteractionWrapper class
         # which would help me in knowing whether the interaction has been completed or not
-        sent = await org_send(content=content, **kwargs)
-        wrapper.responded = sent
-        return sent
+        with TemporaryAttributes(self, interaction=wrapper.interaction):
+            sent = await org_send(content=content, **kwargs)
+            wrapper.responded = sent
+            return sent
 
     @staticmethod
-    def _typing(self: commands.Context, ephemeral=False):
-        if self.interaction is None or self.interaction.response.is_done():
-            return Typing(self)
-        return DeferTyping(self, ephemeral=ephemeral)
+    def _typing(self: commands.Context, wrapper: InteractionWrapper, ephemeral=False):
+        with TemporaryAttributes(self, interaction=wrapper.interaction):
+            if self.interaction is None or self.interaction.response.is_done():
+                return Typing(self)
+            return DeferTyping(self, ephemeral=ephemeral)
 
     async def process_command(
         self,
@@ -238,8 +240,7 @@ class Processor(MixinMeta):
         overrides: dict,
     ):
         ctx: commands.Context = await self.bot.get_context(message)
-        ctx.interaction = wrapper.interaction
-        ctx.typing = partial(self._typing, ctx)
+        ctx.typing = partial(self._typing, ctx, wrapper)
         ctx.send = partial(self._send, ctx, ctx.send, wrapper)
         if ctx.valid:
             if overrides:
