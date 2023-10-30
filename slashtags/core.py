@@ -287,7 +287,7 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
             if isinstance(command, ApplicationCommand):
                 tag = self.get_tag(interaction.guild, command_id)
                 await self.process_tag(interaction, tag)
-            elif command == self.eval_command:
+            elif command and command == self.eval_command:
                 await self.slash_eval(interaction)
             else:
                 log.debug("Unknown interaction created:\n%r", interaction)
