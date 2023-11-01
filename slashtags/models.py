@@ -35,6 +35,7 @@ from redbot.core import commands
 
 if TYPE_CHECKING:
     from .objects import ApplicationCommand
+    from .core import SlashTags
 
 log = logging.getLogger("red.phenom4n4n.slashtags.models")
 
@@ -88,6 +89,7 @@ class InteractionWrapper:
         "channel",
         "command_type",
         "command_name",
+        "command_guild_id",
         "command_id",
         "target_id",
         "resolved",
@@ -116,7 +118,7 @@ class InteractionWrapper:
         assert ctx.interaction is not None
         self.ctx = ctx
         self.interaction = ctx.interaction
-        self.cog = ctx.cog
+        self.cog: "SlashTags" = ctx.cog
         self.http = ctx.bot.http
         self.bot = ctx.bot
         self.options: list[dict] = []
@@ -125,6 +127,9 @@ class InteractionWrapper:
         self.command_type = discord.AppCommandType(interaction_data["type"])
         self.command_name = interaction_data["name"]
         self.command_id = int(interaction_data["id"])
+        self.command_guild_id: Optional[int] = discord.utils._get_as_snowflake(
+            interaction_data, "guild_id"
+        )
         self.target_id: Optional[int] = discord.utils._get_as_snowflake(
             interaction_data, "target_id"
         )

@@ -161,13 +161,16 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
         guild_cached = 0
         guilds_data = await self.config.all_guilds()
         async for guild_id, guild_data in AsyncIter(guilds_data.items(), steps=100):
-            for tag_data in guild_data["tags"].values():
+            for tag_id, tag_data in guild_data["tags"].items():
                 tag = SlashTag.from_dict(self, tag_data, guild_id=guild_id)
-                tag.add_to_cache()
                 try:
                     await self.bot.http.get_guild_command(self.application_id, guild_id, tag.id)
                 except discord.NotFound:
                     await tag.command.register()
+                    async with self.config.guild_from_id(guild_id).tags() as tags:
+                        tags.pop(str(tag_id), None)
+
+                await tag.initialize()
                 guild_cached += 1
 
         cached = 0
@@ -283,9 +286,17 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
     async def invoke_and_catch(self, interaction: InteractionWrapper):
         try:
             command_id = interaction.command_id
-            command = self.get_command(command_id)
+            command_guild = self.bot.get_guild(interaction.command_guild_id)
+            tag = self.get_tag(command_guild, command_id) or self.get_tag_by_name(
+                command_guild, interaction.command_name
+            )
+            command = getattr(tag, "command", None)
             if isinstance(command, ApplicationCommand):
-                tag = self.get_tag(interaction.guild, command_id)
+                if command.id != command_id:
+                    command.remove_from_cache()
+                    command.id = command_id
+                    command.add_to_cache()
+
                 await self.process_tag(interaction, tag)
             elif command and command == self.eval_command:
                 await self.slash_eval(interaction)
