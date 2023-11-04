@@ -3,10 +3,10 @@ import functools
 import itertools
 import operator
 import re
+from datetime import datetime, timezone, timedelta
 from typing import Any, Optional, Union
 
 import discord
-import yaml
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
@@ -14,12 +14,30 @@ from redbot.vendored.discord.ext.menus import GroupByPageSource, ListPageSource
 from tabulate import tabulate
 
 from .paginator import Paginator
-from .views import ClearOrNot, InvalidStatsView, NewCategory, UpdateCategory
+from .views import (
+    ClearOrNot,
+    InvalidStatsView,
+    NewCategory,
+    UpdateCategory,
+    YesOrNoView,
+    ViewDisableOnTimeout,
+    disable_items,
+)
 
 # the format of the stats in a message would be <vehicle name with spaces and/or hyphens> <four spaces> <number>
 base_regex = re.compile(r"(?P<vehicle_name>[a-z0-9A-Z \t\-\/]+)\s{4}(?P<amount>\d+)")
 
 lower_str_param = commands.param(converter=str.lower)
+
+
+def teacher_check():
+    async def predicate(ctx: commands.Context):
+        return (
+            ctx.author.get_role(await ctx.cog.config.guild(ctx.guild).course_teacher_role())
+            is not None
+        )
+
+    return commands.check(predicate)
 
 
 def union_dicts(*dicts: dict[Any, Any], fillvalue=None):
@@ -44,6 +62,8 @@ class MissionChiefMetrics(commands.Cog):
             vehicle_categories={},
             course_shorthands={},
             course_role=None,
+            course_teacher_role=None,
+            # state_roles=[],
         )
         self.config.init_custom("message", 3)
         self.config.register_custom("message", view_type=None)
@@ -168,6 +188,79 @@ class MissionChiefMetrics(commands.Cog):
         await self.log_new_stats(message.author, old_stats, vehicle_amount)
 
         await message.add_reaction("✅")
+
+        reminders_cog = self.bot.get_cog("Reminders")
+        if reminders_cog is None or "AAA3A" not in getattr(reminders_cog, "__authors__", []):
+            return
+
+        view = YesOrNoView(message.author, None, None, timeout=90)
+        view.message = await message.author.send(
+            embed=discord.Embed(
+                title="Would you like to be reminded to submit stats at a later date?",
+            ),
+            view=view,
+        )
+
+        if await view.wait():
+            return
+
+        new_view = ViewDisableOnTimeout(
+            user=message.author, timeout=30, timeout_message="Timed out."
+        )
+        new_view.channel = message.channel
+        for duration in ["in 1 week", "in 2 weeks", "in 1 month", "in 3 months", "in 1 year"]:
+            but = discord.ui.Button(label=duration, style=discord.ButtonStyle.blurple)
+            but.callback = functools.partial(self._duration_callback, but)
+            new_view.add_item(but)
+
+        new_view.message = await view.message.reply(
+            embed=discord.Embed(
+                title="Reminder Duration",
+                description="Please select a duration from the below buttons. Note that the reminder will happen repeatedly after the selected duration.",
+            ),
+            view=new_view,
+        )
+
+    async def _duration_callback(
+        self, button: discord.ui.Button, interaction: discord.Interaction
+    ):
+        durations: dict[str, timedelta] = {
+            "in 1 week": timedelta(weeks=1),
+            "in 2 weeks": timedelta(weeks=2),
+            "in 1 month": timedelta(weeks=4),
+            "in 3 months": timedelta(weeks=12),
+            "in 1 year": timedelta(weeks=52),
+        }
+
+        user_id = interaction.user.id
+        text = f"REMINDER to submit your stats in {button.view.channel.mention}"
+        jump_url = button.view.channel.jump_url
+        utc_now = datetime.now(tz=timezone.utc)
+        time = durations.get(button.label)
+        expires_at = utc_now + time
+
+        reminders_cog = self.bot.get_cog("Reminders")
+        repeat = reminders_cog.Repeat.from_json([{"type": "sample", "value": {"days": time.days}}])
+
+        content = {
+            "type": "text",
+            "text": text,
+            "files": {},
+        }
+        if not content["files"]:
+            del content["files"]
+        await reminders_cog.create_reminder(
+            user_id=user_id,
+            content=content,
+            jump_url=jump_url,
+            created_at=utc_now,
+            expires_at=expires_at,
+            repeat=repeat,
+        )
+        await interaction.response.send_message("Created reminder!")
+        disable_items(button.view)
+        await interaction.message.edit(view=button.view)
+        button.view.stop()
 
     async def log_new_stats(
         self, user: discord.Member, old_stats: dict[str, int], new_stats: dict[str, int]
@@ -325,6 +418,36 @@ class MissionChiefMetrics(commands.Cog):
         await self.config.guild(ctx.guild).vehicles.clear()
         await ctx.tick()
 
+    # @mcm.group(name="stateroles", aliases=["sr", "staterole"], invoke_without_command=True)
+    # async def mcm_sr(self, ctx: commands.Context):
+    #     """State role management"""
+    #     return await ctx.send_help()
+
+    # @mcm_sr.command(name="add")
+    # async def mcm_sr(self, ctx:commands.Context, *roles: discord.Role):
+    #     """Add a state role"""
+    #     async with self.config.guild(ctx.guild).state_roles() as sr:
+    #         sr.extend(map(lambda x: x.id, roles))
+    #         roles = list(set(sr))
+    #     await ctx.tick()
+
+    # @mcm_sr.command(name="remove")
+    # async def mcm_sr_remove(self, ctx: commands.Context, *roles: discord.Role):
+    #     """Remove a state role"""
+    #     async with self.config.guild(ctx.guild).state_roles() as sr:
+    #         for role in roles:
+    #             if role.id in sr:
+    #                 sr.remove(role.id)
+    #     await ctx.tick()
+
+    # @mcm_sr.command(name="list")
+    # async def mcm_sr_list(self, ctx: commands.Context):
+    #     """List the state roles"""
+    #     roles = await self.config.guild(ctx.guild).state_roles()
+    #     if not roles:
+    #         return await ctx.send("No state roles have been added yet.")
+    #     await ctx.send("- " + "\n- ".join(map(lambda x: ctx.guild.get_role(x).mention, roles)))
+
     @mcm.group(name="channel", aliases=["channels", "ch"], invoke_without_command=True)
     @commands.admin()
     async def mcm_channel(self, ctx: commands.Context):
@@ -372,12 +495,22 @@ class MissionChiefMetrics(commands.Cog):
         """User stats"""
         return await ctx.send_help()
 
-    @mcm_userstats.command(name="show")
-    async def mcm_userstats_show(self, ctx: commands.Context, *users: discord.Member):
+    @mcm_userstats.command(name="show", usage="[users... or role = YOU]")
+    async def mcm_userstats_show(
+        self,
+        ctx: commands.GuildContext,
+        user_or_role: Optional[Union[discord.Member, discord.Role]] = None,
+        *userlist: discord.Member,
+    ):
         """Show the stats of a user"""
-        users = users or [
-            ctx.author,
-        ]
+        if isinstance(user_or_role, discord.Role) and len(userlist):
+            raise commands.BadArgument("You cannot specify a role and users at the same time.")
+
+        users = (
+            user_or_role.members
+            if isinstance(user_or_role, discord.Role)
+            else [(user_or_role or ctx.author), *userlist]
+        )
         vehicles = await self.config.guild(ctx.guild).vehicles()
         categories = await self.config.guild(ctx.guild).vehicle_categories()
 
@@ -407,7 +540,11 @@ class MissionChiefMetrics(commands.Cog):
                 return discord.Embed(
                     title=f"{entry[0]}'s stats"
                     if entry[0]
-                    else "Combined stats of all previous users",
+                    else (
+                        f"Combined stats of all members of **{user_or_role.name}**"
+                        if isinstance(user_or_role, discord.Role)
+                        else "Combined stats of all users"
+                    ),
                     description="No stats available",
                 )
             category_totals = {
@@ -452,7 +589,11 @@ class MissionChiefMetrics(commands.Cog):
             embed = discord.Embed(
                 title=f"{entry[0]}'s stats"
                 if entry[0]
-                else "Combined stats of all previous users",
+                else (
+                    f"Combined stats of all members of **{user_or_role.name}**"
+                    if isinstance(user_or_role, discord.Role)
+                    else "Combined stats of all users"
+                ),
                 description=f"**Uncategorised**\nTotal: {category_totals.pop('uncategorised')}\n{description}",
             )
             for cat, s in category_totals.items():
@@ -524,6 +665,7 @@ class MissionChiefMetrics(commands.Cog):
         await ctx.tick()
 
     @mcm.group(name="courses", aliases=["c", "course"], invoke_without_command=True)
+    @teacher_check()
     async def mcm_courses(
         self, ctx: commands.Context, shorthand: str, days: int, cost: int, *, location: str
     ):
@@ -599,6 +741,18 @@ class MissionChiefMetrics(commands.Cog):
                 f"The course ping role is {getattr(ctx.guild.get_role((await self.config.guild(ctx.guild).course_role())), 'mention', '`NOT SET`')}"
             )
         await self.config.guild(ctx.guild).course_role.set(role.id)
+        await ctx.tick()
+
+    @mcm_courses.command(name="teacherrole", aliases=["tr"])
+    async def mcm_courses_teacherrole(
+        self, ctx: commands.Context, role: Optional[discord.Role] = None
+    ):
+        """Set the role that can ping for courses"""
+        if role is None:
+            return await ctx.send(
+                f"The course teacher role is {getattr(ctx.guild.get_role((await self.config.guild(ctx.guild).course_teacher_role())), 'mention', '`NOT SET`')}"
+            )
+        await self.config.guild(ctx.guild).course_teacher_role.set(role.id)
         await ctx.tick()
 
     @mcm.command(name="totalstats")

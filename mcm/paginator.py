@@ -8,9 +8,6 @@ from redbot.vendored.discord.ext import menus
 from .views import (
     CloseButton,
     ViewDisableOnTimeout,
-    disable_items,
-    enable_items,
-    interaction_check,
 )
 
 
@@ -177,9 +174,6 @@ class Paginator(ViewDisableOnTimeout):
                 i.update()
 
             i.disabled = False
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        return await interaction_check(self.ctx, interaction)
 
     async def edit_message(self, inter: discord.Interaction):
         page = await self.get_page(self.current_page)

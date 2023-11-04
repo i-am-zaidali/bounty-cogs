@@ -1,14 +1,13 @@
 import functools
 import itertools
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Union
 
 import discord
 from discord.interactions import Interaction
-from discord.ui import Button, Modal, Select, TextInput, View, button, select
+from discord.ui import Button, Modal, Select, TextInput, View, button
 from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
-from redbot.vendored.discord.ext import menus
 from tabulate import tabulate
 
 if TYPE_CHECKING:
@@ -34,16 +33,6 @@ def chunks(lst: list, n: int):
         yield lst[i : i + n]
 
 
-async def interaction_check(ctx: commands.Context, interaction: discord.Interaction):
-    if not ctx.author.id == interaction.user.id:
-        await interaction.response.send_message(
-            "You aren't allowed to interact with this bruh. Back Off!", ephemeral=True
-        )
-        return False
-
-    return True
-
-
 class ViewDisableOnTimeout(View):
     # I was too lazy to copypaste id rather have a mother class that implements this
     def __init__(self, **kwargs):
@@ -57,8 +46,10 @@ class ViewDisableOnTimeout(View):
         if self.message:
             disable_items(self)
             await self.message.edit(view=self)
-            if self.timeout_message:
-                await (self.ctx or self.message.channel).send(self.timeout_message)
+        if self.timeout_message:
+            dest = self.ctx or self.message.channel or self.user
+            if dest:
+                await dest.send(self.timeout_message)
 
         self.stop()
 
@@ -98,6 +89,50 @@ def dehumanize_list(l: str):
 
     _, elements[-1] = elements[-1].split("and ")
     return list(map(str.strip, elements))
+
+
+class YesOrNoView(ViewDisableOnTimeout):
+    def __init__(
+        self,
+        user: Union[discord.User, discord.Member],
+        yes_response: str = "you have chosen yes.",
+        no_response: str = "you have chosen no.",
+        *,
+        timeout=180,
+    ):
+        self.yes_response = yes_response
+        self.no_response = no_response
+        self.value = None
+        self.message = None
+        super().__init__(
+            timeout=timeout,
+            user=user,
+            timeout_message="You took too long to respond. Cancelling...",
+        )
+
+    @property
+    def dest(
+        self,
+    ):
+        return self.ctx or self.message.channel or self.user
+
+    @button(label="Yes", custom_id="_yes", style=discord.ButtonStyle.green)
+    async def yes_button(self, interaction: discord.Interaction, button: Button):
+        disable_items(self)
+        await interaction.response.edit_message(view=self)
+        if self.yes_response and self.dest:
+            await self.dest.send(self.yes_response)
+        self.value = True
+        self.stop()
+
+    @button(label="No", custom_id="_no", style=discord.ButtonStyle.red)
+    async def no_button(self, interaction: discord.Interaction, button: Button):
+        disable_items(self)
+        await interaction.response.edit_message(view=self)
+        if self.no_response and self.dest:
+            await self.dest.send(self.no_response)
+        self.value = False
+        self.stop()
 
 
 class MergeISView(ViewDisableOnTimeout):
