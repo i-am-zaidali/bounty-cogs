@@ -33,7 +33,11 @@ lower_str_param = commands.param(converter=str.lower)
 def teacher_check():
     async def predicate(ctx: commands.Context):
         return (
-            ctx.author.get_role(await ctx.cog.config.guild(ctx.guild).course_teacher_role() or -1)
+            await ctx.bot.is_owner(ctx.author)
+            or await ctx.bot.is_mod(ctx.author)
+            or ctx.author.get_role(
+                await ctx.cog.config.guild(ctx.guild).course_teacher_role() or -1
+            )
             is not None
         )
 
