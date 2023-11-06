@@ -25,13 +25,11 @@ SOFTWARE.
 
 import asyncio
 import logging
-from typing import Any, Coroutine, List, Optional, Union
+from typing import Any, List, Optional, Union
 
 import discord
 import TagScriptEngine as tse
-from discord.abc import Snowflake
 from discord.app_commands.transformers import CommandParameter
-from discord.message import EmojiInputType
 from redbot.core import Config, app_commands, commands
 from redbot.core.app_commands import Choice
 from redbot.core.bot import Red
