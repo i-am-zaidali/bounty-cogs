@@ -168,9 +168,11 @@ class Processor(MixinMeta):
             return
 
         if content or embed:
-            await self.send_tag_response(
+            message = await self.send_tag_response(
                 interaction, actions, content, ephemeral=ephemeral, embed=embed
             )
+            if message and (react := actions.get("react")):
+                self.create_task(self.react_to_list(interaction.ctx, message, react))
         else:
             try:
                 await interaction.response.defer(ephemeral=ephemeral)
@@ -183,6 +185,21 @@ class Processor(MixinMeta):
             try:
                 await interaction.send("Slash Tag completed.", ephemeral=True)
             except discord.NotFound:
+                pass
+
+    async def react_to_list(
+        self, ctx: commands.Context, message: discord.Message, args: List[str]
+    ):
+        if not (message and args):
+            return
+        for arg in args:
+            try:
+                arg = await self.emoji_converter.convert(ctx, arg)
+            except commands.BadArgument:
+                pass
+            try:
+                await message.add_reaction(arg)
+            except discord.HTTPException:
                 pass
 
     async def handle_requires(self, interaction: InteractionWrapper, actions: dict):
