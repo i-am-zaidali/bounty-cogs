@@ -55,8 +55,8 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
     The TagScript documentation can be found [here](https://phen-cogs.readthedocs.io/en/latest/index.html).
     """
 
-    __version__ = "0.7.0"
-    __author__ = ("PhenoM4n4n",)
+    __version__ = "0.8.0"
+    __author__ = ("PhenoM4n4n", "crayyy_zee")
 
     def format_help_for_context(self, ctx: commands.Context):
         pre_processed = super().format_help_for_context(ctx)
