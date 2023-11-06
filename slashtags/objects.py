@@ -256,7 +256,7 @@ class ApplicationCommand:
             command_args = ", ".join(
                 f"{o.name.replace('-', '_')}: {ACOT_to_DTA_mapping.get(o.type, 'str')}"
                 if o.required
-                else f"{o.name}: Optional[{ACOT_to_DTA_mapping.get(o.type, 'str')}] = None"
+                else f"{o.name.replace('-', '_')}: Optional[{ACOT_to_DTA_mapping.get(o.type, 'str')}] = None"
                 for o in opts
             )
 
