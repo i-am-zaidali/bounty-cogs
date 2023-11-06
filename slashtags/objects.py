@@ -228,7 +228,9 @@ class ApplicationCommand:
             self.cog.bot.tree.remove_command(self.name, guild=guild)
         if self.type == discord.AppCommandType.chat_input:
             deco = self.bot.tree.command(name=self.name, description=self.description, guild=guild)
-            describe = app_commands.describe(**{x.name: x.description for x in self.options})
+            describe = app_commands.describe(
+                **{x.name.replace("-", "_"): x.description for x in self.options}
+            )
             choices = app_commands.choices(
                 **{
                     x.name: x.choices
@@ -243,13 +245,16 @@ class ApplicationCommand:
                     )
                 }
             )
+            rename = app_commands.rename(
+                **{x.name.replace("-", "_"): x.name for x in self.options if "-" in x.name}
+            )
 
-            decos.extend([deco, describe, choices])
+            decos.extend([deco, describe, choices, rename])
 
             opts = sorted(self.options, key=lambda o: o.required, reverse=True)
 
             command_args = ", ".join(
-                f"{o.name}: {ACOT_to_DTA_mapping.get(o.type, 'str')}"
+                f"{o.name.replace('-', '_')}: {ACOT_to_DTA_mapping.get(o.type, 'str')}"
                 if o.required
                 else f"{o.name}: Optional[{ACOT_to_DTA_mapping.get(o.type, 'str')}] = None"
                 for o in opts
