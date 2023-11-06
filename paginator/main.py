@@ -160,6 +160,8 @@ class Paginator(commands.Cog):
         The `page` argument should be a pastebin link containing valid json.
         If `index` is not provided, the page will be added to the end of the paginator group.
         Otherwise, the page will be added at the specified index and the page on that index and all the pages after it will be shifted one index ahead.
+
+        Example link: https://pastebin.com/DiuFREBW
         """
         if index and index < 1:
             return await ctx.send(cf.error("Index cannot be less than 1."))
