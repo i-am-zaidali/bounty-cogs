@@ -24,5 +24,6 @@ SOFTWARE.
 """
 
 from .hidden import HideBlock
+from .react import ReactBlock
 
-__all__ = ("HideBlock",)
+__all__ = ("HideBlock", "ReactBlock")

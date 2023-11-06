@@ -35,7 +35,7 @@ from redbot.core import commands
 from discord.ext.commands.context import Typing, DeferTyping
 
 from ..abc import MixinMeta
-from ..blocks import HideBlock
+from ..blocks import HideBlock, ReactBlock
 from ..errors import RequireCheckFailure
 from ..models import InteractionWrapper
 from ..objects import FakeMessage, SlashTag
@@ -85,7 +85,7 @@ class Processor(MixinMeta):
             tse.OverrideBlock(),
             tse.CooldownBlock(),
         ]
-        slash_blocks = [HideBlock()]
+        slash_blocks = [HideBlock(), ReactBlock()]
         self.engine = tse.Interpreter(tse_blocks + slash_blocks)
 
         self.role_converter = commands.RoleConverter()
