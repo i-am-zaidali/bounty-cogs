@@ -75,6 +75,9 @@ class StringToPage(commands.Converter[Page]):
             em = await self.create_embed(ctx, embed)
             data.setdefault("embeds", []).append(em)
 
+        if len(embeds) > 10:
+            await self.embed_convert_error(ctx, "Embed Amount Error", ValueError("There can only be upto 10 embeds in a single page"))
+        
         if self.validate:
             await self.validate_data(ctx, data.get("embeds", []), content=content)
         return data
