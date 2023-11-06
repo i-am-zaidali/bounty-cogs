@@ -61,7 +61,7 @@ class Paginator(commands.Cog):
         self,
         ctx: commands.Context,
         group_name: str,
-        page_number: Optional[commands.Range[int, 1, None]] = None,
+        page_number: Optional[commands.Range[int, 1, None]] = 1,
         timeout: Optional[int] = None,
     ):
         """Starts a paginator of the given group name"""
