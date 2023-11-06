@@ -273,7 +273,7 @@ class Paginator(commands.Cog):
                 )
 
             try:
-                page_groups[group_name]["pages"][page_number - 1] = page
+                page_groups[group_name]["pages"][page_number - 1] = jsonize_page(page)
             except IndexError:
                 return await ctx.send(cf.error(f"Page number `{page_number}` does not exist."))
 
