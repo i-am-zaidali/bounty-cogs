@@ -105,9 +105,9 @@ class StringToPage(commands.Converter[Page]):
         return data
 
     async def create_embed(self, ctx: commands.Context, data: dict):
-        if timestamp := data.get("timestamp"):
-            data["timestamp"] = timestamp.strip("Z")
         try:
+            if timestamp := data.get("timestamp"):
+                data["timestamp"] = timestamp.strip("Z")
             e = discord.Embed.from_dict(data)
             length = len(e)
         except Exception as error:
