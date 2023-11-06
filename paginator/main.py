@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 import aiohttp
 import discord
@@ -56,7 +57,13 @@ class Paginator(commands.Cog):
         return await ctx.send_help()
 
     @pg.command(name="start")
-    async def pg_start(self, ctx: commands.Context, group_name: str, timeout: int = None):
+    async def pg_start(
+        self,
+        ctx: commands.Context,
+        group_name: str,
+        page_number: Optional[commands.Range[int, 1, None]] = None,
+        timeout: Optional[int] = None,
+    ):
         """Starts a paginator of the given group name"""
         async with self.config.guild(ctx.guild).page_groups() as page_groups:
             if group_name not in page_groups:
@@ -74,6 +81,10 @@ class Paginator(commands.Cog):
                 )
 
             pages = group["pages"]
+            if len(pages) < page_number:
+                return await ctx.send(
+                    f"Page number `{page_number}` does not exist for this group."
+                )
             pages = [pythonize_page(page) for page in pages]
             timeout = timeout or group["timeout"]
             # reactions = group["reactions"]
@@ -81,8 +92,7 @@ class Paginator(commands.Cog):
 
             # if not reactions:
             paginator = PaginationView(ctx, pages, timeout, True, delete_on_timeout)
-
-            await paginator.start()
+            await paginator.start(index=page_number - 1)
 
             # else:
             #     await self.reaction_paginate(ctx, pages, timeout, delete_on_timeout)

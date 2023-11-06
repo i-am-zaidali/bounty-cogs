@@ -177,7 +177,9 @@ class PaginationView(ViewDisableOnTimeout):
 
             i.disabled = False
 
-    async def start(self):
+    async def start(self, index=None):
+        if index is not None:
+            self.index = index
         page = self.current_page()
         self.message = await self.ctx.send(**page, view=self)
 
