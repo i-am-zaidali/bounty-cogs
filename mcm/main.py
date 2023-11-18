@@ -56,7 +56,7 @@ class MissionChiefMetrics(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=1234567890)
-        self.config.register_member(stats={}, message_id=None)
+        self.config.register_member(stats={}, message_id=None, reminder_enabled=False)
         self.config.register_guild(
             logchannel=None,
             alertchannel=None,
@@ -194,7 +194,11 @@ class MissionChiefMetrics(commands.Cog):
         await message.add_reaction("✅")
 
         reminders_cog = self.bot.get_cog("Reminders")
-        if reminders_cog is None or "AAA3A" not in getattr(reminders_cog, "__authors__", []):
+        if (
+            reminders_cog is None
+            or "AAA3A" not in getattr(reminders_cog, "__authors__", [])
+            or await self.check_reminder_enabled(message.author)
+        ):
             return
 
         view = YesOrNoView(message.author, None, None, timeout=90)
@@ -237,7 +241,9 @@ class MissionChiefMetrics(commands.Cog):
         }
 
         user_id = interaction.user.id
-        text = f"REMINDER to submit your stats in {button.view.channel.mention}"
+        text = (
+            f"MissionChiefMetrics REMINDER to submit your stats in {button.view.channel.mention}"
+        )
         jump_url = button.view.channel.jump_url
         utc_now = datetime.now(tz=timezone.utc)
         time = durations.get(button.label)
@@ -265,6 +271,29 @@ class MissionChiefMetrics(commands.Cog):
         disable_items(button.view)
         await interaction.message.edit(view=button.view)
         button.view.stop()
+        await self.config.member_from_ids(
+            button.view.channel.guild.id, user_id
+        ).reminder_enabled.set(True)
+
+    async def check_reminder_enabled(self, user: discord.Member):
+        cog = self.bot.get_cog("Reminders")
+        reminders = cog.cache.get(user.id)
+        if (
+            not reminders
+            or next(
+                (
+                    reminder
+                    for reminder in reminders
+                    if reminder.content.get("text", "").startswith("MissionChiefMetrics REMINDER")
+                ),
+                None,
+            )
+            is None
+        ):
+            await self.config.member(user).reminder_enabled.set(False)
+            return False
+
+        return True
 
     async def log_new_stats(
         self, user: discord.Member, old_stats: dict[str, int], new_stats: dict[str, int]

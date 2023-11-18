@@ -7,7 +7,9 @@
     "author": [
         "crayyy_zee"
     ],
-    "required_cogs": {},
+    "required_cogs": {
+        "reminder": "https://github.com/AAA3A-AAA3A/AAA3A-cogs"
+    },
     "requirements": [],
     "tags": [
         "MissionChief",
