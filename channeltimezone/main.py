@@ -1,6 +1,7 @@
 import itertools
 import operator
 from datetime import datetime
+from logging import getLogger
 from typing import Any, Callable, Iterable, Optional, TypeVar
 
 import discord
@@ -11,6 +12,8 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
 from redbot.core.utils import menus
+
+log = getLogger("red.bounty.channeltimezone")
 
 _T = TypeVar("_T")
 
@@ -71,7 +74,10 @@ class ChannelTimezone(commands.Cog):
 
     def fuzzy_timezone_search(self, tz: str):
         fuzzy_results = process.extract(
-            tz.replace(" ", "_"), pytz.common_timezones, limit=500, scorer=fuzz.partial_ratio
+            tz.replace(" ", "_"),
+            pytz.common_timezones,
+            limit=500,
+            scorer=fuzz.partial_ratio,
         )
         matches = [x for x in fuzzy_results if x[1] > 98]
         return matches
@@ -96,9 +102,12 @@ class ChannelTimezone(commands.Cog):
             embed_list = []
             for page in cf.pagify(msg, delims=["\n"], page_length=500):
                 e = discord.Embed(
-                    title=f"{len(tz)} results, please be more specific.", description=page
+                    title=f"{len(tz)} results, please be more specific.",
+                    description=page,
                 )
-                e.set_footer(text="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones")
+                e.set_footer(
+                    text="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones"
+                )
                 embed_list.append(e)
             if len(embed_list) == 1:
                 close_control = {"\N{CROSS MARK}": menus.close_menu}
@@ -144,12 +153,37 @@ class ChannelTimezone(commands.Cog):
             f"The time in {tz.zone} is {datetime.now(tz).strftime('%H:%M')}. Last update: <t:{int(datetime.now(tz).timestamp())}:R>"
         )
         await message.pin()
-        await self.config.channel(channel).set({"timezone": tz.zone, "message_id": message.id})
-        await ctx.send(f"Set the timezone for {channel.mention} to {tz}", delete_after=10)
+        await self.config.channel(channel).set(
+            {"timezone": tz.zone, "message_id": message.id}
+        )
+        await ctx.send(
+            f"Set the timezone for {channel.mention} to {tz}", delete_after=10
+        )
 
         self.next_to_edit.clear()
         self.tzloop.restart()
         self.tztask = self.tzloop.get_task()
+
+    @tz.command(name="list")
+    async def tz_list(self, ctx: commands.Context):
+        """List all channel timezones"""
+        all_chans: dict[int, dict[str, str | int]] = await self.config.all_channels()
+        if not all_chans:
+            return await ctx.send("No channel timezones set")
+        all_chans = sorted(all_chans.items(), key=lambda x: x[1]["timezone"])
+        msg = ""
+        for channel_id, data in all_chans:
+            channel = self.bot.get_channel(channel_id)
+            if not channel:
+                await self.config.channel_from_id(channel_id).clear()
+                continue
+            current_time = datetime.now(pytz.timezone(data["timezone"]))
+            msg += f"{channel.mention} - {data['timezone']} - {current_time.strftime('%H:%M')}\nhttps://discord.com/channels/{ctx.guild.id}/{channel_id}/{data['message_id']}\n\n"
+        embed_list = []
+        for page in cf.pagify(msg, delims=["\n"], page_length=500):
+            e = discord.Embed(title="Channel Timezones", description=page)
+            embed_list.append(e)
+        await menus.menu(ctx, embed_list, menus.DEFAULT_CONTROLS)
 
     @tz.command(name="remove")
     async def tz_remove(
@@ -220,7 +254,9 @@ class ChannelTimezone(commands.Cog):
         if not all_chans:
             return
 
-        closest = all_min(all_chans.items(), key=distance_to_hour, sortkey=distance_to_hour)
+        closest = all_min(
+            all_chans.items(), key=distance_to_hour, sortkey=distance_to_hour
+        )
 
         self.next_to_edit = timestamps = dict(
             map(
@@ -234,3 +270,12 @@ class ChannelTimezone(commands.Cog):
 
         diff = distance_to_hour(next(iter(timestamps.items())))
         self.tzloop.change_interval(minutes=diff)
+
+        log.debug(f"Next iteration in {diff} minutes")
+        log.debug(f"Next to edit: {timestamps}")
+
+    @tzloop.error
+    async def tzloop_error(self, error):
+        log.error("Error in timezone loop", exc_info=error)
+        self.tzloop.restart()
+        self.tztask = self.tzloop.get_task()
