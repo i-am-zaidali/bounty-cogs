@@ -302,7 +302,7 @@ class Processor(MixinMeta):
                 except commands.BadArgument:
                     pass
                 else:
-                    if chan.permissions_for(interaction.me).send_messages:
+                    if chan.permissions_for(interaction.ctx.me).send_messages:
                         destination = chan
                         del kwargs["ephemeral"]
 
