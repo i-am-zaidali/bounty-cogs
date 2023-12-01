@@ -1,10 +1,11 @@
+import aiohttp
 import collections
 import functools
 import itertools
 import operator
 import re
 from datetime import datetime, timezone, timedelta
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Literal
 
 import discord
 from redbot.core import Config, commands
@@ -23,6 +24,69 @@ from .views import (
     ViewDisableOnTimeout,
     disable_items,
 )
+
+shorthand_to_state = {
+    "NSW": "New South Wales",
+    "QLD": "Queensland",
+    "SA": "South Australia",
+    "TAS": "Tasmania",
+    "VIC": "Victoria",
+    "WA": "Western Australia",
+    "ACT": "Australian Capital Territory",
+    "NT": "Northern Territory",
+}
+
+austrailian_state_to_postcodes = {
+    "New South Wales": {
+        "postcodes": [
+            {"to": "2599", "from": "1000"},
+            {"to": "2899", "from": "2619"},
+            {"to": "2999", "from": "2921"},
+        ],
+        "shorthand": "NSW",
+    },
+    "Queensland": {
+        "postcodes": [
+            {"to": "4999", "from": "4000"},
+            {"to": "9999", "from": "9000"},
+        ],
+        "shorthand": "QLD",
+    },
+    "South Australia": {
+        "postcodes": [{"to": "5999", "from": "5000"}],
+        "shorthand": "SA",
+    },
+    "Tasmania": {
+        "postcodes": [{"to": "7999", "from": "7000"}],
+        "shorthand": "TAS",
+    },
+    "Victoria": {
+        "postcodes": [
+            {"to": "3999", "from": "3000"},
+            {"to": "8999", "from": "8000"},
+        ],
+        "shorthand": "VIC",
+    },
+    "Western Australia": {
+        "postcodes": [
+            {"to": "6999", "from": "6000"},
+            {"to": "0999", "from": "0900"},
+        ],
+        "shorthand": "WA",
+    },
+    "Australian Capital Territory": {
+        "postcodes": [
+            {"to": "0299", "from": "0200"},
+            {"to": "2618", "from": "2600"},
+            {"to": "2920", "from": "2900"},
+        ],
+        "shorthand": "ACT",
+    },
+    "Northern Territory": {
+        "postcodes": [{"to": "0999", "from": "0800"}],
+        "shorthand": "NT",
+    },
+}
 
 # the format of the stats in a message would be <vehicle name with spaces and/or hyphens> <four spaces> <number>
 base_regex = re.compile(r"(?P<vehicle_name>[a-z0-9A-Z \t\-\/]+)\s{4}(?P<amount>\d+)")
@@ -67,7 +131,7 @@ class MissionChiefMetrics(commands.Cog):
             course_shorthands={},
             course_role=None,
             course_teacher_role=None,
-            # state_roles=[],
+            state_roles=dict.fromkeys(shorthand_to_state.keys(), None),
         )
         self.config.init_custom("message", 3)
         self.config.register_custom("message", view_type=None)
@@ -81,7 +145,9 @@ class MissionChiefMetrics(commands.Cog):
         self.invalidstats_view.stop()
         self.clearornot_view.stop()
 
-    @commands.group(name="missionchiefmetrics", aliases=["mcm"], invoke_without_command=True)
+    @commands.group(
+        name="missionchiefmetrics", aliases=["mcm"], invoke_without_command=True
+    )
     @commands.guild_only()
     async def mcm(self, ctx: commands.Context):
         """Mission Chief Metrics"""
@@ -116,9 +182,108 @@ class MissionChiefMetrics(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if not message.guild or message.author.bot or not message.content:
+        if not message.guild:
             return
 
+        if not message.author.bot and message.content:
+            await self.stats_check(message)
+
+        elif (
+            message.author.bot
+            and not message.content
+            and message.embeds
+            and message.webhook_id
+        ):
+            await self.state_event_check(message)
+
+    async def state_event_check(self, message: discord.Message):
+        chan = await self.config.guild(message.guild).coursechannel()
+        if not message.channel == message.guild.get_channel(chan):
+            return
+        content = message.embeds[0].description
+        # search for postcode in the content which is just 4 digits long and boundary on each side
+
+        postcode: re.Match[str] = re.search(r"\b\d{4}\b", content)
+        admin_channel = self.bot.get_channel(
+            await self.config.guild(message.guild).alertchannel()
+        )
+        if postcode:
+            postcode = postcode.group()
+
+            # find the state that the postcode belongs to with the help of the australian_state_to_postcodes dict
+            state = next(
+                (
+                    data["shorthand"]
+                    for state, data in austrailian_state_to_postcodes.items()
+                    if any(
+                        int(data["from"]) <= int(postcode) <= int(data["to"])
+                        for data in data["postcodes"]
+                    )
+                ),
+                None,
+            )
+
+        else:
+            # if no postcode is found, search for the state name in the content
+            state = next(
+                (
+                    sh
+                    for sh, state in shorthand_to_state.items()
+                    if state.lower() in content.lower().split()
+                    or sh.lower() in content.lower().split()
+                ),
+                None,
+            )
+
+        if state is None:
+            # if no state is found, query the https://digitalapi.auspost.com.au/postcode/search.json API with the content, split by a ','
+            api_key = (await self.bot.get_shared_api_tokens("auspost")).get("key")
+            if api_key:
+                queries = content.strip().split(",")
+                results = []
+                async with aiohttp.ClientSession() as session:
+                    for query in queries:
+                        async with session.get(
+                            "https://digitalapi.auspost.com.au/postcode/search.json",
+                            params={"q": query.strip()},
+                            headers={"AUTH-KEY": api_key},
+                        ) as resp:
+                            if resp.status == 200:
+                                json = await resp.json()
+                                if isinstance(json["localities"], dict):
+                                    results.extend(
+                                        d["state"]
+                                        for d in (
+                                            json["localities"]["locality"]
+                                            if isinstance(
+                                                json["localities"]["locality"], list
+                                            )
+                                            else [json["localities"]["locality"]]
+                                        )
+                                    )
+                if results:
+                    state = collections.Counter(results).most_common(1)[0][0]
+
+        if state is None and admin_channel:
+            await admin_channel.send(
+                f"Could not find state for message <{message.jump_url}>. Please ping manually."
+            )
+
+        elif state is not None:
+            # get the role for the state
+            role = message.guild.get_role(
+                await self.config.guild(message.guild).state_roles.get_raw(state)
+            )
+            if role is None and admin_channel:
+                await admin_channel.send(
+                    f"Could not find role for state {state} in message <{message.jump_url}>. Please ping manually and set up a role with `[p]mcm staterole set`."
+                )
+            elif role is not None:
+                await message.channel.send(
+                    role.mention, allowed_mentions=discord.AllowedMentions(roles=True)
+                )
+
+    async def stats_check(self, message: discord.Message):
         data = await self.config.guild(message.guild).all()
         if not all(
             [
@@ -146,7 +311,9 @@ class MissionChiefMetrics(commands.Cog):
         # if we get here, all lines match the regex
         if (mid := await self.config.member(message.author).message_id()) is not None:
             try:
-                msg = await self.bot.get_channel(data["trackchannel"]).fetch_message(mid)
+                msg = await self.bot.get_channel(data["trackchannel"]).fetch_message(
+                    mid
+                )
                 if not msg.pinned:
                     try:
                         await msg.delete()
@@ -172,7 +339,7 @@ class MissionChiefMetrics(commands.Cog):
             await alertchan.send(
                 embed=discord.Embed(
                     title="Invalid Stats",
-                    description=f"**{message.jump_url}**\n\n"
+                    description=f"**<{message.jump_url}>**\n\n"
                     f"{message.author.mention} has submitted stats for a vehicle that is not in the list of allowed vehicles:\n"
                     f"{cf.humanize_list([vehicle for vehicle in vehicle_amount if vehicle not in vehicles])}\n"
                     f"Use the buttons below to decide what to do.\n\n"
@@ -216,7 +383,13 @@ class MissionChiefMetrics(commands.Cog):
             user=message.author, timeout=30, timeout_message="Timed out."
         )
         new_view.channel = message.channel
-        for duration in ["in 1 week", "in 2 weeks", "in 1 month", "in 3 months", "in 1 year"]:
+        for duration in [
+            "in 1 week",
+            "in 2 weeks",
+            "in 1 month",
+            "in 3 months",
+            "in 1 year",
+        ]:
             but = discord.ui.Button(label=duration, style=discord.ButtonStyle.blurple)
             but.callback = functools.partial(self._duration_callback, but)
             new_view.add_item(but)
@@ -241,16 +414,16 @@ class MissionChiefMetrics(commands.Cog):
         }
 
         user_id = interaction.user.id
-        text = (
-            f"MissionChiefMetrics REMINDER to submit your stats in {button.view.channel.mention}"
-        )
+        text = f"MissionChiefMetrics REMINDER to submit your stats in {button.view.channel.mention}"
         jump_url = button.view.channel.jump_url
         utc_now = datetime.now(tz=timezone.utc)
         time = durations.get(button.label)
         expires_at = utc_now + time
 
         reminders_cog = self.bot.get_cog("Reminders")
-        repeat = reminders_cog.Repeat.from_json([{"type": "sample", "value": {"days": time.days}}])
+        repeat = reminders_cog.Repeat.from_json(
+            [{"type": "sample", "value": {"days": time.days}}]
+        )
 
         content = {
             "type": "text",
@@ -284,7 +457,9 @@ class MissionChiefMetrics(commands.Cog):
                 (
                     reminder
                     for reminder in reminders
-                    if reminder.content.get("text", "").startswith("MissionChiefMetrics REMINDER")
+                    if reminder.content.get("text", "").startswith(
+                        "MissionChiefMetrics REMINDER"
+                    )
                 ),
                 None,
             )
@@ -299,16 +474,27 @@ class MissionChiefMetrics(commands.Cog):
         self, user: discord.Member, old_stats: dict[str, int], new_stats: dict[str, int]
     ):
         """Log the new stats of a user"""
-        logchan = self.bot.get_channel((await self.config.guild(user.guild).logchannel()))
+        logchan = self.bot.get_channel(
+            (await self.config.guild(user.guild).logchannel())
+        )
         assert isinstance(logchan, discord.abc.GuildChannel)
         diff = {
             vehicle: v2 - v1
-            for vehicle, (v1, v2) in union_dicts(old_stats, new_stats, fillvalue=0).items()
+            for vehicle, (v1, v2) in union_dicts(
+                old_stats, new_stats, fillvalue=0
+            ).items()
         }
         vehicles = await self.config.guild(user.guild).vehicles()
         tab_data = [
-            (f"+ {k}" if v3 > 0 else f"- {k}" if v3 < 0 else f"  {k}", v1, v2, f"{v3:+}")
-            for (k, (v1, v2, v3)) in union_dicts(old_stats, new_stats, diff, fillvalue=0).items()
+            (
+                f"+ {k}" if v3 > 0 else f"- {k}" if v3 < 0 else f"  {k}",
+                v1,
+                v2,
+                f"{v3:+}",
+            )
+            for (k, (v1, v2, v3)) in union_dicts(
+                old_stats, new_stats, diff, fillvalue=0
+            ).items()
             if k in vehicles
         ]
         if not tab_data:
@@ -362,7 +548,9 @@ class MissionChiefMetrics(commands.Cog):
         """Vehicle management"""
         return await ctx.send_help()
 
-    @mcm_vehicle.group(name="category", aliases=["categories", "cat"], invoke_without_command=True)
+    @mcm_vehicle.group(
+        name="category", aliases=["categories", "cat"], invoke_without_command=True
+    )
     async def mcm_vehicle_category(self, ctx: commands.Context):
         """Vehicle category management"""
         return await ctx.send_help()
@@ -371,7 +559,8 @@ class MissionChiefMetrics(commands.Cog):
     async def mcm_vehicle_category_create(self, ctx: commands.Context):
         """Create a vehicle category"""
         view.message = await ctx.send(
-            "Create categories using the button below:", view=(view := NewCategory(self, ctx))
+            "Create categories using the button below:",
+            view=(view := NewCategory(self, ctx)),
         )
 
     @mcm_vehicle_category.command(name="delete")
@@ -442,7 +631,9 @@ class MissionChiefMetrics(commands.Cog):
         await ctx.send("- " + "\n- ".join(vehicles))
 
     @mcm_vehicle.command(name="clear", usage="")
-    async def mcm_vehicle_clear(self, ctx: commands.Context, ARE_YOU_SURE: bool = False):
+    async def mcm_vehicle_clear(
+        self, ctx: commands.Context, ARE_YOU_SURE: bool = False
+    ):
         """Clear the list of allowed vehicles"""
         if not ARE_YOU_SURE:
             return await ctx.send(
@@ -451,35 +642,40 @@ class MissionChiefMetrics(commands.Cog):
         await self.config.guild(ctx.guild).vehicles.clear()
         await ctx.tick()
 
-    # @mcm.group(name="stateroles", aliases=["sr", "staterole"], invoke_without_command=True)
-    # async def mcm_sr(self, ctx: commands.Context):
-    #     """State role management"""
-    #     return await ctx.send_help()
+    @mcm.group(
+        name="stateroles", aliases=["sr", "staterole"], invoke_without_command=True
+    )
+    async def mcm_sr(self, ctx: commands.Context):
+        """State role management"""
+        return await ctx.send_help()
 
-    # @mcm_sr.command(name="add")
-    # async def mcm_sr(self, ctx:commands.Context, *roles: discord.Role):
-    #     """Add a state role"""
-    #     async with self.config.guild(ctx.guild).state_roles() as sr:
-    #         sr.extend(map(lambda x: x.id, roles))
-    #         roles = list(set(sr))
-    #     await ctx.tick()
+    @mcm_sr.command(name="set")
+    async def mcm_sr_set(
+        self,
+        ctx: commands.Context,
+        state: Literal["NSW", "QLD", "SA", "TAS", "VIC", "WA", "ACT", "NT"],
+        role: discord.Role,
+    ):
+        """Add a state role"""
+        async with self.config.guild(ctx.guild).state_roles() as sr:
+            sr.update({state: role.id})
+        await ctx.tick()
 
-    # @mcm_sr.command(name="remove")
-    # async def mcm_sr_remove(self, ctx: commands.Context, *roles: discord.Role):
-    #     """Remove a state role"""
-    #     async with self.config.guild(ctx.guild).state_roles() as sr:
-    #         for role in roles:
-    #             if role.id in sr:
-    #                 sr.remove(role.id)
-    #     await ctx.tick()
-
-    # @mcm_sr.command(name="list")
-    # async def mcm_sr_list(self, ctx: commands.Context):
-    #     """List the state roles"""
-    #     roles = await self.config.guild(ctx.guild).state_roles()
-    #     if not roles:
-    #         return await ctx.send("No state roles have been added yet.")
-    #     await ctx.send("- " + "\n- ".join(map(lambda x: ctx.guild.get_role(x).mention, roles)))
+    @mcm_sr.command(name="list")
+    async def mcm_sr_list(self, ctx: commands.Context):
+        """List the state roles"""
+        roles = await self.config.guild(ctx.guild).state_roles()
+        if not roles:
+            return await ctx.send("No state roles have been added yet.")
+        await ctx.send(
+            "- "
+            + "\n- ".join(
+                map(
+                    lambda x: f"**{shorthand_to_state[x[0]]}**: {getattr(ctx.guild.get_role(x[1]),'mention', 'Not set')}",
+                    roles.items(),
+                )
+            )
+        )
 
     @mcm.group(name="channel", aliases=["channels", "ch"], invoke_without_command=True)
     @commands.admin()
@@ -488,25 +684,33 @@ class MissionChiefMetrics(commands.Cog):
         return await ctx.send_help()
 
     @mcm_channel.command(name="track")
-    async def mcm_channel_track(self, ctx: commands.Context, channel: discord.TextChannel):
+    async def mcm_channel_track(
+        self, ctx: commands.Context, channel: discord.TextChannel
+    ):
         """Set the channel to track stats in"""
         await self.config.guild(ctx.guild).trackchannel.set(channel.id)
         await ctx.tick()
 
     @mcm_channel.command(name="alert")
-    async def mcm_channel_alert(self, ctx: commands.Context, channel: discord.TextChannel):
+    async def mcm_channel_alert(
+        self, ctx: commands.Context, channel: discord.TextChannel
+    ):
         """Set the channel to alert in"""
         await self.config.guild(ctx.guild).alertchannel.set(channel.id)
         await ctx.tick()
 
     @mcm_channel.command(name="log")
-    async def mcm_channel_log(self, ctx: commands.Context, channel: discord.TextChannel):
+    async def mcm_channel_log(
+        self, ctx: commands.Context, channel: discord.TextChannel
+    ):
         """Set the channel to log in"""
         await self.config.guild(ctx.guild).logchannel.set(channel.id)
         await ctx.tick()
 
     @mcm_channel.command(name="course")
-    async def mcm_courses_channel(self, ctx: commands.Context, channel: discord.TextChannel):
+    async def mcm_courses_channel(
+        self, ctx: commands.Context, channel: discord.TextChannel
+    ):
         """Set the channel to announce courses in"""
         await self.config.guild(ctx.guild).coursechannel.set(channel.id)
         await ctx.tick()
@@ -519,7 +723,9 @@ class MissionChiefMetrics(commands.Cog):
         data.pop("vehicles")
         data.pop("vehicle_categories")
         for name, channel_id in data.items():
-            embed.add_field(name=name, value=f"<#{channel_id}>" if channel_id else "Not set")
+            embed.add_field(
+                name=name, value=f"<#{channel_id}>" if channel_id else "Not set"
+            )
         await ctx.send(embed=embed)
 
     @mcm.group(name="userstats", aliases=["us"], invoke_without_command=True)
@@ -537,7 +743,9 @@ class MissionChiefMetrics(commands.Cog):
     ):
         """Show the stats of a user"""
         if isinstance(user_or_role, discord.Role) and len(userlist):
-            raise commands.BadArgument("You cannot specify a role and users at the same time.")
+            raise commands.BadArgument(
+                "You cannot specify a role and users at the same time."
+            )
 
         users = (
             user_or_role.members
@@ -567,7 +775,9 @@ class MissionChiefMetrics(commands.Cog):
         source = ListPageSource(all_users, per_page=1)
 
         async def format_page(
-            s: ListPageSource, menu: Paginator, entry: tuple[Optional[discord.Member], dict]
+            s: ListPageSource,
+            menu: Paginator,
+            entry: tuple[Optional[discord.Member], dict],
         ):
             if not entry[1]:
                 return discord.Embed(
@@ -597,7 +807,8 @@ class MissionChiefMetrics(commands.Cog):
                     "uncategorised": {
                         vehicle: entry[1].get(vehicle, 0)
                         for vehicle in vehicles
-                        if vehicle not in itertools.chain.from_iterable(categories.values())
+                        if vehicle
+                        not in itertools.chain.from_iterable(categories.values())
                         and entry[1].get(vehicle, 0) > 0
                     }
                 }
@@ -619,6 +830,13 @@ class MissionChiefMetrics(commands.Cog):
                 else f"No stats available for this category."
             )
 
+            not_available = [user[0].mention for user in all_users if not user[1]]
+            desc = (
+                f"{cf.humanize_list(not_available)} {'have' if len(not_available) > 1 else 'has'} no stats available.\n\n"
+                if not entry[0] and not_available
+                else ""
+            )
+
             embed = discord.Embed(
                 title=f"{entry[0]}'s stats"
                 if entry[0]
@@ -627,7 +845,7 @@ class MissionChiefMetrics(commands.Cog):
                     if isinstance(user_or_role, discord.Role)
                     else "Combined stats of all users"
                 ),
-                description=f"**Uncategorised**\nTotal: {category_totals.pop('uncategorised')}\n{description}",
+                description=f"{desc}**Uncategorised**\nTotal: {category_totals.pop('uncategorised')}\n{description}",
             )
             for cat, s in category_totals.items():
                 embed.add_field(
@@ -687,25 +905,38 @@ class MissionChiefMetrics(commands.Cog):
     ):
         """Update the stats of a user
 
-        Be aware, this does not replace the user's existing stats, it only updates them"""
+        Be aware, this does not replace the user's existing stats, it only updates them
+        """
         try:
             vehicle_amount = self.parse_vehicles(vehicles)
         except ValueError as e:
             return await ctx.send(e.args[0])
 
-        await self.log_new_stats(user, await self.config.member(user).stats(), vehicle_amount)
+        await self.log_new_stats(
+            user, await self.config.member(user).stats(), vehicle_amount
+        )
         await self.config.member(user).stats.set(vehicle_amount)
         await ctx.tick()
 
     @mcm.group(name="courses", aliases=["c", "course"], invoke_without_command=True)
     @teacher_check()
     async def mcm_courses(
-        self, ctx: commands.Context, shorthand: str, days: int, cost: int, *, location: str
+        self,
+        ctx: commands.Context,
+        shorthand: str,
+        days: int,
+        cost: int,
+        *,
+        location: str,
     ):
         """Ping for a course announcement
 
         Use subcommands for more options"""
-        if not (role := ctx.guild.get_role((await self.config.guild(ctx.guild).course_role()))):
+        if not (
+            role := ctx.guild.get_role(
+                (await self.config.guild(ctx.guild).course_role())
+            )
+        ):
             return await ctx.send("The course ping role has not been set yet.")
 
         if not (
@@ -715,7 +946,9 @@ class MissionChiefMetrics(commands.Cog):
         ):
             return await ctx.send("That course shorthand does not exist.")
 
-        channel = ctx.guild.get_channel(await self.config.guild(ctx.guild).coursechannel())
+        channel = ctx.guild.get_channel(
+            await self.config.guild(ctx.guild).coursechannel()
+        )
         embed = discord.Embed(
             title="NEW COURSE!",
             description=f"New course started!\n\n"
@@ -727,10 +960,14 @@ class MissionChiefMetrics(commands.Cog):
         )
 
         await (channel or ctx).send(
-            role.mention, embed=embed, allowed_mentions=discord.AllowedMentions(roles=True)
+            role.mention,
+            embed=embed,
+            allowed_mentions=discord.AllowedMentions(roles=True),
         )
 
-    @mcm_courses.group(name="shorthand", aliases=["shorthands", "sh"], invoke_without_command=True)
+    @mcm_courses.group(
+        name="shorthand", aliases=["shorthands", "sh"], invoke_without_command=True
+    )
     async def mcm_courses_shorthand(self, ctx: commands.Context):
         """Course shorthand management"""
         return await ctx.send_help()
@@ -767,7 +1004,9 @@ class MissionChiefMetrics(commands.Cog):
         await ctx.send(message)
 
     @mcm_courses.command(name="role")
-    async def mcm_courses_role(self, ctx: commands.Context, role: Optional[discord.Role] = None):
+    async def mcm_courses_role(
+        self, ctx: commands.Context, role: Optional[discord.Role] = None
+    ):
         """Set the role to ping for courses"""
         if role is None:
             return await ctx.send(
@@ -812,7 +1051,9 @@ class MissionChiefMetrics(commands.Cog):
         # the page source should show the total_stats of each vehicle in a paginated way. On the last page, it should just have the total count of each category.
         # source = ListPageSource(list(total_stats.items()), per_page=10)
         items = list(total_stats.items()) + list(category_counts)
-        source = GroupByPageSource(items, key=lambda x: x[0] in vehicles, per_page=20, sort=False)
+        source = GroupByPageSource(
+            items, key=lambda x: x[0] in vehicles, per_page=20, sort=False
+        )
 
         async def format_page(
             s: ListPageSource, menu: Paginator, entry: tuple[str, tuple[str, int]]
@@ -822,7 +1063,10 @@ class MissionChiefMetrics(commands.Cog):
                 description=cf.box(
                     tabulate(
                         entry[1],
-                        headers=["Vehicle" if entry.key is True else "Category", "Amount"],
+                        headers=[
+                            "Vehicle" if entry.key is True else "Category",
+                            "Amount",
+                        ],
                         tablefmt="fancy_grid",
                         colalign=("left", "center"),
                     )
@@ -849,7 +1093,9 @@ class MissionChiefMetrics(commands.Cog):
                     continue
                 total_stats[vehicle] += amount
 
-        csv = "\n".join([f"{vehicle},{amount}" for vehicle, amount in total_stats.items()])
+        csv = "\n".join(
+            [f"{vehicle},{amount}" for vehicle, amount in total_stats.items()]
+        )
         await ctx.send(file=cf.text_to_file(csv, filename="stats.csv"))
 
     @mcm.command(name="purge", aliases=["clearall"], usage="")
