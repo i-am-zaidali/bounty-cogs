@@ -19,6 +19,7 @@ class BanOnLeave(commands.Cog):
     @commands.group(aliases=["bol"])
     async def banonleave(self, ctx: commands.Context):
         """Ban On Leave"""
+        return await ctx.send_help()
 
     @banonleave.command(name="toggle")
     @commands.mod_or_permissions(ban_members=True)
