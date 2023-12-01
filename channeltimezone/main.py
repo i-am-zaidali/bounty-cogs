@@ -183,7 +183,9 @@ class ChannelTimezone(commands.Cog):
         for page in cf.pagify(msg, delims=["\n"], page_length=500):
             e = discord.Embed(title="Channel Timezones", description=page)
             embed_list.append(e)
-        await menus.menu(ctx, embed_list, menus.DEFAULT_CONTROLS)
+        await menus.menu(
+            ctx, embed_list, menus.DEFAULT_CONTROLS if len(embed_list) > 1 else {}
+        )
 
     @tz.command(name="remove")
     async def tz_remove(
@@ -231,15 +233,30 @@ class ChannelTimezone(commands.Cog):
             try:
                 message = await channel.fetch_message(message_id)
             except discord.NotFound:
-                message = await channel.send(
-                    f"The time in {tz.zone} is {datetime.now(tz).strftime('%H:%M')}. Last update: <t:{int(now.timestamp())}:R>"
-                )
-                await message.pin(reason="Timezone message")
+                try:
+                    message = await channel.send(
+                        f"The time in {tz.zone} is {datetime.now(tz).strftime('%H:%M')}. Last update: <t:{int(now.timestamp())}:R>"
+                    )
+                    await message.pin(reason="Timezone message")
+                except Exception as e:
+                    log.error(
+                        f"Error while sending/pinning timezone message in {channel_id}",
+                        exc_info=e,
+                    )
+                    continue
                 await self.config.channel(channel).message_id.set(message.id)
             else:
-                await message.edit(
-                    content=f"The time in {tz.zone} is {datetime.now(tz).strftime('%H:%M')}. Last update: <t:{int(now.timestamp())}:R>"
-                )
+                try:
+                    await message.edit(
+                        content=f"The time in {tz.zone} is {datetime.now(tz).strftime('%H:%M')}. Last update: <t:{int(now.timestamp())}:R>"
+                    )
+
+                except Exception as e:
+                    log.error(
+                        f"Error while editing timezone message in {channel_id}",
+                        exc_info=e,
+                    )
+                    continue
 
         else:
             self.next_to_edit.clear()
