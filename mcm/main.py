@@ -229,7 +229,7 @@ class MissionChiefMetrics(commands.Cog):
                 (
                     sh
                     for sh, state in shorthand_to_state.items()
-                    if state.lower() in content.lower().split()
+                    if state.lower() in content.lower()
                     or sh.lower() in content.lower().split()
                 ),
                 None,
