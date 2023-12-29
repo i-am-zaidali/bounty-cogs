@@ -285,7 +285,7 @@ class InvalidStatsView(View):
 
         desc = msg.embeds[0].description.splitlines()
 
-        url = desc[0].strip("**")
+        url = desc[0].strip("**").replace("<", "").replace(">", "")
 
         unknown_vehicles = dehumanize_list(desc[3].lower())
 

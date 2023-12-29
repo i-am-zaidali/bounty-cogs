@@ -339,7 +339,7 @@ class MissionChiefMetrics(commands.Cog):
             await alertchan.send(
                 embed=discord.Embed(
                     title="Invalid Stats",
-                    description=f"**<{message.jump_url}>**\n\n"
+                    description=f"**{message.jump_url}**\n\n"
                     f"{message.author.mention} has submitted stats for a vehicle that is not in the list of allowed vehicles:\n"
                     f"{cf.humanize_list([vehicle for vehicle in vehicle_amount if vehicle not in vehicles])}\n"
                     f"Use the buttons below to decide what to do.\n\n"
