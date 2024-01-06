@@ -26,7 +26,13 @@ def pythonize_page(page: dict):
 
 
 class Paginator(commands.Cog):
-    """A cog that paginates content and embed given by you."""
+    """A cog that paginates content and embed given by you.
+    
+    JSON example:
+        https://pastebin.com/DiuFREBW
+        
+    YAML example:
+        https://pastebin.com/e9ZvhYUn"""
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -52,8 +58,15 @@ class Paginator(commands.Cog):
         ...
 
     @commands.group(name="paginator", invoke_without_command=True, aliases=["paginate", "page"])
+    @commands.mod()
     async def pg(self, ctx: commands.Context):
-        """Commands to manage paginators."""
+        """Commands to manage paginators.
+        
+        JSON example:
+            https://pastebin.com/DiuFREBW
+        
+        YAML example:
+            https://pastebin.com/e9ZvhYUn"""
         return await ctx.send_help()
 
     @pg.command(name="start")
@@ -161,7 +174,7 @@ class Paginator(commands.Cog):
         If `index` is not provided, the page will be added to the end of the paginator group.
         Otherwise, the page will be added at the specified index and the page on that index and all the pages after it will be shifted one index ahead.
 
-        Example link: https://pastebin.com/DiuFREBW
+        Example JSON: https://pastebin.com/DiuFREBW
         """
         if index and index < 1:
             return await ctx.send(cf.error("Index cannot be less than 1."))
@@ -205,7 +218,9 @@ class Paginator(commands.Cog):
         The `page` argument should be a pastebin link containing valid yaml.
         If `index` is not provided, the page will be added to the end of the paginator group.
         Otherwise, the page will be added at the specified index and the page on that index and all the pages after it will be shifted one index ahead.
-        """
+        
+        
+        Example YAML: https://pastebin.com/e9ZvhYUn"""
         if index and index < 1:
             return await ctx.send(cf.error("Index cannot be less than 1."))
 
