@@ -203,6 +203,7 @@ class TicketMaster(commands.Cog):
     async def force_check(self, ctx: commands.Context):
         """Force a check for new events"""
         await self.check_events()
+        await ctx.tick()
 
     @tickets.command(name="interval")
     async def interval(
