@@ -178,7 +178,9 @@ class TicketMaster(commands.Cog):
     async def add_artist(self, ctx: commands.Context, *, artist: str):
         """Add an artist to the list of artists to watch"""
         async with self.config.guild(ctx.guild).artists() as artists:
-            artists.append(list(set(artists).union({artist}).difference(artists)))
+            if artist in artists:
+                return await ctx.send(f"{artist} is already being watched")
+            artists.append(artist)
         await ctx.send(f"Added {artist} to the list of artists to watch")
 
     @artist.command(name="remove")
