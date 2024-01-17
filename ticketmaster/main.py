@@ -132,6 +132,7 @@ class TicketMaster(commands.Cog):
                 "onsaleStartDateTime": datetime.datetime.now(
                     datetime.timezone.utc
                 ).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "size": "100",
             },
         ) as resp:
             if not resp.status == 200:
@@ -229,9 +230,21 @@ class TicketMaster(commands.Cog):
         self.check_events.restart()
         self.task = self.check_events.get_task()
 
+    @tickets.command(name="showsettings", aliases=["ss"])
+    async def show_settings(self, ctx: commands.Context):
+        """Show the current settings"""
+        guild = await self.config.guild(ctx.guild).all()
+        await ctx.send(
+            f"Announcement Channel: {ctx.guild.get_channel(guild['announce_channel']).mention if guild['announce_channel'] else 'None'}\n"
+            f"Announcement Role: {ctx.guild.get_role(guild['announce_role']).mention if guild['announce_role'] else 'None'}\n"
+            f"Artists: {cf.humanize_list(guild['artists']) or 'None'}\n"
+            f"Announced Events: {len(guild['announced'])}"
+        )
+
     @tasks.loop(seconds=1)
     async def check_events(self):
         if not (all_guilds := await self.config.all_guilds()):
+            log.debug("No guild data at all.")
             return
 
         if not (
@@ -256,27 +269,30 @@ class TicketMaster(commands.Cog):
         log.error("Error in check_events", exc_info=error)
 
     async def filter_and_announce_events(self, guilds: dict, events: list[dict]):
+        log.debug(f"Got a total of {len(events)} events")
         for guild_id, guild in guilds.items():
             this_guild = []
             for event in filter(
                 lambda x: x["id"] not in guild["announced"],
                 events,
             ):
-                if all(
-                    [
-                        guild["artists"],
-                        not (
-                            event_artists := list(
-                                filter(
-                                    lambda y: set(
-                                        event["name"].lower().split()
-                                    ).intersection(y.lower().split()),
-                                    guild["artists"],
+                event_artists = []
+                if guild["artists"] and not (
+                    event_artists := list(
+                        filter(
+                            lambda y: len(
+                                set(event["name"].lower().split()).intersection(
+                                    y.lower().split()
                                 )
                             )
-                        ),
-                    ]
+                            >= 2,
+                            guild["artists"],
+                        )
+                    )
                 ):
+                    log.debug(
+                        f"This event was a miss: {event.get('name', event['id'])}"
+                    )
                     continue
                 required_data = {
                     "id": event["id"],
@@ -295,14 +311,16 @@ class TicketMaster(commands.Cog):
                 this_guild.append(required_data)
 
             if not this_guild:
+                log.debug(f"No events to announce for guild {guild_id} :(")
                 continue
 
             await self.announce_events(guild_id, this_guild)
 
     async def announce_events(self, guild_id: int, events: list[dict]):
         guild = self.bot.get_guild(guild_id)
-        channel = guild.get_channel((await self.config.guild(guild).anounce_channel()))
+        channel = guild.get_channel((await self.config.guild(guild).announce_channel()))
         if not channel:
+            log.debug(f"Announcement channel not found for guild {guild} ({guild_id})")
             return
         role = guild.get_role((await self.config.guild(guild).announce_role()))
         async for chunk in AsyncIter(
@@ -325,7 +343,7 @@ class TicketMaster(commands.Cog):
                     .set_thumbnail(url=event["images"][0]["url"])
                     .add_field(
                         name="Highlighted Artists",
-                        value=cf.humanize_list(artists) or "None",
+                        value=artists or "None",
                     )
                     .add_field(
                         name="Price Range",
@@ -376,11 +394,13 @@ class TicketMaster(commands.Cog):
                 embeds=embeds,
                 allowed_mentions=discord.AllowedMentions(roles=True),
             )
-            async with self.config.guild(guild).announced() as announced:
-                announced.extend(
-                    list(
-                        set(announced)
-                        .union({event["id"] for event in chunk})
-                        .difference(announced)
-                    )
+        async with self.config.guild(guild).announced() as announced:
+            announced.extend(
+                list(
+                    set(announced)
+                    .union(ids := {event["id"] for event in events})
+                    .difference(announced)
                 )
+            )
+
+        log.debug(f"Announced {len(events)} events for guild {guild_id}: {ids}")
