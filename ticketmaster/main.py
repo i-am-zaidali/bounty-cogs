@@ -157,6 +157,7 @@ class TicketMaster(commands.Cog):
         pass
 
     @tickets.command(name="announcechannel", aliases=["anchan"])
+    @commands.guild_only()
     async def announce_channel(
         self, ctx: commands.Context, channel: discord.TextChannel
     ):
@@ -171,11 +172,13 @@ class TicketMaster(commands.Cog):
         await ctx.send(f"Set the announcement role to {role.mention}")
 
     @tickets.group(name="artist", aliases=["artists"], invoke_without_command=True)
+    @commands.guild_only()
     async def artist(self, ctx: commands.Context):
         """Manage artists"""
         pass
 
     @artist.command(name="add")
+    @commands.guild_only()
     async def add_artist(self, ctx: commands.Context, *, artist: str):
         """Add an artist to the list of artists to watch"""
         async with self.config.guild(ctx.guild).artists() as artists:
@@ -185,6 +188,7 @@ class TicketMaster(commands.Cog):
         await ctx.send(f"Added {artist} to the list of artists to watch")
 
     @artist.command(name="remove")
+    @commands.guild_only()
     async def remove_artist(self, ctx: commands.Context, *, artist: str):
         """Remove an artist from the list of artists to watch"""
         async with self.config.guild(ctx.guild).artists() as artists:
@@ -195,6 +199,7 @@ class TicketMaster(commands.Cog):
         await ctx.send(f"Removed {artist} from the list of artists to watch")
 
     @artist.command(name="list")
+    @commands.guild_only()
     async def list_artists(self, ctx: commands.Context):
         """List the artists being watched"""
         artists = await self.config.guild(ctx.guild).artists()
