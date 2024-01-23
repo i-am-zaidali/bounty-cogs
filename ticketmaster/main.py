@@ -344,11 +344,11 @@ class TicketMaster(commands.Cog):
             log.debug(f"Announcement channel not found for guild {guild} ({guild_id})")
             return
         role = guild.get_role((await self.config.guild(guild).announce_role()))
-        async for chunk in AsyncIter(
+        async for cind, chunk in AsyncIter(
             (lambda x: (x[i : i + 5] for i in range(0, len(x), 5)))(events),
             delay=10,
             steps=2,
-        ):
+        ).enumerate():
             embeds = []
             for event in chunk:
                 artists = cf.humanize_list(event["artists"])
@@ -375,7 +375,11 @@ class TicketMaster(commands.Cog):
                     )
                     .add_field(
                         name="Date(s)",
-                        value=f"<t:{int(datetime.datetime.strptime(event['dates'].get('start', {}).get('dateTime'), '%Y-%m-%dT%H:%M:%SZ').timestamp())}:F>"
+                        value=(
+                            f"<t:{int(datetime.datetime.strptime(event['dates'].get('start', {}).get('dateTime', '2024-08-10T23:30:00Z'), '%Y-%m-%dT%H:%M:%SZ').timestamp())}:F>"
+                            if not event.get("dates", {}).get("timeTBA")
+                            else f"{event.get('dates', {}).get('start', {}).get('localDate')}, Time TBA"
+                        )
                         + (
                             f"- <t:{int(datetime.datetime.strptime(event['dates'].get('end', {}).get('dateTime'), '%Y-%m-%dT%H:%M:%SZ').timestamp())}:F>"
                             if event.get("dates", {}).get("spanMultipleDays")
@@ -395,23 +399,30 @@ class TicketMaster(commands.Cog):
                         value=f"Start: <t:{int(datetime.datetime.strptime(event['sales']['public']['startDateTime'], '%Y-%m-%dT%H:%M:%SZ').timestamp())}:F>\n"
                         f"End: <t:{int(datetime.datetime.strptime(event['sales']['public']['endDateTime'], '%Y-%m-%dT%H:%M:%SZ').timestamp())}:F>\n\n",
                     )
-                    .add_field(
-                        name="Presales",
+                )
+
+                for i, chunk in enumerate(
+                    (lambda x: (x[i : i + 6] for i in range(0, len(x), 6)))(
+                        event["sales"].get("presales", [])
+                    ),
+                    1,
+                ):
+                    embed.add_field(
+                        name="Presales" + (" continued..." if i > 1 else ""),
                         value="\n".join(
                             f"{ind}. {presale['name']}:\n"
                             f"\tStart: <t:{int(datetime.datetime.strptime(presale['startDateTime'], '%Y-%m-%dT%H:%M:%SZ').timestamp())}:F>\n"
                             f"\tEnd: <t:{int(datetime.datetime.strptime(presale['endDateTime'], '%Y-%m-%dT%H:%M:%SZ').timestamp())}:F>\n"
                             f"\tURL: {presale.get('url', 'NO URL FOUND')}\n\n"
-                            for ind, presale in enumerate(
-                                event["sales"].get("presales", []), 1
-                            )
+                            for ind, presale in enumerate(chunk, i * 6 - 5)
                         ),
                     )
-                    .add_field(name="URL", value=event["url"])
-                )
+
+                embed.add_field(name="URL", value=event["url"])
+
                 embeds.append(embed)
             await channel.send(
-                content=getattr(role, "mention", ""),
+                content=getattr(role, "mention", "") if not cind else "",
                 embeds=embeds,
                 allowed_mentions=discord.AllowedMentions(roles=True),
             )
