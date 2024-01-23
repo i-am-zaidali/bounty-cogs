@@ -2,6 +2,7 @@ import aiohttp
 import collections
 import datetime
 from discord.ext import tasks
+import itertools
 from redbot.core.bot import Red
 from redbot.core import commands, Config
 from redbot.core.utils import chat_formatting as cf, AsyncIter
@@ -124,7 +125,7 @@ class TicketMaster(commands.Cog):
         self.task.cancel()
         await self.session.close()
 
-    async def fetch_events(self):
+    async def fetch_events(self, **kwargs):
         async with self.session.get(
             "/discovery/v2/events.json",
             params={
@@ -133,6 +134,8 @@ class TicketMaster(commands.Cog):
                     datetime.timezone.utc
                 ).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "size": "100",
+                # "segmentId": ["KZFzniwnSyZfZ7v7nJ"],
+                # "subGenreId": ["KZazBEonSMnZfZ7vFE1"],
             },
         ) as resp:
             if not resp.status == 200:
@@ -263,35 +266,48 @@ class TicketMaster(commands.Cog):
             log.debug("No guilds with announcement channels set")
             return
 
-        events = await self.fetch_events()
-        if not events:
+        nfl = await self.fetch_events(subGenreId=["KZazBEonSMnZfZ7vF1E"])
+        concerts = await self.fetch_events(segmentId=["KZFzniwnSyZfZ7v7nJ"])
+        if not nfl and not concerts:
             log.debug("No events found")
             return
-        await self.filter_and_announce_events(all_guilds, events["_embedded"]["events"])
+        await self.filter_and_announce_events(
+            all_guilds,
+            nfl=(nfl or {}).get("_embedded", {}).get("events", {}),
+            concerts=(concerts or {}).get("_embedded", {}).get("events", {}),
+        )
 
     @check_events.error
     async def check_events_error(self, error):
         log.error("Error in check_events", exc_info=error)
 
-    async def filter_and_announce_events(self, guilds: dict, events: list[dict]):
-        log.debug(f"Got a total of {len(events)} events")
+    async def filter_and_announce_events(
+        self, guilds: dict, nfl: list[dict], concerts: list[dict]
+    ):
+        log.debug(
+            f"Got a total of {len(nfl + concerts)} events: {len(nfl)} NFL, {len(concerts)} concerts"
+        )
         for guild_id, guild in guilds.items():
             this_guild = []
             for event in filter(
                 lambda x: x["id"] not in guild["announced"],
-                events,
+                itertools.chain(nfl, concerts),
             ):
                 event_artists = []
-                if guild["artists"] and not (
-                    event_artists := list(
-                        filter(
-                            lambda y: len(
-                                set(event["name"].lower().split()).intersection(
-                                    y.lower().split()
+                if (
+                    event not in nfl
+                    and guild["artists"]
+                    and not (
+                        event_artists := list(
+                            filter(
+                                lambda y: len(
+                                    set(event["name"].lower().split()).intersection(
+                                        y.lower().split()
+                                    )
                                 )
+                                >= 2,
+                                guild["artists"],
                             )
-                            >= 2,
-                            guild["artists"],
                         )
                     )
                 ):
