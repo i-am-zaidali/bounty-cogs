@@ -134,6 +134,7 @@ class TicketMaster(commands.Cog):
                     datetime.timezone.utc
                 ).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "size": "100",
+                **kwargs
                 # "segmentId": ["KZFzniwnSyZfZ7v7nJ"],
                 # "subGenreId": ["KZazBEonSMnZfZ7vFE1"],
             },
@@ -273,8 +274,8 @@ class TicketMaster(commands.Cog):
             return
         await self.filter_and_announce_events(
             all_guilds,
-            nfl=(nfl or {}).get("_embedded", {}).get("events", {}),
-            concerts=(concerts or {}).get("_embedded", {}).get("events", {}),
+            nfl=(nfl or {}).get("_embedded", {}).get("events", []),
+            concerts=(concerts or {}).get("_embedded", {}).get("events", []),
         )
 
     @check_events.error
@@ -293,6 +294,7 @@ class TicketMaster(commands.Cog):
                 lambda x: x["id"] not in guild["announced"],
                 itertools.chain(nfl, concerts),
             ):
+                log.debug(f"Applying filter to event: {event['id']}")
                 event_artists = []
                 if (
                     event not in nfl
@@ -328,7 +330,7 @@ class TicketMaster(commands.Cog):
                     "artists": event_artists,
                     "url": event.get("url", ""),
                 }
-                log.debug(f"Found event: {required_data}")
+                log.debug(f"Event passed filter: {required_data}")
                 this_guild.append(required_data)
 
             if not this_guild:
@@ -421,6 +423,7 @@ class TicketMaster(commands.Cog):
                 embed.add_field(name="URL", value=event["url"])
 
                 embeds.append(embed)
+                log.debug(f"Embed created for event: {event['id']}")
             await channel.send(
                 content=getattr(role, "mention", "") if not cind else "",
                 embeds=embeds,
