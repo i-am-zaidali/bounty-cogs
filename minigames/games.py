@@ -283,7 +283,7 @@ class CTW:  # calculate to win # should have 3 modes: easy, medium, hard # compl
             correct = f"{pred.result:.2g}" == f"{solution:.2g}"
 
         if correct:
-            return await message.reply(
+            return await ctx.send(
                 content=f"Congrats! {message.author.mention} got the correct answer. The answer was {solution:2g}.",
                 embed=None,
             )
