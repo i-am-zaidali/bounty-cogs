@@ -325,7 +325,8 @@ class FTR(discord.ui.View):
             description=f"Whoever clicks first, WINS!\nCurrent winner is: {getattr(self.lastwinner, 'mention', 'No one')}",
         ).set_footer(
             text=f"Total wins: {self.wins.get(str(getattr(self.lastwinner, 'id', None)), 0)}"
-        )
+        ).set_thumbnail(url=(self.lastwinner or getattr(ctx, "author", getattr(interaction, "user", None))).display_avatar.url)
+        
         await (ctx or interaction.followup).send(embed=embed, view=self)
 
     @discord.ui.button(label="CLICK HERE!")
