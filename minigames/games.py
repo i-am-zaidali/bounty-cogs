@@ -265,14 +265,14 @@ class CTW:  # calculate to win # should have 3 modes: easy, medium, hard # compl
             )
         )
         message = await ctx.send(embed=embed)
-        pred = MessagePredicate.valid_float(ctx)
+        pred = MessagePredicate.valid_float(channel=ctx.channel)
         try:
-            await ctx.bot.wait_for("message", check=pred, timeout=30)
+            msg= await ctx.bot.wait_for("message", check=pred, timeout=30)
         except asyncio.TimeoutError:
             await message.delete()
-            return await ctx.send("You took too long to respond.", embed=None)
+            return await ctx.send("You took too long to respond.")
 
-        await message.delete()
+        
 
         correct = False
 
@@ -283,9 +283,9 @@ class CTW:  # calculate to win # should have 3 modes: easy, medium, hard # compl
             correct = f"{pred.result:.2g}" == f"{solution:.2g}"
 
         if correct:
+            
             return await ctx.send(
-                content=f"Congrats! {message.author.mention} got the correct answer. The answer was {solution:2g}.",
-                embed=None,
+                content=f"Congrats! {msg.author.mention} got the correct answer. The answer was {solution:2g}.",
             )
 
         else:
