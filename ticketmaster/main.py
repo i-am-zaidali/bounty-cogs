@@ -1,14 +1,28 @@
 import aiohttp
-import collections
-import datetime
+import asyncio
+from datetime import timedelta, datetime, timezone
 from discord.ext import tasks
-import itertools
+import pytz
 from redbot.core.bot import Red
 from redbot.core import commands, Config
-from redbot.core.utils import chat_formatting as cf, AsyncIter
+from redbot.core.utils import (
+    chat_formatting as cf,
+    AsyncIter,
+    async_filter,
+    async_enumerate,
+)
 import discord
-from typing import Union, Literal, Optional, get_args
+from typing import Literal, get_args, AsyncIterable, TypeVar
 from logging import getLogger
+
+T = TypeVar("T")
+
+
+async def async_chain(*iterables: AsyncIterable[T]) -> AsyncIterable[T]:
+    for iterable in iterables:
+        async for item in iterable:
+            yield item
+
 
 log = getLogger("red.bounty.TicketMaster")
 
@@ -114,7 +128,9 @@ class TicketMaster(commands.Cog):
                 "announce_role": None,
             }
         )
-        self.config.register_global(interval=3600)
+        self.config.register_global(
+            interval=3600, max_date=timedelta(weeks=52 * 2).total_seconds()
+        )
 
     async def cog_load(self):
         self.session = aiohttp.ClientSession("https://app.ticketmaster.com")
@@ -126,23 +142,52 @@ class TicketMaster(commands.Cog):
         await self.session.close()
 
     async def fetch_events(self, **kwargs):
-        async with self.session.get(
-            "/discovery/v2/events.json",
-            params={
+        page = 0
+        total = 2
+        size = this_page_size = 200
+        count = 0
+        while total > 1:
+            await asyncio.sleep(0.5)
+            params = {
                 "apikey": self.key,
-                "onsaleStartDateTime": datetime.datetime.now(
-                    datetime.timezone.utc
-                ).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "size": "100",
-                **kwargs
+                "onsaleStartDateTime": datetime.now(timezone.utc).strftime(
+                    "%Y-%m-%dT%H:%M:%SZ"
+                ),
+                "size": str(size),
+                "page": page,
+                "source": "ticketmaster",
+                **kwargs,
                 # "segmentId": ["KZFzniwnSyZfZ7v7nJ"],
                 # "subGenreId": ["KZazBEonSMnZfZ7vFE1"],
-            },
-        ) as resp:
-            if not resp.status == 200:
-                log.error(f"Error fetching events: {resp.status}\n{await resp.text()}")
-                return None
-            return await resp.json()
+            }
+            async with self.session.get(
+                "/discovery/v2/events.json", params=params
+            ) as resp:
+                if not resp.status == 200:
+                    log.error(
+                        f"Error fetching events: {resp.status}\n{await resp.text()}"
+                    )
+                    return
+                data = await resp.json()
+                events = data.get("_embedded", {}).get("events", [])
+                if not events:
+                    return
+                for event in events:
+                    yield event
+                    count += 1
+                    if (
+                        event["dates"]["start"]["timeTBA"]
+                        or event["dates"]["start"]["noSpecificTime"]
+                    ):
+                        continue
+
+                    kwargs.update(startDateTime=event["dates"]["start"]["dateTime"])
+
+                total = data["page"]["totalPages"]
+                this_page_size = data["page"]["size"]
+                log.debug(f"Got {len(events)} events on page {page} of {total}")
+                # size = min(1000 // (page + 1), 200)
+                # page += 1
 
     async def fetch_event(self, event_id: str):
         async with self.session.get(
@@ -222,8 +267,8 @@ class TicketMaster(commands.Cog):
         ctx: commands.Context,
         interval: commands.get_timedelta_converter(
             default_unit="seconds",
-            minimum=datetime.timedelta(seconds=300),
-            maximum=datetime.timedelta(seconds=86400),
+            minimum=timedelta(seconds=300),
+            maximum=timedelta(seconds=86400),
             allowed_units=("seconds", "minutes", "hours"),
         ),
     ):
@@ -238,6 +283,24 @@ class TicketMaster(commands.Cog):
         self.check_events.change_interval(seconds=interval.total_seconds())
         self.check_events.restart()
         self.task = self.check_events.get_task()
+
+    @tickets.command(name="maxdate", aliases=["max"])
+    @commands.is_owner()
+    async def max_date(
+        self,
+        ctx: commands.Context,
+        max_date: commands.get_timedelta_converter(
+            default_unit="days",
+            minimum=timedelta(days=1),
+            maximum=timedelta(weeks=52 * 2),
+            allowed_units=("days", "weeks", "months"),
+        ),
+    ):
+        """Set the maximum date to check for events"""
+        await self.config.guild(ctx.guild).max_date.set(max_date.total_seconds())
+        await ctx.send(
+            f"Set the maximum date to {cf.humanize_timedelta(timedelta=max_date)}"
+        )
 
     @tickets.command(name="showsettings", aliases=["ss"])
     async def show_settings(self, ctx: commands.Context):
@@ -267,15 +330,24 @@ class TicketMaster(commands.Cog):
             log.debug("No guilds with announcement channels set")
             return
 
-        nfl = await self.fetch_events(subGenreId=["KZazBEonSMnZfZ7vF1E"])
-        concerts = await self.fetch_events(segmentId=["KZFzniwnSyZfZ7v7nJ"])
+        endDateTime = (
+            datetime.now(timezone.utc) + timedelta(seconds=await self.config.max_date())
+        ).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        nfl = self.fetch_events(
+            subGenreId=["KZazBEonSMnZfZ7vF1E"],
+            endDateTime=endDateTime,
+        )
+        concerts = self.fetch_events(
+            segmentId=["KZFzniwnSyZfZ7v7nJ"], endDateTime=endDateTime
+        )
         if not nfl and not concerts:
             log.debug("No events found")
             return
         await self.filter_and_announce_events(
             all_guilds,
-            nfl=(nfl or {}).get("_embedded", {}).get("events", []),
-            concerts=(concerts or {}).get("_embedded", {}).get("events", []),
+            nfl=nfl,
+            concerts=concerts,
         )
 
     @check_events.error
@@ -283,21 +355,21 @@ class TicketMaster(commands.Cog):
         log.error("Error in check_events", exc_info=error)
 
     async def filter_and_announce_events(
-        self, guilds: dict, nfl: list[dict], concerts: list[dict]
+        self, guilds: dict, nfl: AsyncIterable[dict], concerts: AsyncIterable[dict]
     ):
-        log.debug(
-            f"Got a total of {len(nfl + concerts)} events: {len(nfl)} NFL, {len(concerts)} concerts"
-        )
+        # log.debug(
+        #     f"Got a total of {len(nfl + concerts)} events: {len(nfl)} NFL, {len(concerts)} concerts"
+        # )
         for guild_id, guild in guilds.items():
             this_guild = []
-            for event in filter(
+            async for event in async_filter(
                 lambda x: x["id"] not in guild["announced"],
-                itertools.chain(nfl, concerts),
+                async_chain(nfl, concerts),
             ):
                 log.debug(f"Applying filter to event: {event['id']}")
                 event_artists = []
                 if (
-                    event not in nfl
+                    event["classifications"][0]["segment"]["id"] == "KZFzniwnSyZfZ7v7nJ"
                     and guild["artists"]
                     and not (
                         event_artists := list(
@@ -378,34 +450,44 @@ class TicketMaster(commands.Cog):
                     .add_field(
                         name="Date(s)",
                         value=(
-                            f"<t:{int(datetime.datetime.strptime(event['dates'].get('start', {}).get('dateTime', '2024-08-10T23:30:00Z'), '%Y-%m-%dT%H:%M:%SZ').timestamp())}:F>"
-                            if not event.get("dates", {}).get("timeTBA")
-                            else f"{event.get('dates', {}).get('start', {}).get('localDate')}, Time TBA"
-                        )
-                        + (
-                            f"- <t:{int(datetime.datetime.strptime(event['dates'].get('end', {}).get('dateTime'), '%Y-%m-%dT%H:%M:%SZ').timestamp())}:F>"
-                            if event.get("dates", {}).get("spanMultipleDays")
-                            else f""
-                        )
-                        if event["dates"]
-                        else "No dates found",
+                            (
+                                f"<t:{int(datetime.strptime(event['dates'].get('start', {}).get('dateTime', '2024-08-10T23:30:00Z'), '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=pytz.timezone(event['dates']['timezone'])).timestamp())}:F>"
+                                if not event.get("dates", {}).get("timeTBA")
+                                else f"{event.get('dates', {}).get('start', {}).get('localDate')}, Time TBA"
+                            )
+                            + (
+                                f"- <t:{int(datetime.strptime(event['dates'].get('end', {}).get('dateTime'), '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=pytz.timezone(event['dates']['timezone'])).timestamp())}:F>"
+                                if event.get("dates", {}).get("spanMultipleDays")
+                                else f""
+                            )
+                            if event["dates"]
+                            else "No dates found"
+                        ),
                     )
                     .add_field(
                         name="Location",
-                        value=f"http://www.google.com/maps/place/{event['location']['longitude']},{event['location']['latitude']}"
-                        if event["location"]
-                        else "No location found",
+                        value=(
+                            f"http://www.google.com/maps/place/{event['location']['longitude']},{event['location']['latitude']}"
+                            if event["location"]
+                            else "No location found"
+                        ),
                     )
                     .add_field(
                         name="Public Sales",
-                        value=f"Start: <t:{int(datetime.datetime.strptime(event['sales']['public']['startDateTime'], '%Y-%m-%dT%H:%M:%SZ').timestamp())}:F>\n"
-                        f"End: <t:{int(datetime.datetime.strptime(event['sales']['public']['endDateTime'], '%Y-%m-%dT%H:%M:%SZ').timestamp())}:F>\n\n",
+                        value=f"Start: <t:{int(datetime.strptime(event['sales']['public']['startDateTime'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=pytz.timezone(event['dates']['timezone'])).timestamp())}:F>\n"
+                        f"End: <t:{int(datetime.strptime(event['sales']['public']['endDateTime'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=pytz.timezone(event['dates']['timezone'])).timestamp())}:F>\n\n",
                     )
                 )
 
                 for i, chunk in enumerate(
-                    (lambda x: (x[i : i + 6] for i in range(0, len(x), 6)))(
-                        event["sales"].get("presales", [])
+                    (lambda *x: (x[i : i + 6] for i in range(0, len(x), 6)))(
+                        *filter(
+                            lambda y: datetime.strptime(
+                                y.get("endDateTime"), "%Y-%m-%dT%H:%M:%SZ"
+                            ).replace(tzinfo=pytz.timezone(event["dates"]["timezone"]))
+                            > datetime.now(timezone.utc),
+                            event["sales"].get("presales", []),
+                        )
                     ),
                     1,
                 ):
@@ -413,12 +495,27 @@ class TicketMaster(commands.Cog):
                         name="Presales" + (" continued..." if i > 1 else ""),
                         value="\n".join(
                             f"{ind}. {presale['name']}:\n"
-                            f"\tStart: <t:{int(datetime.datetime.strptime(presale['startDateTime'], '%Y-%m-%dT%H:%M:%SZ').timestamp())}:F>\n"
-                            f"\tEnd: <t:{int(datetime.datetime.strptime(presale['endDateTime'], '%Y-%m-%dT%H:%M:%SZ').timestamp())}:F>\n"
+                            f"\tStart: <t:{int(datetime.strptime(presale['startDateTime'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=pytz.timezone(event['dates']['timezone'])).timestamp())}:F>\n"
+                            f"\tEnd: <t:{int(datetime.strptime(presale['endDateTime'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=pytz.timezone(event['dates']['timezone'])).timestamp())}:F>\n"
                             f"\tURL: {presale.get('url', 'NO URL FOUND')}\n\n"
                             for ind, presale in enumerate(chunk, i * 6 - 5)
                         ),
                     )
+                    if len(embed) > 6000:
+                        embeds.append(embed)
+                        last_field = embed._fields[-1]
+                        embed.remove_field(-1)
+                        embed = (
+                            discord.Embed(
+                                title=event["name"],
+                                description=event["description"]
+                                + "\n\n"
+                                + event["additional_info"],
+                                color=await self.bot.get_embed_color(channel),
+                            )
+                            .set_author(name="TicketMaster", url=event["url"])
+                            .add_field(**last_field)
+                        )
 
                 embed.add_field(name="URL", value=event["url"])
 
