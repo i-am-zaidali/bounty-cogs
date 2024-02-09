@@ -153,6 +153,7 @@ class TicketMaster(commands.Cog):
                 "onsaleStartDateTime": datetime.now(timezone.utc).strftime(
                     "%Y-%m-%dT%H:%M:%SZ"
                 ),
+                "sort": "date,asc",
                 "size": str(size),
                 "page": page,
                 "source": "ticketmaster",
