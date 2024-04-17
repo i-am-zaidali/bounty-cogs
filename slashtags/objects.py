@@ -104,7 +104,15 @@ class ApplicationCommand:
         return self.name
 
     def __repr__(self) -> str:
-        members = ("id", "type", "name", "description", "options", "guild_id", "version")
+        members = (
+            "id",
+            "type",
+            "name",
+            "description",
+            "options",
+            "guild_id",
+            "version",
+        )
         attrs = " ".join(f"{member}={getattr(self, member)!r}" for member in members)
         return f"<{self.__class__.__name__} {attrs}>"
 
@@ -142,7 +150,8 @@ class ApplicationCommand:
                 CommandParameter(
                     type=discord.AppCommandOptionType(int(o.pop("type"))),
                     choices=[
-                        Choice(name=c["name"], value=c["value"]) for c in o.pop("choices", [])
+                        Choice(name=c["name"], value=c["value"])
+                        for c in o.pop("choices", [])
                     ],
                     **o,
                 )
@@ -176,7 +185,10 @@ class ApplicationCommand:
         self.options = [
             CommandParameter(
                 type=discord.AppCommandOptionType(int(o.pop("type"))),
-                choices=[Choice(name=c["name"], value=c["value"]) for c in o.pop("choices", [])],
+                choices=[
+                    Choice(name=c["name"], value=c["value"])
+                    for c in o.pop("choices", [])
+                ],
                 required=o.pop("required", False),
                 **dict(filter(lambda x: "localization" not in x[0], o.items())),
             )
@@ -189,11 +201,17 @@ class ApplicationCommand:
                 self.application_id, self.guild_id, self.to_request()
             )
         else:
-            data = await self.http.upsert_global_command(self.application_id, self.to_request())
+            data = await self.http.upsert_global_command(
+                self.application_id, self.to_request()
+            )
         self._parse_response_data(data)
 
     async def edit(
-        self, *, name: str = None, description: str = None, options: List[CommandParameter] = None
+        self,
+        *,
+        name: str = None,
+        description: str = None,
+        options: List[CommandParameter] = None,
     ):
         payload = {}
         if name:
@@ -208,13 +226,17 @@ class ApplicationCommand:
                 self.application_id, self.guild_id, self.id, payload
             )
         else:
-            data = await self.http.edit_global_command(self.application_id, self.id, payload)
+            data = await self.http.edit_global_command(
+                self.application_id, self.id, payload
+            )
         self._parse_response_data(data)
 
     async def delete(self):
         if self.id:
             if self.guild_id:
-                await self.http.delete_guild_command(self.application_id, self.guild_id, self.id)
+                await self.http.delete_guild_command(
+                    self.application_id, self.guild_id, self.id
+                )
             else:
                 await self.http.delete_global_command(self.application_id, self.id)
         self.remove_from_cache()
@@ -227,7 +249,9 @@ class ApplicationCommand:
         if getattr(old, "id", None) == self.id:
             self.cog.bot.tree.remove_command(self.name, guild=guild)
         if self.type == discord.AppCommandType.chat_input:
-            deco = self.bot.tree.command(name=self.name, description=self.description, guild=guild)
+            deco = self.bot.tree.command(
+                name=self.name, description=self.description, guild=guild
+            )
             describe = app_commands.describe(
                 **{x.name.replace("-", "_"): x.description for x in self.options}
             )
@@ -246,7 +270,11 @@ class ApplicationCommand:
                 }
             )
             rename = app_commands.rename(
-                **{x.name.replace("-", "_"): x.name for x in self.options if "-" in x.name}
+                **{
+                    x.name.replace("-", "_"): x.name
+                    for x in self.options
+                    if "-" in x.name
+                }
             )
 
             decos.extend([deco, describe, choices, rename])
@@ -254,9 +282,11 @@ class ApplicationCommand:
             opts = sorted(self.options, key=lambda o: o.required, reverse=True)
 
             command_args = ", ".join(
-                f"{o.name.replace('-', '_')}: {ACOT_to_DTA_mapping.get(o.type, 'str')}"
-                if o.required
-                else f"{o.name.replace('-', '_')}: Optional[{ACOT_to_DTA_mapping.get(o.type, 'str')}] = None"
+                (
+                    f"{o.name.replace('-', '_')}: {ACOT_to_DTA_mapping.get(o.type, 'str')}"
+                    if o.required
+                    else f"{o.name.replace('-', '_')}: Optional[{ACOT_to_DTA_mapping.get(o.type, 'str')}] = None"
+                )
                 for o in opts
             )
 
@@ -286,7 +316,9 @@ class ApplicationCommand:
 
             if self.type == discord.AppCommandType.user:
 
-                async def processor(interaction: discord.Interaction, user: discord.User):
+                async def processor(
+                    interaction: discord.Interaction, user: discord.User
+                ):
                     if interaction.type != discord.InteractionType.application_command:
                         return
                     log.debug("Received user command %r", interaction)
@@ -296,7 +328,9 @@ class ApplicationCommand:
 
             elif self.type == discord.AppCommandType.message:
 
-                async def processor(interaction: discord.Interaction, message: discord.Message):
+                async def processor(
+                    interaction: discord.Interaction, message: discord.Message
+                ):
                     if interaction.type != discord.InteractionType.application_command:
                         return
                     log.debug("Received message command %r", interaction)
@@ -305,7 +339,9 @@ class ApplicationCommand:
                     await self.cog.handle_slash_interaction(wrapper)
 
             else:
-                raise SlashTagException(f"Unknown application command type: {self.type}")
+                raise SlashTagException(
+                    f"Unknown application command type: {self.type}"
+                )
 
         com = processor
         for deco in decos:
@@ -383,12 +419,16 @@ class SlashTag:
     @property
     def cache_path(self) -> dict:
         return (
-            self.cog.guild_tag_cache[self.guild_id] if self.guild_id else self.cog.global_tag_cache
+            self.cog.guild_tag_cache[self.guild_id]
+            if self.guild_id
+            else self.cog.global_tag_cache
         )
 
     @property
     def config_path(self):
-        return self.config.guild_from_id(self.guild_id) if self.guild_id else self.config
+        return (
+            self.config.guild_from_id(self.guild_id) if self.guild_id else self.config
+        )
 
     @property
     def name_prefix(self):
@@ -585,7 +625,9 @@ class SlashTag:
         options.pop(index)
         options.insert(index, new_option)
         await self.command.edit(options=options)
-        await ctx.send(f"Edited {self.name_prefix.lower()} `{self}`'s `{new_option}` argument.")
+        await ctx.send(
+            f"Edited {self.name_prefix.lower()} `{self}`'s `{new_option}` argument."
+        )
 
 
 def maybe_set_attr(cls, name, attr):
@@ -667,7 +709,9 @@ class FakeMessage(discord.Message):
         return
 
     def reply(self, content: str = None, **kwargs):
-        kwargs.pop("reference", None)  # this shouldn't be passed when replying but it might be
+        kwargs.pop(
+            "reference", None
+        )  # this shouldn't be passed when replying but it might be
         if self._interaction.is_expired():
             send = self.channel.send
         elif self._interaction.response.is_done():
@@ -677,8 +721,13 @@ class FakeMessage(discord.Message):
 
         return send(content, **kwargs)
 
-    def add_reaction(self, emoji, /):
+    async def add_reaction(self, emoji, /):
         if isinstance(emoji, discord.Reaction):
             emoji = emoji.emoji
 
-        return self.reply(str(emoji))
+        if self._interaction.response.is_done():
+            return await (await self._interaction.original_response()).add_reaction(
+                emoji
+            )
+
+        return await self.reply(str(emoji))
