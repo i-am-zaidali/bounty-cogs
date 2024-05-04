@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import logging
 from typing import Optional
 
 import aiohttp
@@ -15,6 +16,8 @@ YOUTUBE_FEED_URL = "https://www.youtube.com/feeds/videos.xml?channel_id={channel
 YOUTUBE_BASE_URL = "https://www.googleapis.com/youtube/v3"
 YOUTUBE_CHANNELS_ENDPOINT = YOUTUBE_BASE_URL + "/channels"
 YOUTUBE_VIDEOS_ENDPOINT = YOUTUBE_BASE_URL + "/videos"
+
+log = logging.getLogger("red.cray.youtube")
 
 
 class Youtube(commands.Cog):
@@ -60,20 +63,33 @@ class Youtube(commands.Cog):
                     YOUTUBE_FEED_URL.format(channel_id=channel_id)
                 ) as resp:
                     if resp.status != 200:
+                        log.error(
+                            f"Failed to fetch feed for channel {channel_id}, error code: {resp.status} ({resp.reason})",
+                        )
                         continue
 
                     feed = feedparser.parse(await resp.text())
                     videos = feed["entries"]
+                    log.debug(
+                        f"Got {len(videos)} videos from channel {channel_id}\n{videos}"
+                    )
                     latest_videos = sorted(
                         filter(
-                            lambda x: datetime.strptime(x["published"], "%Y-%m-%dT%H:%M:%S%z")
+                            lambda x: datetime.strptime(
+                                x["published"], "%Y-%m-%dT%H:%M:%S%z"
+                            )
                             > last_checked,
                             videos,
                         ),
                         key=lambda x: x["published"],
                     )
+
                     for vid in latest_videos:
-                        data = await self.get_video_data_from_id(vid.yt_videoid)
+                        try:
+                            data = await self.get_video_data_from_id(vid.yt_videoid)
+                        except APIError as e:
+                            log.error("Error fetching video data", exc_info=e)
+                            continue
                         published = datetime.strptime(
                             data["snippet"]["publishedAt"], "%Y-%m-%dT%H:%M:%S%z"
                         )
@@ -81,7 +97,8 @@ class Youtube(commands.Cog):
                         message_to_send = f"<t:{int(published.timestamp())}:F> :\n**{data['snippet']['title']}**\n\n{vid.link}"
 
                         if (
-                            data["snippet"]["liveBroadcastContent"] not in ["None", "none", None]
+                            data["snippet"]["liveBroadcastContent"]
+                            not in ["None", "none", None]
                             or data.get("liveStreamingDetails") is not None
                         ):
                             chan = post_channels.get("live")
@@ -89,18 +106,9 @@ class Youtube(commands.Cog):
                                 continue
                             channel = guild.get_channel(chan)
                             if channel is None:
+                                log.info("No channel for live streams found.")
                                 continue
                             await channel.send(f"New live started at {message_to_send}")
-
-                        # check if it's a short
-                        elif self.parse_duration(data["contentDetails"]["duration"]) <= 60:
-                            chan = post_channels.get("shorts")
-                            if chan is None:
-                                continue
-                            channel = guild.get_channel(chan)
-                            if channel is None:
-                                continue
-                            await channel.send(f"New short uploaded at {message_to_send}")
 
                         else:
                             chan = post_channels.get("videos")
@@ -108,10 +116,35 @@ class Youtube(commands.Cog):
                                 continue
                             channel = guild.get_channel(chan)
                             if channel is None:
+                                log.info("No channel for main videos found.")
                                 continue
-                            await channel.send(f"New video uploaded at {message_to_send}")
+                            await channel.send(
+                                f"New video uploaded at {message_to_send}"
+                            )
 
-            await self.config.guild(guild).last_checked.set(datetime.now(timezone.utc).isoformat())
+                        # check if it's a short
+                        if (
+                            self.parse_duration(data["contentDetails"]["duration"])
+                            <= 60
+                        ):
+                            chan = post_channels.get("shorts")
+                            if chan is None:
+                                continue
+                            channel = guild.get_channel(chan)
+                            if channel is None:
+                                log.info("No channel for shorts found.")
+                                continue
+                            await channel.send(
+                                f"New short uploaded at {message_to_send}"
+                            )
+
+            now = datetime.now(timezone.utc)
+            log.info(
+                f"Checked for new videos at human readabale time: {now.strftime('%c')}"
+            )
+            await self.config.guild(guild).last_checked.set(
+                datetime.now(timezone.utc).isoformat()
+            )
 
     @checking.before_loop
     async def before_checking(self):
@@ -171,7 +204,10 @@ class Youtube(commands.Cog):
     def check_resp_for_errors(self, data: dict):
         if "error" in data:
             error_code = data["error"]["code"]
-            if error_code == 400 and data["error"]["errors"][0]["reason"] == "keyInvalid":
+            if (
+                error_code == 400
+                and data["error"]["errors"][0]["reason"] == "keyInvalid"
+            ):
                 raise InvalidYoutubeCredentials()
             elif error_code == 403 and data["error"]["errors"][0]["reason"] in (
                 "dailyLimitExceeded",
