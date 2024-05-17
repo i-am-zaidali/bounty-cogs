@@ -286,8 +286,7 @@ class GiveawayObj:
             )
 
         embed: discord.Embed = msg.embeds[0]
-
-        embed.description = "This giveaway has ended!"
+        embed.description = self.get_embed_description()
 
         settings = await self.cog.get_guild_settings(self.guild_id)
 
@@ -298,18 +297,18 @@ class GiveawayObj:
         notify = settings.notify_users
 
         if self.winner and self.winner in self.entrants:
-            winner = self.winner
+            self.winner = self.winner
 
         elif self._entrants:
-            winner = random.choice(self.entrants)
+            self.winner = random.choice(self.entrants)
 
         else:
-            winner = None
+            self.winner = None
 
         rep = await msg.reply(
             (
                 f"Congratulations {self.winner.mention}! You won the **{self.name}**!"
-                if winner
+                if self.winner
                 else "No winner could be selected for this giveaway."
             )
         )
