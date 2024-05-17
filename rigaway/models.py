@@ -86,7 +86,10 @@ class GiveawayView(View):
                 }
             )
 
-        await interaction.response.send_message(**kwargs, ephemeral=True)
+        embed = interaction.message.embeds[0]
+        embed.description = await giveaway.get_embed_description()
+        await interaction.response.edit_message(embed=embed)
+        await interaction.followup.send(**kwargs, ephemeral=True)
 
 
 class JoinGiveawayButton(Button[GiveawayView]):
@@ -286,7 +289,7 @@ class GiveawayObj:
             )
 
         embed: discord.Embed = msg.embeds[0]
-        embed.description = self.get_embed_description()
+        embed.description = await self.get_embed_description()
 
         settings = await self.cog.get_guild_settings(self.guild_id)
 
@@ -297,10 +300,10 @@ class GiveawayObj:
         notify = settings.notify_users
 
         if self.winner and self.winner in self.entrants:
-            self.winner = self.winner
+            self._winner = self.winner.id
 
         elif self._entrants:
-            self.winner = random.choice(self.entrants)
+            self._winner = random.choice(self.entrants).id
 
         else:
             self.winner = None
