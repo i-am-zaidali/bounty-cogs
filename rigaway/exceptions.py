@@ -1,0 +1,2 @@
+class GiveawayError(Exception):
+    pass
