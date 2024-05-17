@@ -266,9 +266,9 @@ class GiveawayObj:
 
         kwargs = {
             "embed": embed,
+            "view": GiveawayView(self.cog, self.emoji, False)
         }
-        if (await self.cog.get_guild_settings(self.guild_id)).notify_users:
-            kwargs.update({"view": GiveawayView(self.cog, self.emoji, False)})
+        
 
         msg: discord.Message = await self.channel.send(**kwargs)
 
