@@ -220,12 +220,10 @@ class GiveawayObj:
         return hash((self.message_id, self.channel_id))
 
     async def get_embed_description(self):
-        return (
-            f"React with {self.emoji} to be notified when the giveaway ends.\n"
-            f"Remaining time: **<t:{int(time.time() + self.remaining_time)}:R>** (<t:{int(time.time() + self.remaining_time)}:F>)\n"
-            if (await self.cog.get_guild_settings(self.guild_id)).notify_users
-            else f"Remaining time: **<t:{int(time.time() + self.remaining_time)}:R>** (<t:{int(time.time() + self.remaining_time)}:F>)\n"
-        )
+        return f"""{'Ends in' if not self.ended else 'Ended'}: <t:{int(self.ends_at.timestamp())}:R> (<t:{int(self.ends_at.timestamp())}:F>)\n
+            Hosted by: {self.host.mention}\n
+            Entries: {len(self._entrants)}\n
+            Winners: {self.winner.mention if self.ended else 'No winner selected'}\n"""
 
     async def get_embed_color(self):
         return await self.bot.get_embed_color(self.channel)
