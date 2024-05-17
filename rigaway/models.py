@@ -226,7 +226,7 @@ class GiveawayObj:
         return f"""{'Ends in' if not self.ended else 'Ended'}: <t:{int(self.ends_at.timestamp())}:R> (<t:{int(self.ends_at.timestamp())}:F>)\n
             Hosted by: {self.host.mention}\n
             Entries: {len(self._entrants)}\n
-            Winners: {self.winner.mention if self.ended else 'No winner selected'}\n"""
+            Winners: {self.winner.mention if self.ended and self.winner else 'No winner selected'}\n"""
 
     async def get_embed_color(self):
         return await self.bot.get_embed_color(self.channel)
