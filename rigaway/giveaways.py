@@ -212,8 +212,7 @@ class Giveaway(commands.Cog):
         )
 
         await giveaway.start()
-        await ctx.tick(message="Giveaway for `{}` started!".format(name))
-
+        await ctx.message.delete()
         self.to_end.clear()
         if self.end_giveaway.is_running():
             self.end_giveaway.restart()

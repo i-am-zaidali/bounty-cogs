@@ -311,7 +311,7 @@ class GiveawayObj:
         rep = await msg.reply(
             f"{self.host.mention} your giveaway for **{self.name}** has ended!\n"
             + (
-                "The winner is {winner.mention}! Congratulations!"
+                f"The winner is {winner.mention}! Congratulations!"
                 if winner
                 else "No winner could be selected."
             )
