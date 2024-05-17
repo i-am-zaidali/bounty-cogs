@@ -307,13 +307,11 @@ class GiveawayObj:
             winner = None
 
         rep = await msg.reply(
-            f"{self.host.mention} your giveaway for **{self.name}** has ended!\n"
-            + (
-                f"The winner is {winner.mention}! Congratulations!"
+            (
+                f"Congratulations {self.winner.mention}! You won the **{self.name}**!"
                 if winner
-                else "No winner could be selected."
+                else "No winner could be selected for this giveaway."
             )
-            + self.jump_url
         )
 
         pings = (
