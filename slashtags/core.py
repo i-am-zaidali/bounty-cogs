@@ -55,7 +55,7 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
     The TagScript documentation can be found [here](https://phen-cogs.readthedocs.io/en/latest/index.html).
     """
 
-    __version__ = "0.8.0"
+    __version__ = "0.9.0"
     __author__ = ("PhenoM4n4n", "crayyy_zee")
 
     def format_help_for_context(self, ctx: commands.Context):
@@ -70,7 +70,7 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
         return "\n".join(text)
 
     def __init__(self, bot: Red) -> None:
-        self.bot = bot
+        self.bot: Red = bot
         self.application_id = None
         self.eval_command = None
         self.error_dispatching = None
@@ -100,7 +100,9 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
         try:
             bot.add_dev_env_value("st", lambda ctx: self)
         except Exception:
-            log.exception("Failed to add `slashtags` in the dev environment", exc_info=Exception)
+            log.exception(
+                "Failed to add `slashtags` in the dev environment", exc_info=Exception
+            )
 
         super().__init__()
 
@@ -164,7 +166,9 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
             for tag_id, tag_data in guild_data["tags"].items():
                 tag = SlashTag.from_dict(self, tag_data, guild_id=guild_id)
                 try:
-                    await self.bot.http.get_guild_command(self.application_id, guild_id, tag.id)
+                    await self.bot.http.get_guild_command(
+                        self.application_id, guild_id, tag.id
+                    )
                 except discord.NotFound:
                     await tag.command.register()
                     async with self.config.guild_from_id(guild_id).tags() as tags:
@@ -178,7 +182,9 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
         for global_tag_data in all_data["tags"].values():
             tag = SlashTag.from_dict(self, global_tag_data)
             if tag.command.id is None:
-                tag.command.id = getattr(self.bot.tree.get_command(tag.command.name), "id", None)
+                tag.command.id = getattr(
+                    self.bot.tree.get_command(tag.command.name), "id", None
+                )
             tag.add_to_cache()
             cached += 1
 
@@ -240,7 +246,9 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
         except discord.HTTPException:
             pass
 
-    async def restore_tags(self, ctx: commands.Context, guild: Optional[discord.Guild] = None):
+    async def restore_tags(
+        self, ctx: commands.Context, guild: Optional[discord.Guild] = None
+    ):
         slashtags: Dict[str, SlashTag] = (
             self.guild_tag_cache[guild.id] if guild else self.global_tag_cache
         )
@@ -279,7 +287,9 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
             await self.invoke_and_catch(interaction)
         except commands.CommandInvokeError as e:
             if self.error_dispatching:
-                log.error("Error while dispatching interaction:\n%r", interaction, exc_info=e)
+                log.error(
+                    "Error while dispatching interaction:\n%r", interaction, exc_info=e
+                )
                 ctx = interaction.ctx
                 self.bot.dispatch("command_error", ctx, e)
 

@@ -74,7 +74,11 @@ def _sub(match: re.Match) -> str:
 
 def copy_doc(original: Union[commands.Command, types.FunctionType]):
     def decorator(overriden: Union[commands.Command, types.FunctionType]):
-        doc = original.help if isinstance(original, commands.Command) else original.__doc__
+        doc = (
+            original.help
+            if isinstance(original, commands.Command)
+            else original.__doc__
+        )
         doc = TAG_RE.sub(_sub, doc)
 
         if isinstance(overriden, commands.Command):
@@ -147,6 +151,7 @@ class Commands(MixinMeta):
 
         command = ApplicationCommand(
             self,
+            id=None,
             application_id=self.application_id,
             name=tag_name,
             description=description,
@@ -158,7 +163,8 @@ class Commands(MixinMeta):
             await command.register()
         except discord.Forbidden as error:
             log.error(
-                "Failed to create command {command!r} on guild {ctx.guild!r}", exc_info=error
+                "Failed to create command {command!r} on guild {ctx.guild!r}",
+                exc_info=error,
             )
             text = (
                 "Looks like I don't have permission to add Slash Commands here. Reinvite me "
@@ -297,7 +303,9 @@ class Commands(MixinMeta):
         await self.send_and_query_response(ctx, "\n".join(name_desc), name_pred)
         match = name_pred.result
         name, description = match.group(1), match.group(2)
-        option_type = await OptionPickerView.pick(ctx, "What should the argument type be?")
+        option_type = await OptionPickerView.pick(
+            ctx, "What should the argument type be?"
+        )
         if option_type is None:
             raise asyncio.TimeoutError
         if not added_required:
@@ -346,7 +354,11 @@ class Commands(MixinMeta):
         [Slash tag usage guide](https://phen-cogs.readthedocs.io/en/latest/slashtags/slashtags.html)
         """
         await self.create_slash_tag(
-            ctx, tag_name, tagscript, is_global=False, command_type=discord.AppCommandType.message
+            ctx,
+            tag_name,
+            tagscript,
+            is_global=False,
+            command_type=discord.AppCommandType.message,
         )
 
     @commands.mod_or_permissions(manage_guild=True)
@@ -364,7 +376,11 @@ class Commands(MixinMeta):
         [Slash tag usage guide](https://phen-cogs.readthedocs.io/en/latest/slashtags/slashtags.html)
         """
         await self.create_slash_tag(
-            ctx, tag_name, tagscript, is_global=False, command_type=discord.AppCommandType.user
+            ctx,
+            tag_name,
+            tagscript,
+            is_global=False,
+            command_type=discord.AppCommandType.user,
         )
 
     @commands.mod_or_permissions(manage_guild=True)
@@ -384,21 +400,33 @@ class Commands(MixinMeta):
     @commands.mod_or_permissions(manage_guild=True)
     @slashtag.group("edit", aliases=["e"], invoke_without_command=True)
     async def slashtag_edit(
-        self, ctx: commands.Context, tag: GuildTagConverter, *, tagscript: TagScriptConverter
+        self,
+        ctx: commands.Context,
+        tag: GuildTagConverter,
+        *,
+        tagscript: TagScriptConverter,
     ):
         """Edit a slash tag."""
         await ctx.send(await tag.edit_tagscript(tagscript))
 
     @slashtag_edit.command("tagscript")
     async def slashtag_edit_tagscript(
-        self, ctx: commands.Context, tag: GuildTagConverter, *, tagscript: TagScriptConverter
+        self,
+        ctx: commands.Context,
+        tag: GuildTagConverter,
+        *,
+        tagscript: TagScriptConverter,
     ):
         """Edit a slash tag's TagScript."""
         await self.slashtag_edit(ctx, tag, tagscript=tagscript)
 
     @slashtag_edit.command("name")
     async def slashtag_edit_name(
-        self, ctx: commands.Context, tag: GuildTagConverter, *, name: TagName(check_global=False)
+        self,
+        ctx: commands.Context,
+        tag: GuildTagConverter,
+        *,
+        name: TagName(check_global=False),
     ):
         """Edit a slash tag's name."""
         await ctx.send(await tag.edit_name(name))
@@ -411,7 +439,9 @@ class Commands(MixinMeta):
         await ctx.send(await tag.edit_description(description))
 
     @slashtag_edit.command("arguments", aliases=["options"])
-    async def slashtag_edit_arguments(self, ctx: commands.Context, tag: GuildTagConverter):
+    async def slashtag_edit_arguments(
+        self, ctx: commands.Context, tag: GuildTagConverter
+    ):
         """
         Edit a slash tag's arguments.
 
@@ -461,7 +491,8 @@ class Commands(MixinMeta):
         is_global: bool,
     ):
         description = [
-            self.format_tagscript(tag) for tag in sorted(tags.values(), key=lambda t: t.name)
+            self.format_tagscript(tag)
+            for tag in sorted(tags.values(), key=lambda t: t.name)
         ]
         description = "\n".join(description)
 
@@ -471,7 +502,9 @@ class Commands(MixinMeta):
             e.set_author(name="Global Slash Tags", icon_url=ctx.me.display_avatar.url)
         else:
             slash_tags = "slash tags"
-            e.set_author(name="Stored Slash Tags", icon_url=getattr(ctx.guild, "icon_url", None))
+            e.set_author(
+                name="Stored Slash Tags", icon_url=getattr(ctx.guild, "icon_url", None)
+            )
 
         embeds = []
         pages = list(pagify(description))
@@ -490,11 +523,15 @@ class Commands(MixinMeta):
             return await ctx.send("There are no slash tags on this server.")
         await self.view_slash_tags(ctx, tags, is_global=False)
 
-    async def show_slash_tag_usage(self, ctx: commands.Context, guild: discord.Guild = None):
+    async def show_slash_tag_usage(
+        self, ctx: commands.Context, guild: discord.Guild = None
+    ):
         tags = self.guild_tag_cache[guild.id] if guild else self.global_tag_cache
         if not tags:
             message = (
-                "This server has no slash tags." if guild else "There are no global slash tags."
+                "This server has no slash tags."
+                if guild
+                else "There are no global slash tags."
             )
             return await ctx.send(message)
         counter = Counter({tag.name: tag.uses for tag in tags.copy().values()})
@@ -570,7 +607,11 @@ class Commands(MixinMeta):
         tagscript: TagScriptConverter,
     ):
         await self.create_slash_tag(
-            ctx, tag_name, tagscript, is_global=True, command_type=discord.AppCommandType.message
+            ctx,
+            tag_name,
+            tagscript,
+            is_global=True,
+            command_type=discord.AppCommandType.message,
         )
 
     @commands.mod_or_permissions(manage_guild=True)
@@ -584,7 +625,11 @@ class Commands(MixinMeta):
         tagscript: TagScriptConverter,
     ):
         await self.create_slash_tag(
-            ctx, tag_name, tagscript, is_global=True, command_type=discord.AppCommandType.user
+            ctx,
+            tag_name,
+            tagscript,
+            is_global=True,
+            command_type=discord.AppCommandType.user,
         )
 
     @slashtag_global.command("pastebin", aliases=["++"])
@@ -601,14 +646,22 @@ class Commands(MixinMeta):
     @slashtag_global.group("edit", aliases=["e"], invoke_without_command=True)
     @copy_doc(slashtag_edit)
     async def slashtag_global_edit(
-        self, ctx: commands.Context, tag: GlobalTagConverter, *, tagscript: TagScriptConverter
+        self,
+        ctx: commands.Context,
+        tag: GlobalTagConverter,
+        *,
+        tagscript: TagScriptConverter,
     ):
         await ctx.send(await tag.edit_tagscript(tagscript))
 
     @slashtag_global_edit.command("tagscript")
     @copy_doc(slashtag_edit_tagscript)
     async def slashtag_global_edit_tagscript(
-        self, ctx: commands.Context, tag: GlobalTagConverter, *, tagscript: TagScriptConverter
+        self,
+        ctx: commands.Context,
+        tag: GlobalTagConverter,
+        *,
+        tagscript: TagScriptConverter,
     ):
         await self.slashtag_global_edit(ctx, tag, tagscript=tagscript)
 
@@ -632,7 +685,9 @@ class Commands(MixinMeta):
 
     @slashtag_global_edit.command("arguments", aliases=["options"])
     @copy_doc(slashtag_edit_arguments)
-    async def slashtag_global_edit_arguments(self, ctx: commands.Context, tag: GlobalTagConverter):
+    async def slashtag_global_edit_arguments(
+        self, ctx: commands.Context, tag: GlobalTagConverter
+    ):
         await tag.edit_options(ctx)
 
     @slashtag_global_edit.command("argument", aliases=["option"])
@@ -644,17 +699,23 @@ class Commands(MixinMeta):
 
     @slashtag_global.command("remove", aliases=["delete", "-"])
     @copy_doc(slashtag_remove)
-    async def slashtag_global_remove(self, ctx: commands.Context, *, tag: GlobalTagConverter):
+    async def slashtag_global_remove(
+        self, ctx: commands.Context, *, tag: GlobalTagConverter
+    ):
         await ctx.send(await tag.delete())
 
     @slashtag_global.command("info")
     @copy_doc(slashtag_info)
-    async def slashtag_global_info(self, ctx: commands.Context, *, tag: GlobalTagConverter):
+    async def slashtag_global_info(
+        self, ctx: commands.Context, *, tag: GlobalTagConverter
+    ):
         await tag.send_info(ctx)
 
     @slashtag_global.command("raw")
     @copy_doc(slashtag_raw)
-    async def slashtag_global_raw(self, ctx: commands.Context, *, tag: GlobalTagConverter):
+    async def slashtag_global_raw(
+        self, ctx: commands.Context, *, tag: GlobalTagConverter
+    ):
         await tag.send_raw_tagscript(ctx)
 
     @slashtag_global.command("list")
@@ -691,7 +752,9 @@ class Commands(MixinMeta):
             f"Test cog loaded: {testing_enabled}",
         ]
         embed = discord.Embed(
-            color=0xC9C9C9, title="SlashTags Settings", description="\n".join(description)
+            color=0xC9C9C9,
+            title="SlashTags Settings",
+            description="\n".join(description),
         )
         await ctx.send(embed=embed)
 
@@ -718,7 +781,9 @@ class Commands(MixinMeta):
             name="eval",
             description="SlashTags debugging eval command. Only bot owners can use this.",
             options=[
-                CommandParameter(name="body", description="Code body to evaluate.", required=True)
+                CommandParameter(
+                    name="body", description="Code body to evaluate.", required=True
+                )
             ],
         )
         await slasheval.register()
@@ -741,16 +806,22 @@ class Commands(MixinMeta):
         await ctx.send("`/eval` has been deleted.")
 
     @slashtagset.command("testing")
-    async def slashtagset_testing(self, ctx: commands.Context, true_or_false: bool = None):
+    async def slashtagset_testing(
+        self, ctx: commands.Context, true_or_false: bool = None
+    ):
         """
         Load or unload the SlashTag interaction development test cog.
         """
         target_state = (
-            true_or_false if true_or_false is not None else not await self.config.testing_enabled()
+            true_or_false
+            if true_or_false is not None
+            else not await self.config.testing_enabled()
         )
         if target_state is self.testing_enabled:
             loaded = "loaded" if target_state else "unloaded"
-            return await ctx.send(f"The SlashTag interaction testing cog is already {loaded}.")
+            return await ctx.send(
+                f"The SlashTag interaction testing cog is already {loaded}."
+            )
 
         await self.config.testing_enabled.set(target_state)
         if target_state:

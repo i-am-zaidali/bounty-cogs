@@ -25,7 +25,7 @@ SOFTWARE.
 
 import asyncio
 import logging
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Union, TYPE_CHECKING
 
 import discord
 import TagScriptEngine as tse
@@ -37,6 +37,9 @@ from redbot.core.utils.chat_formatting import box, pagify
 
 from .errors import SlashTagException
 from .models import InteractionWrapper
+
+if TYPE_CHECKING:
+    from .core import SlashTags
 
 log = logging.getLogger("red.phenom4n4n.slashtags.objects")
 
@@ -75,10 +78,10 @@ class ApplicationCommand:
 
     def __init__(
         self,
-        cog,
+        cog: "SlashTags",
         *,
-        id: int = None,
-        application_id: int = None,
+        id: Optional[int],
+        application_id: int,
         name: str,
         description: str,
         guild_id: Optional[int] = None,
@@ -87,8 +90,7 @@ class ApplicationCommand:
         version: int = 1,
     ):
         self.cog = cog
-        self.bot: Red = cog.bot
-        self.http = self.bot.http
+        self.http = self.cog.bot.http
 
         self.id = id
         self.application_id = application_id
@@ -209,10 +211,11 @@ class ApplicationCommand:
     async def edit(
         self,
         *,
-        name: str = None,
-        description: str = None,
-        options: List[CommandParameter] = None,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        options: Optional[List[CommandParameter]] = None,
     ):
+        self.remove_from_cache()
         payload = {}
         if name:
             payload["name"] = name
@@ -230,15 +233,18 @@ class ApplicationCommand:
                 self.application_id, self.id, payload
             )
         self._parse_response_data(data)
+        self.add_to_cache()
 
     async def delete(self):
         if self.id:
+            log.debug("Deleting guild command %r", self.id)
             if self.guild_id:
                 await self.http.delete_guild_command(
                     self.application_id, self.guild_id, self.id
                 )
             else:
                 await self.http.delete_global_command(self.application_id, self.id)
+            log.debug("Deleted guild command %r", self.id)
         self.remove_from_cache()
 
     def add_to_cache(self):
@@ -249,7 +255,7 @@ class ApplicationCommand:
         if getattr(old, "id", None) == self.id:
             self.cog.bot.tree.remove_command(self.name, guild=guild)
         if self.type == discord.AppCommandType.chat_input:
-            deco = self.bot.tree.command(
+            deco = self.cog.bot.tree.command(
                 name=self.name, description=self.description, guild=guild
             )
             describe = app_commands.describe(
@@ -304,7 +310,7 @@ class ApplicationCommand:
                 "   if interaction.type != discord.InteractionType.application_command:\n"
                 "      return\n"
                 "   log.debug('Received slash command %r', interaction)\n"
-                "   ctx = await self.bot.get_context(interaction)\n"
+                "   ctx = await self.cog.bot.get_context(interaction)\n"
                 "   wrapper = InteractionWrapper(ctx)\n"
                 "   await self.cog.handle_slash_interaction(wrapper)\n\n",
                 d,
@@ -312,7 +318,7 @@ class ApplicationCommand:
             processor = d["processor"]
 
         else:
-            decos.append(self.bot.tree.context_menu(name=self.name, guild=guild))
+            decos.append(self.cog.bot.tree.context_menu(name=self.name, guild=guild))
 
             if self.type == discord.AppCommandType.user:
 
@@ -322,7 +328,7 @@ class ApplicationCommand:
                     if interaction.type != discord.InteractionType.application_command:
                         return
                     log.debug("Received user command %r", interaction)
-                    ctx = await self.bot.get_context(interaction)
+                    ctx = await self.cog.bot.get_context(interaction)
                     wrapper = InteractionWrapper(ctx)
                     await self.cog.handle_slash_interaction(wrapper)
 
@@ -334,7 +340,7 @@ class ApplicationCommand:
                     if interaction.type != discord.InteractionType.application_command:
                         return
                     log.debug("Received message command %r", interaction)
-                    ctx = await self.bot.get_context(interaction)
+                    ctx = await self.cog.bot.get_context(interaction)
                     wrapper = InteractionWrapper(ctx)
                     await self.cog.handle_slash_interaction(wrapper)
 
@@ -351,15 +357,19 @@ class ApplicationCommand:
         self._dpy_command.cog = self.cog
         self._dpy_command.module = self.__module__
         log.debug("dpy command created %s | %r", self.name, self._dpy_command)
-        # self.bot.tree.add_command(self._dpy_command, guild=guild)
+        # self.cog.bot.tree.add_command(self._dpy_command, guild=guild)
 
     def remove_from_cache(self):
         try:
+            log.debug("Removing command %r from cache", self.id)
             del self.cog.command_cache[self.id]
-            self.bot.tree.remove_command(
+            log.debug("Removed command %r from cache", self.id)
+            com = self.cog.bot.tree.remove_command(
                 self.name,
                 guild=discord.Object(self.guild_id) if self.guild_id else None,
+                type=self.type,
             )
+            log.debug("Removed command %r from tree", com)
         except KeyError:
             pass
 
