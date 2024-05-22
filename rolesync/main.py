@@ -12,7 +12,9 @@ class RoleSync(commands.Cog):
 
     def __init__(self, bot: Red):
         self.bot = bot
-        self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
+        self.config = Config.get_conf(
+            self, identifier=1234567890, force_registration=True
+        )
         self.config.register_guild(roles={}, synced_roles={})
 
     @commands.group(name="rolesync", aliases=["rsync"], invoke_without_command=True)
@@ -29,6 +31,16 @@ class RoleSync(commands.Cog):
         The role argument must be a role mention or ID.
         The guilds argument accepts guild IDs"""
         view = GuildSelectView(ctx)
+        if not view.guilds:
+            return await ctx.send(
+                """
+                No guilds found where roles can be synced.
+                The user and the bot must have the following permissions in the guilds:
+                - manage_guild
+                - manage_roles
+                - manage_permissions
+                """.strip()
+            )
         msg = await ctx.send(
             "Please select a max of 2 guilds from the below list where the given role will be synced.",
             view=view,
@@ -41,7 +53,9 @@ class RoleSync(commands.Cog):
         guilds = view.chosen_guilds
 
         async with self.config.guild(ctx.guild).roles() as roles:
-            roles[role.id] = list(set(roles.get(role.id, [])).union(map(attrgetter("id"), guilds)))
+            roles[role.id] = list(
+                set(roles.get(role.id, [])).union(map(attrgetter("id"), guilds))
+            )
 
             for guild in guilds:
                 async with self.config.guild(guild).synced_roles() as synced_roles:
@@ -99,7 +113,9 @@ class RoleSync(commands.Cog):
                 guild = self.bot.get_guild(gid)
                 if guild is None:
                     continue
-                role = guild.get_role(await self.config.guild(guild).synced_roles.get_raw(role_id))
+                role = guild.get_role(
+                    await self.config.guild(guild).synced_roles.get_raw(role_id)
+                )
                 if not role:
                     continue
                 msg += f"\t- {guild.name}: {role.id}\n"
