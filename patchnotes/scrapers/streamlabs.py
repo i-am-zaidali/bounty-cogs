@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 class StreamlabsScraper(BaseScraper):
-    async def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.chrome_path = kwargs.get("chrome_path")
         if not self.chrome_path:
