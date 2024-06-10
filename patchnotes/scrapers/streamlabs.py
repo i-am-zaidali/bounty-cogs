@@ -3,14 +3,23 @@ from bs4 import BeautifulSoup
 import pyppeteer
 import semver
 import datetime
+from pathlib import Path
 
 
 class StreamlabsScraper(BaseScraper):
+    async def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.chrome_path = kwargs.get("chrome_path")
+        if not self.chrome_path:
+            raise ValueError("Chrome path is required for StreamlabsScraper")
+        if not self.is_executable(Path(self.chrome_path)):
+            raise ValueError("Chrome path is not an executable")
+
     async def get_patch_notes(self):
         browser = await pyppeteer.launch(
             options={
                 # "headless": False,
-                "executablePath": "/usr/bin/google-chrome",
+                "executablePath": self.chrome_path,
             }
         )
 

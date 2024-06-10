@@ -1,5 +1,7 @@
 import semver
 import re
+from pathlib import Path
+import os
 
 
 class BaseScraper:
@@ -11,6 +13,10 @@ class BaseScraper:
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def is_executable(path: Path):
+        return path.is_file() and os.access(path, os.X_OK)
 
     def convert_element_to_md(self, element, level=-1) -> str:
         if isinstance(element, str):

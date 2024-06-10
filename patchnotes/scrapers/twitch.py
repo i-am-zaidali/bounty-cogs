@@ -3,12 +3,21 @@ import pyppeteer
 from bs4 import BeautifulSoup
 import semver
 import datetime
+from pathlib import Path
 
 
 class TwitchScraper(BaseScraper):
 
-    def __init__(self, last_version: semver.Version):
-        self.last_version = last_version
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.last_version = kwargs.get(
+            "last_version", semver.Version.parse("0.0.0", True)
+        )
+        self.chrome_path = kwargs.get("chrome_path")
+        if not self.chrome_path:
+            raise ValueError("Chrome path is required for StreamlabsScraper")
+        if not self.is_executable(Path(self.chrome_path)):
+            raise ValueError("Chrome path is not an executable")
 
     async def get_patch_notes(self):
         browser = await pyppeteer.launch(

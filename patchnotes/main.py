@@ -11,6 +11,7 @@ from redbot.core.utils import bounded_gather
 from redbot.core.commands.converter import get_timedelta_converter
 from discord.ext import tasks
 from .scrapers import StreamlabsScraper, TwitchScraper, BaseScraper
+from pathlib import Path
 
 GuildMessageable = typing.Union[
     discord.TextChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread
@@ -42,13 +43,13 @@ class PatchNotes(commands.Cog):
                 "twitch": "25.0.0",
             },
             delay=1 * 24 * 60 * 60,
+            chrome_path=None,
         )
 
         self._task = self.check_for_new_patchnotes.start()
 
     @tasks.loop(seconds=1)
     async def check_for_new_patchnotes(self):
-        tasks = []
         for feed_name in ["streamlabs", "twitch"]:
             all_guilds = await self.config.all_guilds()
             channels_to_send_to: list[
@@ -83,10 +84,13 @@ class PatchNotes(commands.Cog):
                 await self.config.last_posted_version.get_attr(feed_name)()
             )
             if feed_name == "streamlabs":
-                scraper = StreamlabsScraper()
+                scraper = StreamlabsScraper(chrome_path=await self.config.chrome_path())
 
             else:
-                scraper = TwitchScraper(last_version)
+                scraper = TwitchScraper(
+                    last_version=last_version,
+                    chrome_path=await self.config.chrome_path(),
+                )
 
             version, md = await scraper.get_patch_notes()
             log.debug(f"{version=} {last_version=}")
@@ -196,7 +200,7 @@ class PatchNotes(commands.Cog):
         """Manage patch notes settings"""
         await ctx.send_help()
 
-    @patchnotes.group(name="streamlabs")
+    @patchnotes.group(name="streamlabs", invoke_without_command=True)
     async def patchnotes_streamlabs(self, ctx: commands.Context):
         """Manage Streamlabs patch notes settings"""
         return await ctx.send_help()
@@ -206,6 +210,10 @@ class PatchNotes(commands.Cog):
         self, ctx: commands.Context, channel: GuildMessageable
     ):
         """Set the channel to post Streamlabs patch notes"""
+        if not await self.config.chrome_path():
+            return await ctx.send(
+                f"Please contact the owner to setup chrome path using the command `{ctx.clean_prefix}patchnotes chromepath`"
+            )
         await self.config.guild(ctx.guild).streamlabs.channel.set(channel.id)
         await ctx.send(f"Streamlabs patch notes will be posted in {channel.mention}")
 
@@ -214,10 +222,14 @@ class PatchNotes(commands.Cog):
         self, ctx: commands.Context, role: discord.Role
     ):
         """Set the role to ping for Streamlabs patch notes"""
+        if not await self.config.chrome_path():
+            return await ctx.send(
+                f"Please contact the owner to setup chrome path using the command `{ctx.clean_prefix}patchnotes chromepath`"
+            )
         await self.config.guild(ctx.guild).streamlabs.pingrole.set(role)
         await ctx.send(f"{role.mention} will be pinged for Streamlabs patch notes")
 
-    @patchnotes.group(name="twitch")
+    @patchnotes.group(name="twitch", invoke_without_command=True)
     async def patchnotes_twitch(self, ctx: commands.Context):
         """Manage Twitch patch notes settings"""
         return await ctx.send_help()
@@ -227,6 +239,10 @@ class PatchNotes(commands.Cog):
         self, ctx: commands.Context, channel: GuildMessageable
     ):
         """Set the channel to post Twitch patch notes"""
+        if not await self.config.chrome_path():
+            return await ctx.send(
+                f"Please contact the owner to setup chrome path using the command `{ctx.clean_prefix}patchnotes chromepath`"
+            )
         await self.config.guild(ctx.guild).twitch.channel.set(channel.id)
         await ctx.send(f"Twitch patch notes will be posted in {channel.mention}")
 
@@ -235,6 +251,10 @@ class PatchNotes(commands.Cog):
         self, ctx: commands.Context, role: discord.Role
     ):
         """Set the role to ping for Twitch patch notes"""
+        if not await self.config.chrome_path():
+            return await ctx.send(
+                f"Please contact the owner to setup chrome path using the command `{ctx.clean_prefix}patchnotes chromepath`"
+            )
         await self.config.guild(ctx.guild).twitch.pingrole.set(role)
         await ctx.send(f"{role.mention} will be pinged for Twitch patch notes")
 
@@ -289,6 +309,15 @@ class PatchNotes(commands.Cog):
         await self.config.delay.set(delay.total_seconds())
         await ctx.send(f"Delay set to {humanize_timedelta(timedelta=delay)}")
 
+    @patchnotes.command(name="chromepath")
+    @commands.is_owner()
+    async def patchnotes_chromepath(self, ctx: commands.Context, path: Path):
+        """Set the path to chrome executable"""
+        if not BaseScraper.is_executable(path):
+            return await ctx.send("The path provided is not an executable")
+        await self.config.chrome_path.set(str(path))
+        await ctx.send(f"Chrome path set to {path}")
+
     @patchnotes.command(name="force")
     @commands.is_owner()
     async def patchnotes_force(self, ctx: commands.Context):
@@ -308,5 +337,8 @@ class PatchNotes(commands.Cog):
             msg += f"Channel: {getattr(ctx.guild.get_channel(curent_guild[feed_name]['channel']), 'mention', 'Channel not set')}\n"
             msg += f"Ping Role: {getattr(ctx.guild.get_role(curent_guild[feed_name]['pingrole']), 'mention', 'Role not set')}\n"
             msg += f"Last posted version: {global_data['last_posted_version'][feed_name]}\n\n"
+
+        msg += f"Delay: {humanize_timedelta(seconds=global_data['delay'])}\n"
+        msg += f"Chrome path: {global_data['chrome_path']}\n"
 
         await ctx.send(msg)
