@@ -2,7 +2,7 @@ import semver
 import re
 from pathlib import Path
 import os
-
+import mimetypes
 
 class BaseScraper:
     # regex stolen from semver
@@ -15,9 +15,21 @@ class BaseScraper:
         super().__init__(*args, **kwargs)
 
     @staticmethod
-    def is_executable(path: Path):
-        return path.is_file() and os.access(path, os.X_OK)
+    def is_executable(file_path: Path):
+        # Check permissions (Unix-based)
+        is_exec = file_path.is_file() and os.access(file_path, os.X_OK)
+    
+        # Check MIME type (Cross-platform)
+        mime_type, _ = mimetypes.guess_type(str(file_path))
+        is_exec_mime = mime_type in ["application/x-executable", "application/x-msdownload", "application/octet-stream"]
+    
+        return is_exec or is_exec_mime
 
+file_path = "path/to/your/file"
+if is_executable(file_path):
+    print(f"{file_path} is executable.")
+else:
+    print(f"{file_path} is not executable.")
     def convert_element_to_md(self, element, level=-1) -> str:
         if isinstance(element, str):
             return element
