@@ -154,6 +154,10 @@ class Youtube(commands.Cog):
             return
         self.checking.change_interval(seconds=await self.config.checking_interval())
 
+    @checking.error
+    async def checking_error(self, error):
+        log.exception("There was an error in the youtube checking loop", exc_info=error)
+        
     def parse_duration(self, duration: str) -> int:
         if not duration.startswith("PT"):
             raise ValueError("Invalid duration {}".format(duration))
