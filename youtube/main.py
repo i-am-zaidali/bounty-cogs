@@ -49,8 +49,7 @@ class Youtube(commands.Cog):
                 continue
 
             subscribed_channels = data["subscribed_channels"]
-            last_checked = data["last_checked"]
-            last_checked = datetime.fromisoformat(last_checked)
+            last_checked = datetime.fromisoformat(data["last_checked"])
             post_channels = data["post_channels"]
 
             if len(subscribed_channels) == 0 or all(
@@ -76,18 +75,22 @@ class Youtube(commands.Cog):
                     latest_videos = sorted(
                         filter(
                             lambda x: datetime.strptime(
-                                x["published"], "%Y-%m-%dT%H:%M:%S%z"
+                                x["updated"], "%Y-%m-%dT%H:%M:%S%z"
                             )
                             > last_checked,
                             videos,
                         ),
-                        key=lambda x: x["published"],
+                        key=lambda x: x["updated_parsed"],
                     )
 
+                    if len(latest_videos) == 0:
+                        log.info("No new videos found.")
+
                     for vid in latest_videos:
+                        log.debug(vid)
                         try:
                             data = await self.get_video_data_from_id(vid.yt_videoid)
-                        except APIError as e:
+                        except Exception as e:
                             log.error("Error fetching video data", exc_info=e)
                             continue
                         published = datetime.strptime(
@@ -157,7 +160,7 @@ class Youtube(commands.Cog):
     @checking.error
     async def checking_error(self, error):
         log.exception("There was an error in the youtube checking loop", exc_info=error)
-        
+
     def parse_duration(self, duration: str) -> int:
         if not duration.startswith("PT"):
             raise ValueError("Invalid duration {}".format(duration))
