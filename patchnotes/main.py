@@ -21,6 +21,9 @@ TimeDelta = get_timedelta_converter(
     minimum=0.5 * 24 * 60 * 60,
 )
 
+logging.getLogger("pyppeteer").setLevel(logging.INFO)
+logging.getLogger("websockets").setLevel(logging.INFO)
+
 log = logging.getLogger("red.bounty.patchnotes")
 
 
@@ -93,9 +96,10 @@ class PatchNotes(commands.Cog):
                 )
 
             version, md = await scraper.get_patch_notes()
-            log.debug(f"{version=} {last_version=}")
+            log.debug(f"{feed_name=} {version=} {last_version=}")
             if version <= last_version:
-                return
+                log.info(f"No new {feed_name} version detected")
+                continue
             log.info(
                 f"New {feed_name} version detected: {version} (old: {last_version})"
             )
@@ -106,7 +110,6 @@ class PatchNotes(commands.Cog):
 
     @check_for_new_patchnotes.before_loop
     async def before_check_for_new_patchnotes(self):
-        log.debug("WTF")
         await self.bot.wait_until_red_ready()
         delay = await self.config.delay()
         self.check_for_new_patchnotes.change_interval(seconds=delay)
