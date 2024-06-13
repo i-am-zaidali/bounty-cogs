@@ -28,7 +28,12 @@ class BaseScraper:
             "application/octet-stream",
         ]
 
-        return is_exec or is_exec_mime
+        extension = file_path.suffix or ""
+        is_exe = extension.lower() in [
+            ".exe"
+        ]  # , ".bat", ".cmd", ".com"] # we don't need these lol
+
+        return is_exec or is_exec_mime or is_exe
 
     def convert_element_to_md(self, element, level=-1) -> str:
         if isinstance(element, str):
