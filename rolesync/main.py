@@ -31,10 +31,10 @@ class RoleSync(commands.Cog):
         The role argument must be a role mention or ID.
         The guilds argument accepts guild IDs"""
         view = GuildSelectView(ctx)
-        if not view.guilds:
+        if not view.guilds or len(view.guilds) < 2:
             return await ctx.send(
                 """
-                No guilds found where roles can be synced.
+                Not enough guilds found to select where roles can be synced.
                 The user and the bot must have the following permissions in the guilds:
                 - manage_guild
                 - manage_roles
