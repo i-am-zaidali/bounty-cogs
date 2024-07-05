@@ -76,6 +76,6 @@ class BanOnLeave(commands.Cog):
                             description=f"{member.mention} was banned because they left the server.",
                             color=discord.Color.red(),
                         )
-                        embed.set_author(name=str(member), icon_url=member.avatar_url)
+                        embed.set_author(name=str(member), icon_url=member.display_avatar.url)
                         embed.set_footer(text=f"User ID: {member.id}")
                         await log_channel.send(embed=embed)
