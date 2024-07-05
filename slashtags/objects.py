@@ -636,7 +636,7 @@ class SlashTag:
         options.insert(index, new_option)
         await self.command.edit(options=options)
         await ctx.send(
-            f"Edited {self.name_prefix.lower()} `{self}`'s `{new_option}` argument."
+            f"Edited {self.name_prefix.lower()} `{self}`'s `{name}` argument."
         )
 
 
