@@ -163,7 +163,7 @@ class EmojiTools(commands.Cog):
         for ind, d in enumerate(
             sorted(
                 filter(lambda x: x.is_dir(), data_manager.cog_data_path(self).iterdir())
-            )
+            ), 1
         ):
             dir_string += f"{ind}. {d}\n"
 
@@ -181,7 +181,7 @@ class EmojiTools(commands.Cog):
             filter(lambda x: x.is_dir(), data_manager.cog_data_path(self).iterdir())
         )
         try:
-            to_remove = dirs[folder_number]
+            to_remove = dirs[folder_number-1]
         except IndexError:
             return await ctx.send("Invalid folder number.")
 
