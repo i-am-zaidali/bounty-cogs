@@ -251,9 +251,9 @@ class ApplicationCommand:
         self.cog.command_cache[self.id] = self
         guild = discord.Object(self.guild_id) if self.guild_id else None
         decos = []
-        old = self.cog.bot.tree.get_command(self.name, guild=guild)
+        old = self.cog.bot.tree.get_command(self.name, guild=guild, type=self.type)
         if getattr(old, "id", None) == self.id:
-            self.cog.bot.tree.remove_command(self.name, guild=guild)
+            self.cog.bot.tree.remove_command(self.name, guild=guild, type=self.type)
         if self.type == discord.AppCommandType.chat_input:
             deco = self.cog.bot.tree.command(
                 name=self.name, description=self.description, guild=guild

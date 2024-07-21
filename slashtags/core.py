@@ -163,6 +163,9 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
         guild_cached = 0
         guilds_data = await self.config.all_guilds()
         async for guild_id, guild_data in AsyncIter(guilds_data.items(), steps=100):
+            guild = self.bot.get_guild(guild_id)
+            if not guild:
+                continue
             for tag_id, tag_data in guild_data["tags"].items():
                 tag = SlashTag.from_dict(self, tag_data, guild_id=guild_id)
                 try:
@@ -183,7 +186,11 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
             tag = SlashTag.from_dict(self, global_tag_data)
             if tag.command.id is None:
                 tag.command.id = getattr(
-                    self.bot.tree.get_command(tag.command.name), "id", None
+                    self.bot.tree.get_command(
+                        tag.command.name, guild=tag.guild, type=tag.type
+                    ),
+                    "id",
+                    None,
                 )
             tag.add_to_cache()
             cached += 1
