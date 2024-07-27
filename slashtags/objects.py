@@ -350,8 +350,13 @@ class ApplicationCommand:
                 )
 
         com = processor
-        for deco in decos:
-            com = deco(com)
+        try:
+            for deco in decos:
+                com = deco(com)
+
+        except Exception as e:
+            log.exception("Error encountered when creating DPY comman object for slashtag %s (in guild: %d)", self.name, guild.id, exc_info=e)
+            return False
 
         self._dpy_command = com
         self._dpy_command.cog = self.cog
