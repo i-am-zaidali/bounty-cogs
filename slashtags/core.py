@@ -168,6 +168,8 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
                 continue
             for tag_id, tag_data in guild_data["tags"].items():
                 tag = SlashTag.from_dict(self, tag_data, guild_id=guild_id)
+                if not tag.add_to_cache():
+                    continue
                 try:
                     await self.bot.http.get_guild_command(
                         self.application_id, guild_id, tag.id
