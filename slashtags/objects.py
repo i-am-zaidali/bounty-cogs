@@ -252,8 +252,8 @@ class ApplicationCommand:
         guild = discord.Object(self.guild_id) if self.guild_id else None
         decos = []
         old = self.cog.bot.tree.get_command(self.name, guild=guild, type=self.type)
-        log.debug("Old command: %r", old)
-        if getattr(old, "id", None) == self.id:
+        if old is not None:
+            log.debug("Old command found: %s, replacing with new processor.", old)
             self.cog.bot.tree.remove_command(self.name, guild=guild, type=self.type)
         if self.type == discord.AppCommandType.chat_input:
             deco = self.cog.bot.tree.command(
@@ -261,6 +261,13 @@ class ApplicationCommand:
             )
             describe = app_commands.describe(
                 **{x.name.replace("-", "_"): x.description for x in self.options}
+            )
+            rename = app_commands.rename(
+                **{
+                    x.name.replace("-", "_"): x.name
+                    for x in self.options
+                    if "-" in x.name
+                }
             )
             choices = app_commands.choices(
                 **{
@@ -271,16 +278,10 @@ class ApplicationCommand:
                             discord.AppCommandOptionType.string,
                             discord.AppCommandOptionType.integer,
                             discord.AppCommandOptionType.number,
-                        ],
+                        ]
+                        and y.autocomplete,
                         self.options,
                     )
-                }
-            )
-            rename = app_commands.rename(
-                **{
-                    x.name.replace("-", "_"): x.name
-                    for x in self.options
-                    if "-" in x.name
                 }
             )
 
@@ -305,15 +306,24 @@ class ApplicationCommand:
                 "Union": Union,
                 "Optional": Optional,
             }
-
-            exec(
+            fn_string = (
                 f"async def processor(interaction: discord.Interaction, {command_args}):\n"
                 "   if interaction.type != discord.InteractionType.application_command:\n"
                 "      return\n"
                 "   log.debug('Received slash command %r', interaction)\n"
                 "   ctx = await self.cog.bot.get_context(interaction)\n"
                 "   wrapper = InteractionWrapper(ctx)\n"
-                "   await self.cog.handle_slash_interaction(wrapper)\n\n",
+                "   await self.cog.handle_slash_interaction(wrapper)\n\n"
+            )
+
+            log.debug(
+                'Creating dpy command processor for slashtag %s\n"""\n%s"""',
+                self.name,
+                fn_string,
+            )
+
+            exec(
+                fn_string,
                 d,
             )
             processor = d["processor"]
