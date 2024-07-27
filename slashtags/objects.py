@@ -363,6 +363,7 @@ class ApplicationCommand:
         self._dpy_command.module = self.__module__
         log.debug("dpy command created %s | %r", self.name, self._dpy_command)
         # self.cog.bot.tree.add_command(self._dpy_command, guild=guild)
+        return True
 
     def remove_from_cache(self):
         try:
@@ -542,8 +543,10 @@ class SlashTag:
             pass
 
     def add_to_cache(self):
-        self.cache_path[self.id] = self
-        self.command.add_to_cache()
+        if self.command.add_to_cache():
+            self.cache_path[self.id] = self
+
+        return False
 
     async def edit(self, **kwargs):
         await self.command.edit(**kwargs)
