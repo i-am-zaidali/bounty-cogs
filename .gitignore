@@ -132,5 +132,7 @@ dmypy.json
 webhookhandler/
 sharer/
 shop/
+shell/
+sleep/
 _*/
 # for now

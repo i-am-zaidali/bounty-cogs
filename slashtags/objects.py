@@ -252,6 +252,7 @@ class ApplicationCommand:
         guild = discord.Object(self.guild_id) if self.guild_id else None
         decos = []
         old = self.cog.bot.tree.get_command(self.name, guild=guild, type=self.type)
+        log.debug("Old command: %r", old)
         if getattr(old, "id", None) == self.id:
             self.cog.bot.tree.remove_command(self.name, guild=guild, type=self.type)
         if self.type == discord.AppCommandType.chat_input:
@@ -349,13 +350,21 @@ class ApplicationCommand:
                     f"Unknown application command type: {self.type}"
                 )
 
+        log.debug("Creating dpy command for slashtag %s", self.name)
+        log.debug("Decos: %r", decos)
+
         com = processor
         try:
             for deco in decos:
                 com = deco(com)
 
         except Exception as e:
-            log.exception("Error encountered when creating DPY comman object for slashtag %s (in guild: %d)", self.name, guild.id, exc_info=e)
+            log.exception(
+                "Error encountered when creating DPY comman object for slashtag %s (in guild: %d)",
+                self.name,
+                guild.id,
+                exc_info=e,
+            )
             return False
 
         self._dpy_command = com
@@ -487,8 +496,6 @@ class SlashTag:
                 t[str(self.id)] = self.to_dict()
 
     async def initialize(self) -> str:
-        if not self.add_to_cache():
-            return False
         await self.update_config()
         return f"{self.name_prefix} `{self}` added with {len(self.command.options)} arguments."
 
