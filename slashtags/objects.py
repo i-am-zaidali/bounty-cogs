@@ -487,7 +487,8 @@ class SlashTag:
                 t[str(self.id)] = self.to_dict()
 
     async def initialize(self) -> str:
-        self.add_to_cache()
+        if not self.add_to_cache():
+            return False
         await self.update_config()
         return f"{self.name_prefix} `{self}` added with {len(self.command.options)} arguments."
 
@@ -545,6 +546,7 @@ class SlashTag:
     def add_to_cache(self):
         if self.command.add_to_cache():
             self.cache_path[self.id] = self
+            return True
 
         return False
 
