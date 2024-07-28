@@ -1,0 +1,28 @@
+{
+    "author": [
+        "crayyy_zee"
+    ],
+    "short": "Play minigames in your discord server.",
+    "description": "Play minigames in your server such as guess the number, cups and calculate to win!",
+    "disabled": false,
+    "end_user_data_statement": "This cog persistently stores data or metadata about users.",
+    "hidden": false,
+    "install_msg": "Thank you for installing! Use `[p]help nodms` for more info.",
+    "min_bot_version": "3.4.0",
+    "min_python_version": [
+        3,
+        8,
+        1
+    ],
+    "required_cogs": {},
+    "requirements": [],
+    "tags": [
+        "games",
+        "minigames",
+        "fun",
+        "guess the number",
+        "cups",
+        "calculate"
+    ],
+    "type": "COG"
+}
