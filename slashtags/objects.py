@@ -47,7 +47,9 @@ __all__ = (
     "ApplicationCommand",
     "SlashTag",
     "FakeMessage",
+    "pk_refined_mapping",
 )
+
 
 ACOT_to_DTA_mapping = {
     discord.AppCommandOptionType.boolean: "bool",
@@ -58,6 +60,45 @@ ACOT_to_DTA_mapping = {
     discord.AppCommandOptionType.integer: "int",
     discord.AppCommandOptionType.number: "float",
 }
+
+python_keywords = [
+    "False",
+    "None",
+    "True",
+    "and",
+    "as",
+    "assert",
+    "async",
+    "await",
+    "break",
+    "class",
+    "continue",
+    "for",
+    "def",
+    "del",
+    "elif",
+    "else",
+    "except",
+    "finally",
+    "from",
+    "global",
+    "if",
+    "import",
+    "in",
+    "is",
+    "lambda",
+    "nonlocal",
+    "not",
+    "or",
+    "pass",
+    "raise",
+    "return",
+    "try",
+    "while",
+    "with",
+    "yield",
+]
+pk_refined_mapping = {x: f"_{x}" for x in python_keywords}
 
 
 class ApplicationCommand:
@@ -150,6 +191,10 @@ class ApplicationCommand:
             "description": data["description"],
             "options": [
                 CommandParameter(
+                    _rename=o["name"],
+                    name=pk_refined_mapping.get(o["name"], o.pop("name", "")).replace(
+                        "-", "_"
+                    ),
                     type=discord.AppCommandOptionType(int(o.pop("type"))),
                     choices=[
                         Choice(name=c["name"], value=c["value"])
@@ -168,6 +213,7 @@ class ApplicationCommand:
         return cls(cog, **kwargs)
 
     def _parse_response_data(self, data: dict):
+        log.debug("Parsing response data for command %r | %r", self.name, data)
         _id = discord.utils._get_as_snowflake(data, "id")
         application_id = discord.utils._get_as_snowflake(data, "application_id")
         version = discord.utils._get_as_snowflake(data, "version")
@@ -186,6 +232,10 @@ class ApplicationCommand:
 
         self.options = [
             CommandParameter(
+                _rename=o["name"],
+                name=pk_refined_mapping.get(o["name"], o.pop("name", "")).replace(
+                    "-", "_"
+                ),
                 type=discord.AppCommandOptionType(int(o.pop("type"))),
                 choices=[
                     Choice(name=c["name"], value=c["value"])
@@ -259,16 +309,14 @@ class ApplicationCommand:
             deco = self.cog.bot.tree.command(
                 name=self.name, description=self.description, guild=guild
             )
+
+            opts = sorted(self.options, key=lambda o: o.required, reverse=True)
             describe = app_commands.describe(
-                **{x.name.replace("-", "_"): x.description for x in self.options}
+                **{opt.name: opt.description for opt in opts}
             )
-            rename = app_commands.rename(
-                **{
-                    x.name.replace("-", "_"): x.name
-                    for x in self.options
-                    if "-" in x.name
-                }
-            )
+            renamed = {opt.name: opt._rename for opt in opts}
+            rename = app_commands.rename(**renamed)
+
             choices = app_commands.choices(
                 **{
                     x.name: x.choices
@@ -279,23 +327,21 @@ class ApplicationCommand:
                             discord.AppCommandOptionType.integer,
                             discord.AppCommandOptionType.number,
                         ]
-                        and y.autocomplete,
-                        self.options,
+                        and y.choices,
+                        opts,
                     )
                 }
             )
 
             decos.extend([deco, describe, choices, rename])
 
-            opts = sorted(self.options, key=lambda o: o.required, reverse=True)
-
             command_args = ", ".join(
                 (
-                    f"{o.name.replace('-', '_')}: {ACOT_to_DTA_mapping.get(o.type, 'str')}"
-                    if o.required
-                    else f"{o.name.replace('-', '_')}: Optional[{ACOT_to_DTA_mapping.get(o.type, 'str')}] = None"
+                    f"{opt.name}: {ACOT_to_DTA_mapping.get(opt.type, 'str')}"
+                    if opt.required
+                    else f"{opt.name}: Optional[{ACOT_to_DTA_mapping.get(opt.type, 'str')}] = None"
                 )
-                for o in opts
+                for opt in opts
             )
 
             d = {
@@ -370,7 +416,7 @@ class ApplicationCommand:
 
         except Exception as e:
             log.exception(
-                "Error encountered when creating DPY comman object for slashtag %s (in guild: %d)",
+                "Error encountered when creating DPY command object for slashtag %s (in guild: %d)",
                 self.name,
                 guild.id,
                 exc_info=e,
@@ -507,6 +553,7 @@ class SlashTag:
 
     async def initialize(self) -> str:
         await self.update_config()
+        self.add_to_cache()
         return f"{self.name_prefix} `{self}` added with {len(self.command.options)} arguments."
 
     @classmethod
@@ -595,7 +642,7 @@ class SlashTag:
         option_info = []
         for o in c.options:
             option_desc = [
-                f"**{o.name}**",
+                f"**{o.display_name}**",
                 f"Description: {o.description}",
                 f"Type: {o.type.name.title()}",
                 f"Required: {o.required}",
@@ -642,7 +689,7 @@ class SlashTag:
         previous_option = None
         chosen_option = None
         for option in options:
-            if option.name == name:
+            if option.display_name == name:
                 chosen_option = option
                 break
             else:

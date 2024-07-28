@@ -29,7 +29,7 @@ import re
 import types
 from collections import Counter
 from copy import copy
-from typing import Dict, List, Union
+import typing
 
 import discord
 from discord.app_commands.transformers import Choice, CommandParameter
@@ -47,7 +47,11 @@ from ..converters import (
     TagName,
     TagScriptConverter,
 )
-from ..objects import ApplicationCommand, SlashTag
+from ..objects import (
+    ApplicationCommand,
+    SlashTag,
+    pk_refined_mapping,
+)
 from ..utils import ARGUMENT_NAME_DESCRIPTION, chunks, dev_check, menu
 from ..views import ConfirmationView, OptionPickerView
 
@@ -72,8 +76,8 @@ def _sub(match: re.Match) -> str:
     return repl
 
 
-def copy_doc(original: Union[commands.Command, types.FunctionType]):
-    def decorator(overriden: Union[commands.Command, types.FunctionType]):
+def copy_doc(original: typing.Union[commands.Command, types.FunctionType]):
+    def decorator(overriden: typing.Union[commands.Command, types.FunctionType]):
         doc = (
             original.help
             if isinstance(original, commands.Command)
@@ -126,7 +130,7 @@ class Commands(MixinMeta):
         is_global: bool = False,
         command_type: discord.AppCommandType = discord.AppCommandType.chat_input,
     ):
-        options: List[CommandParameter] = []
+        options: typing.List[CommandParameter] = []
         guild_id = None if is_global else ctx.guild.id
         if command_type == discord.AppCommandType.chat_input:
             try:
@@ -193,8 +197,8 @@ class Commands(MixinMeta):
         await ctx.send(resp)
 
     async def get_options(
-        self, ctx: commands.Context, options: List[CommandParameter]
-    ) -> List[CommandParameter]:
+        self, ctx: commands.Context, options: typing.List[CommandParameter]
+    ) -> typing.List[CommandParameter]:
         added_required = False
         for i in range(1, 11):
             try:
@@ -240,7 +244,7 @@ class Commands(MixinMeta):
 
     async def get_choices(
         self, ctx: commands.Context, option_type: discord.AppCommandOptionType
-    ) -> List[Choice]:
+    ) -> typing.List[Choice]:
         converters = {
             discord.AppCommandOptionType.string: str,
             discord.AppCommandOptionType.integer: int,
@@ -332,8 +336,9 @@ class Commands(MixinMeta):
                 choices = await self.get_choices(ctx, option_type)
 
         return CommandParameter(
-            name.lower(),
-            description,
+            pk_refined_mapping.get(name.lower()).replace(" ", "_"),
+            _rename=name,
+            description=description,
             required=required,
             type=option_type,
             choices=choices,
@@ -486,7 +491,7 @@ class Commands(MixinMeta):
     async def view_slash_tags(
         self,
         ctx: commands.Context,
-        tags: Dict[int, SlashTag],
+        tags: typing.Dict[int, SlashTag],
         *,
         is_global: bool,
     ):
@@ -554,11 +559,21 @@ class Commands(MixinMeta):
         """
         await self.show_slash_tag_usage(ctx, ctx.guild)
 
-    # @commands.is_owner()
-    # @slashtag.command("restore", hidden=True)
-    # async def slashtag_restore(self, ctx: commands.Context):
-    #    """Restore all slash tags from the database."""
-    #    await self.restore_tags(ctx, ctx.guild)
+    @commands.is_owner()
+    @slashtag.command("restore", hidden=True)
+    async def slashtag_restore(
+        self,
+        ctx: commands.Context,
+        tag: SlashTag = commands.param(
+            converter=typing.Optional[TagConverter], default=None
+        ),
+    ):
+        """Restore all slash tags from the database."""
+        if tag:
+            await ctx.send(await tag.restore())
+
+        else:
+            await self.restore_tags(ctx, ctx.guild)
 
     @commands.is_owner()
     @slashtag.command("clear", hidden=True)
@@ -731,10 +746,19 @@ class Commands(MixinMeta):
     async def slashtag_global_usage(self, ctx: commands.Context):
         await self.show_slash_tag_usage(ctx)
 
-    # @slashtag_global.command("restore", hidden=True)
-    # @copy_doc(slashtag_restore)
-    # async def slashtag_global_restore(self, ctx: commands.Context):
-    #    await self.restore_tags(ctx, None)
+    @slashtag_global.command("restore", hidden=True)
+    @copy_doc(slashtag_restore)
+    async def slashtag_global_restore(
+        self,
+        ctx: commands.Context,
+        tag: SlashTag = commands.param(converter=GlobalTagConverter, default=None),
+    ):
+        """Restore all slash tags from the database."""
+        if tag:
+            await tag.restore()
+
+        else:
+            await self.restore_tags(ctx)
 
     @commands.is_owner()
     @commands.group(aliases=["slashset"])

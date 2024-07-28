@@ -95,7 +95,6 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
         self.global_tag_cache: Dict[int, SlashTag] = {}
 
         self.load_task = self.create_task(self.initialize_task())
-        self.session = aiohttp.ClientSession()
 
         try:
             bot.add_dev_env_value("st", lambda ctx: self)
@@ -134,7 +133,6 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
             pass
 
         self.load_task.cancel()
-        await self.session.close()
 
         for command in self.command_cache.copy().values():
             command.remove_from_cache()
