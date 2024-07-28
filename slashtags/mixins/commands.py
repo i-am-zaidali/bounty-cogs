@@ -336,7 +336,7 @@ class Commands(MixinMeta):
                 choices = await self.get_choices(ctx, option_type)
 
         return CommandParameter(
-            pk_refined_mapping.get(name.lower()).replace(" ", "_"),
+            pk_refined_mapping.get(name.lower(), name.lower()).replace(" ", "_"),
             _rename=name,
             description=description,
             required=required,
