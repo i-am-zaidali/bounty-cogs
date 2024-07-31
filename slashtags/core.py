@@ -27,7 +27,7 @@ import asyncio
 import logging
 from collections import defaultdict
 from functools import partial
-from typing import Coroutine, Dict, Optional
+from typing import Coroutine, Dict, Optional, TYPE_CHECKING
 
 import aiohttp
 import discord
@@ -55,7 +55,7 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
     The TagScript documentation can be found [here](https://phen-cogs.readthedocs.io/en/latest/index.html).
     """
 
-    __version__ = "0.9.0"
+    __version__ = "1.5.0"
     __author__ = ("PhenoM4n4n", "crayyy_zee")
 
     def format_help_for_context(self, ctx: commands.Context):
@@ -132,6 +132,8 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
         except Exception:
             pass
 
+        self.bot.tree.sync = self.old_sync
+
         self.load_task.cancel()
 
         for command in self.command_cache.copy().values():
@@ -142,14 +144,27 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
         self.eval_command = data["eval_command"]
         self.error_dispatching = data["error_dispatching"]
         self.testing_enabled = data["testing_enabled"]
+        self.monkeypatch_redtree_sync()
         if app_id := data["application_id"] or self.bot.application_id:
             self.application_id = app_id
 
+    async def _sync(
+        self, *args, guild: Optional[discord.abc.Snowflake] = None, **kwargs
+    ):
+        commands = await self.old_sync(*args, guild=guild, **kwargs)
+        self.bot.dispatch("slash_commands_synced", commands, guild)
+        return commands
+
+    def monkeypatch_redtree_sync(self):
+        self.old_sync = self.bot.tree.sync
+        self.bot.tree.sync = self._sync
+
     async def initialize_task(self):
+        await self.bot.wait_until_red_ready()
         all_data = await self.config.all()
-        await self.cache_tags(all_data)
         if self.application_id is None:
             await self.set_app_id()
+        await self.cache_tags(all_data)
 
     async def set_app_id(self):
         await self.bot.wait_until_ready()
@@ -158,48 +173,124 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
         self.application_id = app_id
 
     async def cache_tags(self, global_data: dict = None):
-        guild_cached = 0
         guilds_data = await self.config.all_guilds()
-        async for guild_id, guild_data in AsyncIter(guilds_data.items(), steps=100):
-            guild = self.bot.get_guild(guild_id)
-            if not guild:
-                continue
-            for tag_id, tag_data in guild_data["tags"].items():
-                tag = SlashTag.from_dict(self, tag_data, guild_id=guild_id)
-                if not tag.add_to_cache():
-                    continue
-                try:
-                    await self.bot.http.get_guild_command(
-                        self.application_id, guild_id, tag.id
-                    )
-                except discord.NotFound:
-                    await tag.command.register()
-                    async with self.config.guild_from_id(guild_id).tags() as tags:
-                        tags.pop(str(tag_id), None)
-
-                await tag.initialize()
-                guild_cached += 1
+        await self.cache_and_sync_guild_tags(guilds_data)
 
         cached = 0
         all_data = global_data or await self.config.all()
+        self.bot.tree.sync
         for global_tag_data in all_data["tags"].values():
             tag = SlashTag.from_dict(self, global_tag_data)
-            if tag.command.id is None:
-                tag.command.id = getattr(
-                    self.bot.tree.get_command(
-                        tag.command.name, guild=tag.guild, type=tag.type
-                    ),
-                    "id",
-                    None,
-                )
             tag.add_to_cache()
             cached += 1
 
         log.debug(
-            "completed caching slash tags, %s guild slash tags cached, %s global slash tags cached",
-            guild_cached,
+            "completed caching global slash tags: %s global slash tags cached",
             cached,
         )
+
+    async def cache_and_sync_guild_tags(self, guild_data: Optional[dict] = None):
+        if TYPE_CHECKING:
+            from discord.types.command import ApplicationCommand as APTD
+
+        guilds_data = guild_data or await self.config.all_guilds()
+        for guild_id, guild_data in guilds_data.items():
+            guild = self.bot.get_guild(guild_id)
+            if not guild:
+                continue
+            all_commands = dict[int, SlashTag](
+                map(
+                    lambda x: (
+                        x,
+                        SlashTag.from_dict(
+                            self, guild_data["tags"][str(x)], guild_id=guild_id
+                        ),
+                    ),
+                    map(int, guild_data["tags"].keys()),
+                )
+            )
+            commands_synced = dict[int, "APTD"](
+                map(
+                    lambda x: (int(x["id"]), x),
+                    await self.bot.http.get_guild_commands(
+                        self.application_id, guild_id
+                    ),
+                )
+            )
+
+            commands_not_synced = dict[int, SlashTag](
+                filter(
+                    lambda x: commands_synced.pop(x[0]) and all_commands.pop(x[0]),
+                    all_commands.copy().items(),
+                )
+            )
+
+            synced = await self.bot.http.bulk_upsert_guild_commands(
+                self.application_id,
+                guild_id,
+                [*map(lambda x: x.command.to_request(), commands_not_synced.values())]
+                + [*commands_synced.values()],
+            )
+
+            for com in synced:
+                tag = discord.utils.get(
+                    [*commands_not_synced.values()],
+                    name=com["name"],
+                    type=discord.AppCommandType(com["type"]),
+                )
+                if not tag:
+                    log.debug("tag not found: %s", com)
+                    continue
+                tag.command._parse_response_data(com)
+                await tag.initialize()
+
+            log.info(
+                "Completed caching slash tags for guild %s: %d commands (non tags) and %d tags were synced",
+                guild_id,
+                len(commands_synced),
+                len(synced),
+            )
+
+    @commands.Cog.listener()
+    async def on_slash_commands_synced(
+        self, commands: list[discord.app_commands.AppCommand], guild: discord.Guild
+    ):
+        guild_id = getattr(guild, "id", None)
+        log.debug(
+            "Sync event received: %d commands synced for guild %s",
+            len(commands),
+            guild_id,
+        )
+        for command in commands:
+            tag = discord.utils.get(
+                (
+                    self.global_tag_cache.values()
+                    if guild is None
+                    else self.guild_tag_cache[guild_id].values()
+                ),
+                name=command.name,
+                type=command.type,
+            )
+            if not tag:
+                continue
+
+            log.debug("Tag command updated: %s in guild %s", tag.name, guild_id)
+
+            await tag.delete()
+            log.debug(
+                "Tag command deleted temporarily to update ID: %s (OLD ID: %s) in guild %s",
+                tag.name,
+                tag.id,
+                guild_id,
+            )
+            tag.command._parse_response_data(command.to_dict())
+            await tag.initialize()
+            log.debug(
+                "Tag command initialized with new ID: %s (NEW ID: %s) in guild %s",
+                tag.name,
+                tag.id,
+                guild_id,
+            )
 
     async def validate_tagscript(self, ctx: commands.Context, tagscript: str):
         output = self.engine.process(tagscript)

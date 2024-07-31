@@ -239,13 +239,19 @@ class ApplicationCommand:
                 type=discord.AppCommandOptionType(int(o.pop("type"))),
                 choices=[
                     Choice(name=c["name"], value=c["value"])
-                    for c in o.pop("choices", [])
+                    for c in o.pop("choices", o.pop("options", []))
                 ],
                 required=o.pop("required", False),
-                **dict(filter(lambda x: "localization" not in x[0], o.items())),
+                **dict(
+                    filter(
+                        lambda x: "localization" not in x[0] and "length" not in x[0],
+                        o.items(),
+                    )
+                ),
             )
             for o in data.get("options", [])
         ]
+        return self
 
     async def register(self):
         if self.guild_id:
