@@ -1,206 +1,11 @@
-import json
-import math
-from logging import getLogger
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import List, Optional
 
-import aiohttp
 import discord
-from discord.interactions import Interaction
-from discord.ui import Button, Modal, Select, TextInput, View, button, select
+from discord.ui import Button, Select
 from redbot.core import commands
-from redbot.core.utils.views import SimpleMenu
 from redbot.vendored.discord.ext import menus
 
-log = getLogger("red.bounty.gamebanana.views")
-
-if TYPE_CHECKING:
-    from .main import RecordDict
-
-base_url = "https://gamebanana.com/apiv11/"
-
-humanize_bool = lambda b: "Yes" if b else "No"
-
-
-class PageSource(menus.PageSource):
-    def __init__(self, session: aiohttp.ClientSession, query: str):
-        self.session = session
-        self.query = query
-        self._should_paginate: bool = False
-        self._max_pages: int = 0
-        self._requested_pages: dict[int, Tuple[List["RecordDict"], int, int]] = {}
-
-    async def prepare(self):
-        params = {
-            "_nPage": 1,
-            "_sOrder": "best_match",
-            "_sModelName": "Mod",
-            "_idGameRow": 16522,
-            "_sSearchString": self.query,
-            "_csvFields": "name",
-        }
-        async with self.session.get(
-            base_url + "Util/Search/Results", params=params
-        ) as resp:
-            try:
-                data = await resp.json()
-            except aiohttp.ContentTypeError:
-                data = json.loads(await resp.text())
-            except aiohttp.ClientError as e:
-                return None
-
-            self._requested_pages[1] = (
-                data["_aRecords"],
-                data["_aMetadata"]["_nRecordCount"],
-                15,
-            )
-
-            self._max_pages = math.ceil(
-                data["_aMetadata"]["_nRecordCount"] / data["_aMetadata"]["_nPerpage"]
-            )
-            self._should_paginate = self._max_pages > 1
-
-    async def get_page(self, page_number: int) -> Tuple[List["RecordDict"], int, int]:
-        if page_number in self._requested_pages:
-            return self._requested_pages[page_number]
-        params = {
-            "_nPage": page_number,
-            "_sOrder": "best_match",
-            "_sModelName": "Mod",
-            "_idGameRow": 16522,
-            "_sSearchString": self.query,
-            "_csvFields": "name",
-        }
-        async with self.session.get(
-            base_url + "Util/Search/Results", params=params
-        ) as resp:
-            try:
-                data = await resp.json()
-            except aiohttp.ContentTypeError:
-                data = json.loads(await resp.text())
-            except aiohttp.ClientError as e:
-                return e
-            try:
-                print(data["_aMetadata"]["_bIsComplete"])
-            except Exception:
-                print(data)
-            return self._requested_pages.setdefault(
-                page_number,
-                (
-                    data["_aRecords"],
-                    data["_aMetadata"]["_nRecordCount"],
-                    data["_aMetadata"]["_nPerpage"],
-                ),
-            )
-
-    async def format_page(
-        self,
-        menu: SimpleMenu,
-        entries: Union[Tuple[List["RecordDict"], int, int], Exception],
-    ):
-        if isinstance(entries, Exception):
-            log.exception("Error fetching search results:", exc_info=entries)
-            return discord.Embed(title="Error (check logs)", description=str(entries))
-        records, record_count, per_page = entries
-        embed = discord.Embed(
-            title=f"Search results for {self.query}",
-            description=f"{record_count} results found.",
-            color=await menu.ctx.embed_color(),
-        )
-        for record in records:
-            field_name = f"{record['_sName']}  by {record['_aSubmitter']['_sName']}"
-            field_value = (
-                f"[CLICK HERE TO VIEW]({record['_sProfileUrl']})\n\n"
-                + (
-                    f"*Version:* {record['_sVersion']}\n"
-                    if record.get("_sVersion")
-                    else ""
-                )
-                + f"*Game:* [{record['_aGame']['_sName']}]({record['_aGame']['_sProfileUrl']})\n"
-                + f"*Like count:* {record.get('_nLikeCount', 0):,}\n"
-                + f"*View count:* {record['_nViewCount']:,}\n"
-                + f"*Date added:* <t:{record['_tsDateAdded']}:F> (<t:{record['_tsDateAdded']}:R>)\n"
-                + f"*Date modified:* <t:{record['_tsDateModified']}:F> (<t:{record['_tsDateModified']}:R>)\n\u200b"
-            )
-            embed.add_field(name=field_name, value=field_value, inline=False)
-
-        max_pages = math.ceil(record_count / per_page)
-        try:
-            embed.set_thumbnail(url=records[0]["_aGame"]["_sIconUrl"])
-        except Exception:
-            pass
-        if max_pages != 0:
-            embed.set_footer(text=f"Page {menu.current_page}/{max_pages}")
-        else:
-            embed.add_field(name="No results found", value="Try a different query")
-        return embed
-
-    async def is_paginating(self):
-        return self._should_paginate
-
-    async def get_max_pages(self):
-        return self._max_pages
-
-
-class QueryModal(Modal):
-    query_input = TextInput(
-        label="What do you wanna search for?",
-        placeholder="Enter a query",
-        min_length=3,
-        max_length=100,
-    )
-
-    def __init__(self, menu_view: "Paginator"):
-        super().__init__(title="Enter your new query", timeout=180.0)
-        self.menu_view = menu_view
-
-    async def on_submit(self, interaction: discord.Interaction) -> None:
-        await self.menu_view.change_source(
-            PageSource(self.menu_view.source.session, self.query_input.value)
-        )
-        await self.menu_view.edit_message(interaction)
-
-
-class NewQuery(Button["Paginator"]):
-    async def callback(self, interaction: discord.Interaction):
-        return await interaction.response.send_modal(QueryModal(self.view))
-
-
-def disable_items(self: View):
-    for i in self.children:
-        i.disabled = True
-
-
-def enable_items(self: View):
-    for i in self.children:
-        i.disabled = False
-
-
-async def interaction_check(ctx: commands.Context, interaction: discord.Interaction):
-    if not ctx.author.id == interaction.user.id:
-        await interaction.response.send_message(
-            "You aren't allowed to interact with this bruh. Back Off!", ephemeral=True
-        )
-        return False
-
-    return True
-
-
-class ViewDisableOnTimeout(View):
-    # I was too lazy to copypaste id rather have a mother class that implements this
-    def __init__(self, **kwargs):
-        self.message: discord.Message = None
-        self.ctx: commands.Context = kwargs.pop("ctx", None)
-        self.timeout_message: str = kwargs.pop("timeout_message", None)
-        super().__init__(**kwargs)
-
-    async def on_timeout(self):
-        if self.message:
-            disable_items(self)
-            await self.message.edit(view=self)
-            if self.timeout_message and self.ctx:
-                await self.ctx.send(self.timeout_message)
-
-        self.stop()
+from . import ViewDisableOnTimeout
 
 
 class PaginatorButton(Button["Paginator"]):
@@ -335,6 +140,7 @@ class Paginator(ViewDisableOnTimeout):
         self.ctx: commands.Context
         self._source = source
         self.use_select: bool = use_select
+        self._start_from = start_index
         self.current_page: int = start_index
         self.extra_items: list[discord.ui.Item] = extra_items or []
 
@@ -344,7 +150,7 @@ class Paginator(ViewDisableOnTimeout):
 
     async def update_buttons(self, edit=False):
         self.clear_items()
-        pages = await self.source.get_max_pages() or 0
+        pages = self.source.get_max_pages() or 0
         buttons_to_add: List[Button] = (
             [
                 FirstItemButton(),
@@ -370,13 +176,15 @@ class Paginator(ViewDisableOnTimeout):
         await self.update_items(edit)
 
     async def update_items(self, edit: bool = False):
-        pages = await self.source.get_max_pages() or 0
+        pages = (self.source.get_max_pages() or 1) - 1
         for i in self.children:
             if isinstance(i, PageButton):
                 i._change_label()
                 continue
 
-            elif self.current_page == 1 and isinstance(i, FirstItemButton):
+            elif self.current_page == self._start_from and isinstance(
+                i, FirstItemButton
+            ):
                 i.disabled = True
                 continue
 
@@ -388,9 +196,6 @@ class Paginator(ViewDisableOnTimeout):
                 i.update()
 
             i.disabled = False
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        return await interaction_check(self.ctx, interaction)
 
     async def edit_message(self, inter: discord.Interaction):
         page = await self.get_page(self.current_page)
@@ -422,11 +227,11 @@ class Paginator(ViewDisableOnTimeout):
 
         if not isinstance(source, menus.PageSource):
             raise TypeError(
-                "Expected {0!r} not {1.__class__!r}.".format(PageSource, source)
+                "Expected {0!r} not {1.__class__!r}.".format(menus.PageSource, source)
             )
 
         self._source = source
-        self.current_page = 1
+        self.current_page = self._start_from
         await source._prepare_once()
         if start:
             if ctx is None:
