@@ -317,7 +317,9 @@ class BoosterRoles(commands.Cog):
 
     @boosterrole.command(name="setthreshold", aliases=["setboostreq", "threshold"])
     @commands.admin()
-    async def setthreshold(self, ctx: commands.Context, threshold: int):
+    async def setthreshold(
+        self, ctx: commands.Context, threshold: commands.positive_int
+    ):
         """
         Set the number of boosts required to receive the booster role"""
         await self.config.guild(ctx.guild).threshold.set(threshold)
@@ -511,7 +513,7 @@ class BoosterRoles(commands.Cog):
 
     @boosterrole.command(name="rolelimit")
     @commands.admin()
-    async def rolelimit(self, ctx: commands.Context, limit: int):
+    async def rolelimit(self, ctx: commands.Context, limit: commands.positive_int):
         """
         Set the maximum number of booster roles allowed in the server"""
         await self.config.guild(ctx.guild).role_limit.set(limit)
