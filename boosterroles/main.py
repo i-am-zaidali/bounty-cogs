@@ -206,7 +206,7 @@ class BoosterRoles(commands.Cog):
         if await self.config.guild(ctx.guild).role_limit() <= len(
             [
                 *filter(
-                    lambda x: ctx.guild.get_role(x["booster_role"]["id"]),
+                    lambda x: ctx.guild.get_role(x["booster_role"].get("id")),
                     (await self.config.all_members(ctx.guild)).values(),
                 )
             ]
