@@ -40,8 +40,12 @@ class UserRoleConfigFlags(commands.FlagConverter):
     color: typing.Optional[typing.Union[discord.Color, typing.Literal["random"]]]
     hoist: typing.Optional[bool]
     mentionable: typing.Optional[bool]
-    icon: typing.Optional[typing.Union[discord.Attachment, discord.Emoji]] = commands.flag(
-        name="display_icon", converter=typing.Optional[EmojiAttachmentConverter], aliases=["icon"]
+    icon: typing.Optional[typing.Union[discord.Attachment, discord.Emoji]] = (
+        commands.flag(
+            name="display_icon",
+            converter=typing.Optional[EmojiAttachmentConverter],
+            aliases=["icon"],
+        )
     )
 
     def to_json(self):
@@ -53,7 +57,11 @@ class UserRoleConfigFlags(commands.FlagConverter):
                     "color": (
                         self.color.value
                         if isinstance(self.color, discord.Color)
-                        else discord.Color.random().value if self.color == "random" else None
+                        else (
+                            discord.Color.random().value
+                            if self.color == "random"
+                            else None
+                        )
                     ),
                     "hoist": self.hoist,
                     "mentionable": self.mentionable,
@@ -89,6 +97,7 @@ class BoosterRoles(commands.Cog):
             },
             "disallowed_properties": [],
             "threshold": 1,
+            "role_limit": 10,
         }
         default_member = {"booster_role": {}, "boosts": 0}
         self.config.register_guild(**default_guild)
@@ -107,7 +116,9 @@ class BoosterRoles(commands.Cog):
             return
         boosts -= 1
         if boosts == 0:
-            log.debug(f"{member.display_name} has unboosted the server, removing booster role.")
+            log.debug(
+                f"{member.display_name} has unboosted the server, removing booster role."
+            )
             role_id = await self.config.member(member).booster_role.id()
             role = member.guild.get_role(role_id)
             if role:
@@ -191,6 +202,16 @@ class BoosterRoles(commands.Cog):
                 return await ctx.send(
                     f"{member.display_name} already has the booster role {role.mention}."
                 )
+
+        if await self.config.guild(ctx.guild).role_limit() <= len(
+            [
+                *filter(
+                    lambda x: ctx.guild.get_role(x["booster_role"]["id"]),
+                    (await self.config.all_members(ctx.guild)).values(),
+                )
+            ]
+        ):
+            return await ctx.send("Role limit reached. Cannot assign more roles.")
         boosts = await self.config.member(member).boosts()
         above_role = ctx.guild.get_role(config.pop("above"))
         if not above_role:
@@ -209,7 +230,9 @@ class BoosterRoles(commands.Cog):
             )
 
         except discord.Forbidden:
-            return await ctx.send("I do not have the necessary permissions to create roles")
+            return await ctx.send(
+                "I do not have the necessary permissions to create roles"
+            )
 
         except discord.HTTPException as e:
             log.exception("Role creation failed", exc_info=e)
@@ -239,7 +262,9 @@ class BoosterRoles(commands.Cog):
                 await member.add_roles(role, reason="Booster role assignment")
 
             except discord.Forbidden:
-                return await ctx.send("I do not have the necessary permissions to assign roles")
+                return await ctx.send(
+                    "I do not have the necessary permissions to assign roles"
+                )
 
             except discord.HTTPException as e:
                 log.exception("Role assignment failed", exc_info=e)
@@ -255,7 +280,9 @@ class BoosterRoles(commands.Cog):
                 )
             )
 
-        await ctx.send(f"{member.display_name} has been assigned the booster role {role.mention}.")
+        await ctx.send(
+            f"{member.display_name} has been assigned the booster role {role.mention}."
+        )
 
     @boosterrole.command(name="unassign")
     @commands.max_concurrency(1, per=commands.BucketType.guild)
@@ -273,7 +300,9 @@ class BoosterRoles(commands.Cog):
         try:
             await role.delete(reason="Booster role unassignment")
         except discord.Forbidden:
-            return await ctx.send("I do not have the necessary permissions to remove roles")
+            return await ctx.send(
+                "I do not have the necessary permissions to remove roles"
+            )
 
         except discord.HTTPException as e:
             log.exception("Role removal failed", exc_info=e)
@@ -296,20 +325,32 @@ class BoosterRoles(commands.Cog):
         config = await self.config.guild(ctx.guild).booster_role()
         threshold = await self.config.guild(ctx.guild).threshold()
         disallowed = await self.config.guild(ctx.guild).disallowed_properties()
-        embed = discord.Embed(title="Booster Role Settings", color=await ctx.embed_color())
+        embed = discord.Embed(
+            title="Booster Role Settings", color=await ctx.embed_color()
+        )
         embed.add_field(name="Threshold", value=threshold)
         for key, value in config.items():
             embed.add_field(name=key, value=value)
 
-        embed.add_field(name="Disallowed Properties", value=cf.humanize_list(disallowed) or "None")
+        embed.add_field(
+            name="Disallowed Properties", value=cf.humanize_list(disallowed) or "None"
+        )
+
+        embed.add_field(
+            name="Role Limit",
+            value=await self.config.guild(ctx.guild).role_limit(),
+        )
 
         await ctx.send(embed=embed)
 
     @boosterrole.command(name="setboosts", aliases=["setboostcount"])
     @commands.admin()
-    async def setboosts(self, ctx: commands.Context, member: discord.Member, count: int):
+    async def setboosts(
+        self, ctx: commands.Context, member: discord.Member, count: int
+    ):
         """
-        Set the number of boosts for a member incase they are wrongly shown in `[p]showboosts`"""
+        Set the number of boosts for a member incase they are wrongly shown in `[p]showboosts`
+        """
         await self.config.member(member).boosts.set(count)
         await ctx.tick()
 
@@ -385,7 +426,9 @@ class BoosterRoles(commands.Cog):
         flags_json.update(
             {
                 "display_icon": await getattr(
-                    di := flags_json.pop("display_icon"), "read", lambda: asyncio.sleep(0, di)
+                    di := flags_json.pop("display_icon"),
+                    "read",
+                    lambda: asyncio.sleep(0, di),
                 )()
             }
         )
@@ -394,7 +437,9 @@ class BoosterRoles(commands.Cog):
             await role.edit(**flags_json, reason="Booster role configuration")
         except discord.Forbidden:
             log.warning("Failed to edit role")
-            return await ctx.send("I do not have the necessary permissions to edit roles")
+            return await ctx.send(
+                "I do not have the necessary permissions to edit roles"
+            )
 
         except discord.HTTPException as e:
             log.exception("Role edit failed", exc_info=e)
@@ -432,9 +477,14 @@ class BoosterRoles(commands.Cog):
                 member = ctx.guild.get_member(member_id)
                 role = ctx.guild.get_role(data["booster_role"]["id"])
                 embed.add_field(
-                    name=getattr(member, "display_name", f"User not found") + f" ({member_id})",
+                    name=getattr(member, "display_name", f"User not found")
+                    + f" ({member_id})",
                     value="Role: "
-                    + getattr(role, "mention", f"Role not found ({data['booster_role']['id']})")
+                    + getattr(
+                        role,
+                        "mention",
+                        f"Role not found ({data['booster_role']['id']})",
+                    )
                     + "\nBoosts: "
                     + str(data["boosts"]),
                     inline=False,
@@ -445,3 +495,31 @@ class BoosterRoles(commands.Cog):
         source.format_page = format_page
 
         await Paginator(source, use_select=True).start(ctx)
+
+    @boosterrole.command(name="rolelimit")
+    @commands.admin()
+    async def rolelimit(self, ctx: commands.Context, limit: int):
+        """
+        Set the maximum number of booster roles allowed in the server"""
+        await self.config.guild(ctx.guild).role_limit.set(limit)
+        await ctx.tick()
+
+    @boosterrole.command(name="purgeroles")
+    @commands.admin()
+    async def purgeroles(self, ctx: commands.Context):
+        """
+        Purge all booster roles in the server"""
+        members = await self.config.all_members(ctx.guild)
+        if not members:
+            return await ctx.send("No booster roles found.")
+
+        await ctx.send("Purging booster roles...")
+        async with ctx.typing():
+            for member_id, data in members.items():
+                role = ctx.guild.get_role(data["booster_role"]["id"])
+                if role:
+                    await role.delete(reason="Booster role purge")
+
+                await self.config.member_from_ids(ctx.guild.id, member_id).clear()
+
+        await ctx.send("Booster roles purged.")
