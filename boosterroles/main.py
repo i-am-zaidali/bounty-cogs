@@ -516,7 +516,7 @@ class BoosterRoles(commands.Cog):
         await ctx.send("Purging booster roles...")
         async with ctx.typing():
             for member_id, data in members.items():
-                role = ctx.guild.get_role(data["booster_role"]["id"])
+                role = ctx.guild.get_role(data["booster_role"].get("id"))
                 if role:
                     await role.delete(reason="Booster role purge")
 
