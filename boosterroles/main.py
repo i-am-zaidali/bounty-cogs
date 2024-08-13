@@ -284,14 +284,18 @@ class BoosterRoles(commands.Cog):
             f"{member.display_name} has been assigned the booster role {role.mention}."
         )
 
-    @boosterrole.command(name="unassign")
+    @boosterrole.command(name="unassign", usage="")
     @commands.max_concurrency(1, per=commands.BucketType.guild)
     @commands.bot_has_guild_permissions(manage_roles=True)
     @commands.cooldown(1, 180)
-    async def unassign(self, ctx: commands.Context):
+    async def unassign(
+        self, ctx: commands.Context, member: discord.Member = commands.Author
+    ):
         """
         Unassign the booster role from yourself"""
-        member = ctx.author
+        if member != ctx.author and not await self.bot.is_admin(ctx.author):
+            member = ctx.author
+
         role_id = await self.config.member(ctx.author).booster_role.id()
         role = ctx.guild.get_role(role_id)
         if not role:
@@ -309,6 +313,7 @@ class BoosterRoles(commands.Cog):
             return await ctx.send("Role removal failed. Check logs.")
 
         await ctx.send(f"{member.display_name} has been unassigned the booster role.")
+        await self.config.member(member).clear()
 
     @boosterrole.command(name="setthreshold", aliases=["setboostreq", "threshold"])
     @commands.admin()
@@ -491,7 +496,15 @@ class BoosterRoles(commands.Cog):
                 )
             return embed
 
-        source = ListPageSource([*members.items()], per_page=10)
+        source = ListPageSource(
+            [
+                *filter(
+                    lambda x: ctx.guild.get_role(x[1]["booster_role"].get("id")),
+                    members.items(),
+                )
+            ],
+            per_page=10,
+        )
         source.format_page = format_page
 
         await Paginator(source, use_select=True).start(ctx)
