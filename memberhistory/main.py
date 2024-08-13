@@ -479,7 +479,7 @@ class MemberHistory(commands.Cog):
             name="Ignore List",
             value=cf.humanize_list(
                 [
-                    cf.inline("@" + getattr(ur, "display_name", ur.name))
+                    ur.mention
                     for x in conf["ignorelist"]
                     if (ur := self.get_user_or_role(ctx.guild, x))
                 ]
