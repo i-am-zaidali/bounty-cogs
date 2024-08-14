@@ -1061,6 +1061,13 @@ class MissionChiefMetrics(commands.Cog):
                 if not vehicle in total_stats:
                     continue
                 total_stats[vehicle] += amount
+        total_stats = dict(
+            sorted(
+                total_stats.items(),
+                key=lambda x: x[1],
+                reverse=True,
+            )
+        )
         category_counts = [
             *{
                 category: sum(total_stats.get(vehicle, 0) for vehicle in cat_vc)
