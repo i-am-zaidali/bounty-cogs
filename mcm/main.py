@@ -781,12 +781,14 @@ class MissionChiefMetrics(commands.Cog):
         ):
             if not entry[1]:
                 return discord.Embed(
-                    title=f"{entry[0]}'s stats"
-                    if entry[0]
-                    else (
-                        f"Combined stats of all members of **{user_or_role.name}**"
-                        if isinstance(user_or_role, discord.Role)
-                        else "Combined stats of all users"
+                    title=(
+                        f"{entry[0]}'s stats"
+                        if entry[0]
+                        else (
+                            f"Combined stats of all members of **{user_or_role.name}**"
+                            if isinstance(user_or_role, discord.Role)
+                            else "Combined stats of all users"
+                        )
                     ),
                     description="No stats available",
                 )
@@ -795,22 +797,36 @@ class MissionChiefMetrics(commands.Cog):
                 for category, cat_vc in categories.items()
             }
             category_individuals = {
-                category: {
-                    vehicle: entry[1].get(vehicle, 0)
-                    for vehicle in cat_vc
-                    if entry[1].get(vehicle, 0) > 0
-                }
+                category: dict(
+                    sorted(
+                        {
+                            vehicle: entry[1].get(vehicle, 0)
+                            for vehicle in cat_vc
+                            if entry[1].get(vehicle, 0) > 0
+                        }.items(),
+                        key=lambda x: x[1],
+                        reverse=True,
+                    )
+                )
                 for category, cat_vc in categories.items()
             }
             category_individuals.update(
                 {
-                    "uncategorised": {
-                        vehicle: entry[1].get(vehicle, 0)
-                        for vehicle in vehicles
-                        if vehicle
-                        not in itertools.chain.from_iterable(categories.values())
-                        and entry[1].get(vehicle, 0) > 0
-                    }
+                    "uncategorised": dict(
+                        sorted(
+                            {
+                                vehicle: entry[1].get(vehicle, 0)
+                                for vehicle in vehicles
+                                if vehicle
+                                not in itertools.chain.from_iterable(
+                                    categories.values()
+                                )
+                                and entry[1].get(vehicle, 0) > 0
+                            }
+                        ),
+                        key=lambda x: x[1],
+                        reverse=True,
+                    )
                 }
             )
             category_totals.update(
@@ -838,28 +854,32 @@ class MissionChiefMetrics(commands.Cog):
             )
 
             embed = discord.Embed(
-                title=f"{entry[0]}'s stats"
-                if entry[0]
-                else (
-                    f"Combined stats of all members of **{user_or_role.name}**"
-                    if isinstance(user_or_role, discord.Role)
-                    else "Combined stats of all users"
+                title=(
+                    f"{entry[0]}'s stats"
+                    if entry[0]
+                    else (
+                        f"Combined stats of all members of **{user_or_role.name}**"
+                        if isinstance(user_or_role, discord.Role)
+                        else "Combined stats of all users"
+                    )
                 ),
                 description=f"{desc}**Uncategorised**\nTotal: {category_totals.pop('uncategorised')}\n{description}",
             )
             for cat, s in category_totals.items():
                 embed.add_field(
                     name=f"**{cat}**\nTotal: {s}",
-                    value=cf.box(
-                        tabulate(
-                            category_individuals[cat].items(),
-                            headers=["Vehicle", "Amount"],
-                            tablefmt="simple",
-                            colalign=("left", "center"),
+                    value=(
+                        cf.box(
+                            tabulate(
+                                category_individuals[cat].items(),
+                                headers=["Vehicle", "Amount"],
+                                tablefmt="simple",
+                                colalign=("left", "center"),
+                            )
                         )
-                    )
-                    if category_individuals[cat]
-                    else f"No stats available for this category.",
+                        if category_individuals[cat]
+                        else f"No stats available for this category."
+                    ),
                     inline=False,
                 )
 
