@@ -308,12 +308,15 @@ class MemberHistory(commands.Cog):
         await ctx.send(
             f"Are you sure you want to delete all stored files for {user.mention}?",
             view=view,
+            allowed_mentions=discord.AllowedMentions.none(),
         )
         if await view.wait():
             return await ctx.send("Operation cancelled. You took too long to respond.")
 
         if not view.result:
-            return await ctx.send("Operation cancelled.")
+            return await ctx.send(
+                "Operation cancelled.", allowed_mentions=discord.AllowedMentions.none()
+            )
         self.path_util.delete_all_files(user)
         await ctx.send(f"All stored files for {user.mention} have been purged.")
 
