@@ -1,6 +1,7 @@
 import datetime
 import io
 import operator
+import shutil
 import urllib.parse
 import discord
 from redbot.core.bot import Red
@@ -16,6 +17,7 @@ from .views import Paginator
 from redbot.vendored.discord.ext import menus
 from redbot.core.utils.views import ConfirmView
 from discord.ext import tasks
+
 
 log = logging.getLogger("red.bounty.MemberHistory")
 
@@ -93,6 +95,7 @@ class PageSource(menus.PageSource):
             f"Page {menu.current_page+1}/{self.get_max_pages()}",
             color=await menu.ctx.embed_color(),
         )
+        embed.set_author(name=self.user.display_name, icon_url=self.user.avatar.url)
         embed.set_image(url="attachment://" + f.filename)
         return {"file": f, "embed": embed, "content": None}
 
@@ -151,7 +154,7 @@ class PathUtil:
         user: typing.Optional[typing.Union[discord.Member, discord.User, int]] = None,
     ):
         if not user:
-            self.path.rmdir()
+            return shutil.rmtree(self.path)
 
         if isinstance(user, (discord.User, discord.Member)):
             user = user.id
@@ -161,13 +164,26 @@ class PathUtil:
         # all the parents will be dirs with their children being the files so it's safe to delete them
         for parent in common_parents:
             if parent.is_dir() and parent.name == str(user):  # just being cautious
-                parent.rmdir()
+                shutil.rmtree(parent)
 
     def get_user_all_files(self, user: typing.Union[discord.Member, discord.User, int]):
         return [*self.path.glob(f"**/{user}/*")]
 
+    def get_all_users_folder(
+        self, guild: typing.Optional[typing.Union[discord.Guild, int]] = None
+    ):
+        if not guild:
+            all_files = self.get_all_files_stored()
+            return [*{*map(lambda x: x.parent, all_files)}]
 
-TIMEDELTA_CONV = commands.get_timedelta_converter(minimum=datetime.timedelta(days=7))
+        if isinstance(guild, discord.Guild):
+            guild = guild.id
+
+        all_guild_files = self.get_all_files_stored_guild(guild)
+        return [*{*map(lambda x: x.parent, all_guild_files)}]
+
+
+TIMEDELTA_CONV = commands.get_timedelta_converter(minimum=datetime.timedelta(days=1))
 
 
 class MemberHistory(commands.Cog):
@@ -290,7 +306,7 @@ class MemberHistory(commands.Cog):
         """
         view = ConfirmView(ctx.author)
         await ctx.send(
-            f"Are you sure you want to delete all stored files for {user.display_name}?",
+            f"Are you sure you want to delete all stored files for {user.mention}?",
             view=view,
         )
         if await view.wait():
@@ -299,7 +315,7 @@ class MemberHistory(commands.Cog):
         if not view.result:
             return await ctx.send("Operation cancelled.")
         self.path_util.delete_all_files(user)
-        await ctx.send(f"All stored files for {user.display_name} have been purged.")
+        await ctx.send(f"All stored files for {user.mention} have been purged.")
 
     @commands.Cog.listener()
     async def on_user_update(self, before: discord.User, after: discord.User):
@@ -426,6 +442,7 @@ class MemberHistory(commands.Cog):
         await menu.start(ctx)
 
     @memberhistory.command("ignore")
+    @commands.admin()
     async def ignore_(
         self,
         ctx: commands.Context,
@@ -441,6 +458,7 @@ class MemberHistory(commands.Cog):
         await ctx.send(f"Added {user_or_role.name} to the ignore list.")
 
     @memberhistory.command("unignore")
+    @commands.admin()
     async def unignore_(
         self,
         ctx: commands.Context,
@@ -456,6 +474,7 @@ class MemberHistory(commands.Cog):
         await ctx.send(f"Removed {user_or_role.name} from the ignore list.")
 
     @memberhistory.command(name="showsettings", aliases=["ss"])
+    @commands.admin()
     async def ss(self, ctx: commands.Context):
         """
         Get the number of stored files.
@@ -497,3 +516,37 @@ class MemberHistory(commands.Cog):
         )
 
         await ctx.send(embed=embed)
+
+    @memberhistory.command(name="storedusers")
+    @commands.is_owner()
+    async def storedusers(self, ctx: commands.Context):
+        """
+        Get a list of all users with stored files.
+        """
+        all_users = self.path_util.get_all_users_folder()
+        if not all_users:
+            return await ctx.send("No users with stored files found.")
+
+        source = menus.ListPageSource(
+            all_users,
+            per_page=20,
+        )
+        color = await ctx.embed_color()
+        format_page: typing.Callable[
+            [Paginator, typing.List[pathlib.Path]],
+            typing.Coroutine[None, None, discord.Embed],
+        ] = lambda menu, page: discord.utils.maybe_coroutine(
+            lambda x: discord.Embed(
+                title="Users with stored files",
+                description="\n".join(
+                    f"- <@{x.name}> ({x.name})\n  - Total files stored: {len([*x.iterdir()])}"  # iterdir because the folder cannot have sub folders
+                    for i, x in enumerate(page)
+                ),
+                color=color,
+            ),
+            page,
+        )
+
+        source.format_page = format_page
+
+        await Paginator(source, 0, timeout=60).start(ctx)
