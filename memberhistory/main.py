@@ -322,6 +322,9 @@ class MemberHistory(commands.Cog):
 
     @commands.Cog.listener()
     async def on_user_update(self, before: discord.User, after: discord.User):
+        if before.bot:
+            return
+
         log.debug(f"User update detected for {before}")
         mutual = after.mutual_guilds
         if not mutual:
@@ -369,6 +372,9 @@ class MemberHistory(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
+        if before.bot:
+            return
+
         if not await self.config.guild(before.guild).toggle():
             return
 
