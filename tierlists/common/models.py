@@ -126,7 +126,7 @@ class Category(Base):
                         EightBitANSI.paint_white(col, underline=True),
                         # + f"\n{'-'*len(col)}\n",
                         EightBitANSI.paint_white(
-                            f"{choices_votes[col][0]}\{choices_votes[col][1]}"
+                            f"{choices_votes[col][0]}\\{choices_votes[col][1]}"
                         )
                         + "\n",
                     ]
