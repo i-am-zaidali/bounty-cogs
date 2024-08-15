@@ -78,9 +78,9 @@ class Category(Base):
         log.debug(f"Tiers assigned: {tiers_assigned}")
         log.debug(f"Choices votes: {choices_votes}")
         tiers = [*tiers_assigned.keys()]
-        # if not tiers_assigned:
-        #     embed.description = "No votes have been cast yet."
-        #     return embed
+        if not tiers_assigned:
+            embed.description = "No votes have been cast yet."
+            return embed
 
         columns = [
             *itertools.chain.from_iterable(

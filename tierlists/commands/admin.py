@@ -36,7 +36,7 @@ class Admin(MixinMeta):
                 <= (hp := conf.percentiles[tiers[tiers.index(tier) + 1]])
             ):
                 return await ctx.send(
-                    f"Percentile for {tier} must be lower than {hp} and higher than {hp}"
+                    f"Percentile for {tier} must be lower than {lp} and higher than {hp}"
                 )
 
         except IndexError:
