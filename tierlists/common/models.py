@@ -82,6 +82,9 @@ class Category(Base):
             embed.description = "No votes have been cast yet."
             return embed
 
+        fixed_tiers = [val for l in tiers_assigned.values() for val in (l or [""])]
+        sep_lines = sum([[SEPARATING_LINE] * 2] * len(fixed_tiers), [])
+
         columns = [
             *itertools.chain.from_iterable(
                 sum(
@@ -103,6 +106,7 @@ class Category(Base):
             except ValueError:
                 next_sep_index = len(columns)
             mid_index = (current_index + next_sep_index) // 2
+            # log.debug(f"{current_index=} {next_sep_index=}, {mid_index=}")
 
             indices[mid_index] = tier_colors[tiers[i]]()
             current_index = next_sep_index + 1
@@ -141,8 +145,8 @@ class Category(Base):
             headers=["", "Choices", "Up\Down\nvotes"],
             # showindex=indices,
             tablefmt="simple_outline",
-            maxheadercolwidths=[None, 18, None, None],
-            maxcolwidths=[None, 18, None, None],
+            maxheadercolwidths=[None, 18, None],
+            maxcolwidths=[None, 18, None],
         )
 
         embed.description = f"Created By: <@{self.creator}>\n" + cf.box(
