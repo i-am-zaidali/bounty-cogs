@@ -42,7 +42,7 @@ class RepManager(commands.Cog):
 
         self._task = self.save_to_config_every_5.start()
 
-    async def build_cache(self):
+    async def cog_load(self):
         data = await self.config.all_members()
         self.cache = {
             guild_id: {
