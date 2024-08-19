@@ -68,6 +68,13 @@ class PageSource(menus.PageSource):
         if self.get_max_pages() > 0 and not page:
             return f"This page does not exist. Please scroll back to a page between 1 and {self.get_max_pages()}"
         if not page:
+            ignored = False
+            ignorelist = (
+                await self.cog.config.guild(self.user.guild).ignorelist()
+                + await self.cog.config.ignorelist()
+            )
+            if self.user.id in ignorelist:
+                ignored = True
             attrgetter = self.attr_user_attr.get(self.attr)
             gotten: typing.Optional[discord.Asset]
             if not attrgetter:
@@ -76,7 +83,8 @@ class PageSource(menus.PageSource):
                 gotten = attrgetter(self.user)
             embed = discord.Embed(
                 title=f"**{self.user.display_name}**'s {self.attr_qname[self.attr]}s",
-                description=f"No past {self.attr_qname[self.attr]}s found",
+                description=f"No past {self.attr_qname[self.attr]}s found"
+                + (ignored and " because the user is in the ignore list." or ""),
                 color=await menu.ctx.embed_color(),
             )
             if gotten:
@@ -193,15 +201,33 @@ class MemberHistory(commands.Cog):
             self, identifier=1234567890, force_registration=True
         )
         self.config.register_guild(toggle=False, ignorelist=[])
-        self.config.register_global(ttl=datetime.timedelta(days=30).total_seconds())
+        self.config.register_global(
+            ttl=datetime.timedelta(days=30).total_seconds(), ignorelist=[]
+        )
         self.path_util = PathUtil(self)
         self.cleanup_task = self.cleanup.start()
 
     def cog_unload(self):
         self.cleanup_task.cancel()
 
-    def get_user_or_role(self, guild: discord.Guild, user_or_role: int):
-        return guild.get_member(user_or_role) or guild.get_role(user_or_role)
+    @typing.overload
+    def get_user_or_role(
+        self, user_or_role: int, guild: discord.Guild
+    ) -> typing.Optional[typing.Union[discord.User, discord.Role]]: ...
+
+    @typing.overload
+    def get_user_or_role(
+        self, user_or_role: int, guild=None
+    ) -> typing.Optional[discord.User]: ...
+
+    def get_user_or_role(
+        self, user_or_role: int, guild: typing.Optional[discord.Guild] = None
+    ):
+        return (
+            guild
+            and (guild.get_member(user_or_role) or guild.get_role(user_or_role))
+            or (guild and self.bot.get_user(user_or_role))
+        )
 
     async def save_file(
         self,
@@ -325,6 +351,12 @@ class MemberHistory(commands.Cog):
         if before.bot:
             return
 
+        ignorelist = await self.config.ignorelist()
+
+        if before.id in ignorelist:
+            log.debug(f"User {before.display_name} is in the ignore list.")
+            return
+
         log.debug(f"User update detected for {before}")
         mutual = after.mutual_guilds
         if not mutual:
@@ -378,7 +410,12 @@ class MemberHistory(commands.Cog):
         if not await self.config.guild(before.guild).toggle():
             return
 
-        if before.id in await self.config.guild(before.guild).ignorelist():
+        ignorelist = (
+            await self.config.guild(before.guild).ignorelist()
+            + await self.config.ignorelist()
+        )
+
+        if before.id in ignorelist:
             log.debug(f"Member {before.display_name} is in the ignore list.")
             return
 
@@ -450,7 +487,7 @@ class MemberHistory(commands.Cog):
         menu = Paginator(source, page and page - 1, timeout=60, use_select=False)
         await menu.start(ctx)
 
-    @memberhistory.command("ignore")
+    @memberhistory.group("ignore", invoke_without_command=True)
     @commands.admin()
     async def ignore_(
         self,
@@ -466,7 +503,19 @@ class MemberHistory(commands.Cog):
             ignorelist.append(user_or_role.id)
         await ctx.send(f"Added {user_or_role.name} to the ignore list.")
 
-    @memberhistory.command("unignore")
+    @ignore_.command(name="globally", aliases=["global"])
+    @commands.is_owner()
+    async def ignore_global(self, ctx: commands.Context, user: discord.User):
+        """
+        Add a user to the global ignore list.
+        """
+        async with self.config.ignorelist() as ignorelist:
+            if user.id in ignorelist:
+                return await ctx.send("User is already in the ignore list.")
+            ignorelist.append(user.id)
+        await ctx.send(f"Added {user.name} to the global ignore list.")
+
+    @memberhistory.group("unignore")
     @commands.admin()
     async def unignore_(
         self,
@@ -481,6 +530,18 @@ class MemberHistory(commands.Cog):
                 return await ctx.send("User or role is not in the ignore list.")
             ignorelist.remove(user_or_role.id)
         await ctx.send(f"Removed {user_or_role.name} from the ignore list.")
+
+    @unignore_.command(name="globally", aliases=["global"])
+    @commands.is_owner()
+    async def unignore_global(self, ctx: commands.Context, user: discord.User):
+        """
+        Remove a user from the global ignore list.
+        """
+        async with self.config.ignorelist() as ignorelist:
+            if user.id not in ignorelist:
+                return await ctx.send("User is not in the ignore list.")
+            ignorelist.remove(user.id)
+        await ctx.send(f"Removed {user.name} from the global ignore list.")
 
     @memberhistory.command(name="showsettings", aliases=["ss"])
     @commands.admin()
@@ -504,16 +565,27 @@ class MemberHistory(commands.Cog):
             inline=False,
         )
         embed.add_field(
-            name="Ignore List",
+            name="Server Ignore List",
             value=cf.humanize_list(
                 [
                     ur.mention
                     for x in conf["ignorelist"]
-                    if (ur := self.get_user_or_role(ctx.guild, x))
+                    if (ur := self.get_user_or_role(x, ctx.guild))
                 ]
             )
             or "No users or roles in the ignore list.",
             inline=False,
+        )
+        embed.add_field(
+            name="Global Ignore List",
+            value=cf.humanize_list(
+                [
+                    ur.mention
+                    for x in await self.config.ignorelist()
+                    if (ur := self.get_user_or_role(x))
+                ]
+            )
+            or "No users in the global ignore list.",
         )
         embed.add_field(
             name="Time to live",
