@@ -487,9 +487,15 @@ class MemberHistory(commands.Cog):
         menu = Paginator(source, page and page - 1, timeout=60, use_select=False)
         await menu.start(ctx)
 
-    @memberhistory.group("ignore", invoke_without_command=True)
+    @memberhistory.group("ignore")
+    async def ignore(self, ctx: commands.Context):
+        """
+        Add a user or role to the ignore list.
+        """
+
+    @ignore.command(name="server", aliases=["guild"])
     @commands.admin()
-    async def ignore_(
+    async def ignore_server(
         self,
         ctx: commands.Context,
         user_or_role: typing.Union[discord.Member, discord.Role],
@@ -503,7 +509,7 @@ class MemberHistory(commands.Cog):
             ignorelist.append(user_or_role.id)
         await ctx.send(f"Added {user_or_role.name} to the ignore list.")
 
-    @ignore_.command(name="globally", aliases=["global"])
+    @ignore.command(name="globally", aliases=["global"])
     @commands.is_owner()
     async def ignore_global(self, ctx: commands.Context, user: discord.User):
         """
@@ -515,9 +521,15 @@ class MemberHistory(commands.Cog):
             ignorelist.append(user.id)
         await ctx.send(f"Added {user.name} to the global ignore list.")
 
-    @memberhistory.group("unignore", invoke_without_command=True)
+    @memberhistory.group("unignore")
+    async def unignore(self, ctx: commands.Context):
+        """
+        Remove a user or role from the ignore list.
+        """
+
+    @unignore.command(name="server", aliases=["guild"])
     @commands.admin()
-    async def unignore_(
+    async def unignore_server(
         self,
         ctx: commands.Context,
         user_or_role: typing.Union[discord.Member, discord.Role],
@@ -531,7 +543,7 @@ class MemberHistory(commands.Cog):
             ignorelist.remove(user_or_role.id)
         await ctx.send(f"Removed {user_or_role.name} from the ignore list.")
 
-    @unignore_.command(name="globally", aliases=["global"])
+    @unignore.command(name="globally", aliases=["global"])
     @commands.is_owner()
     async def unignore_global(self, ctx: commands.Context, user: discord.User):
         """
