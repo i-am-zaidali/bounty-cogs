@@ -515,7 +515,7 @@ class MemberHistory(commands.Cog):
             ignorelist.append(user.id)
         await ctx.send(f"Added {user.name} to the global ignore list.")
 
-    @memberhistory.group("unignore")
+    @memberhistory.group("unignore", invoke_without_command=True)
     @commands.admin()
     async def unignore_(
         self,
