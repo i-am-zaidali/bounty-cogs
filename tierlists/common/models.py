@@ -113,19 +113,18 @@ class Category(Base):
 
         log.debug(f"Indices: {indices}")
 
-        data_to_tabulate = [
+        data_to_tabulate: tuple[str, str, str] = [
             (
-                [
+                (
                     index,
                     EightBitANSI.paint_white("No choice belongs in this tier :("),
                     EightBitANSI.paint_white("-"),
-                    EightBitANSI.paint_white("-"),
-                ]
+                )
                 if col == ""
                 else (
-                    [col, col, col, col]
+                    (col, col, col)
                     if col == SEPARATING_LINE
-                    else [
+                    else (
                         index,
                         EightBitANSI.paint_white(col, underline=True),
                         # + f"\n{'-'*len(col)}\n",
@@ -133,7 +132,7 @@ class Category(Base):
                             f"{choices_votes[col][0]}\\{choices_votes[col][1]}"
                         )
                         + "\n",
-                    ]
+                    )
                 )
             )
             for index, col in zip(indices, columns)
