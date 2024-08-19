@@ -226,7 +226,7 @@ class MemberHistory(commands.Cog):
         return (
             guild
             and (guild.get_member(user_or_role) or guild.get_role(user_or_role))
-            or (guild and self.bot.get_user(user_or_role))
+            or (not guild and self.bot.get_user(user_or_role))
         )
 
     async def save_file(
