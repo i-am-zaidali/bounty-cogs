@@ -17,7 +17,7 @@ from .views import Paginator
 from redbot.vendored.discord.ext import menus
 from redbot.core.utils.views import ConfirmView
 from discord.ext import tasks
-
+import math
 
 log = logging.getLogger("red.bounty.MemberHistory")
 
@@ -113,15 +113,18 @@ class PathUtil:
 
     def __init__(self, cog: "MemberHistory"):
         self.cog = cog
-        self.path = cog_data_path(cog) / "history"
+        self.base = cog_data_path(cog) / "history"
+
+    def get_total_size(self, path: pathlib.Path):
+        return sum(f.stat().st_size for f in path.glob("**/*") if f.is_file())
 
     def get_global(self):
-        return self.path / "global"
+        return self.base / "global"
 
     def get_guild(self, guild: typing.Union[discord.Guild, int]):
         if isinstance(guild, discord.Guild):
             guild = guild.id
-        path = self.path / str(guild)
+        path = self.base / str(guild)
 
         path.mkdir(parents=True, exist_ok=True)
         return path
@@ -152,7 +155,7 @@ class PathUtil:
         return [*filter(lambda x: x.is_file(), user_data.iterdir())]
 
     def get_all_files_stored(self):
-        return [*self.path.glob("**/*.[!json]*")]
+        return [*self.base.glob("**/*.[!json]*")]
 
     def get_all_files_stored_guild(self, guild: typing.Union[discord.Guild, int]):
         return [*self.get_guild(guild).glob("**/*.[!json]*")]
@@ -162,7 +165,7 @@ class PathUtil:
         user: typing.Optional[typing.Union[discord.Member, discord.User, int]] = None,
     ):
         if not user:
-            return shutil.rmtree(self.path)
+            return shutil.rmtree(self.base)
 
         if isinstance(user, (discord.User, discord.Member)):
             user = user.id
@@ -175,7 +178,7 @@ class PathUtil:
                 shutil.rmtree(parent)
 
     def get_user_all_files(self, user: typing.Union[discord.Member, discord.User, int]):
-        return [*self.path.glob(f"**/{user}/*")]
+        return [*self.base.glob(f"**/{user}/*")]
 
     def get_all_users_folder(
         self, guild: typing.Optional[typing.Union[discord.Guild, int]] = None
@@ -228,6 +231,16 @@ class MemberHistory(commands.Cog):
             and (guild.get_member(user_or_role) or guild.get_role(user_or_role))
             or (not guild and self.bot.get_user(user_or_role))
         )
+
+    def format_storage(self, size_bytes: int):
+        # stolen from here: https://www.linkedin.com/pulse/python-calculates-total-size-directory-its-techwith-julles
+        if size_bytes == 0:
+            return "0B"
+        size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+        i = int(math.floor(math.log(size_bytes, 1024)))
+        p = math.pow(1024, i)
+        s = round(size_bytes / p, 2)
+        return "%s %s" % (s, size_name[i])
 
     async def save_file(
         self,
@@ -290,79 +303,6 @@ class MemberHistory(commands.Cog):
 
         else:
             log.debug("No files to delete.")
-
-    @commands.group(aliases=["memhis"])
-    @commands.guild_only()
-    async def memberhistory(self, ctx: commands.Context):
-        pass
-
-    @memberhistory.command()
-    @commands.guildowner()
-    async def toggle(self, ctx: commands.Context):
-        """
-        Toggle the current state of member history."""
-        toggle = await self.config.guild(ctx.guild).toggle()
-        await self.config.guild(ctx.guild).toggle.set(not toggle)
-        await ctx.send(
-            f"Member history is now {'enabled' if not toggle else 'disabled'}. This means that the bot will now store server member avatars and banners when they change."
-        )
-
-    @memberhistory.command()
-    @commands.is_owner()
-    async def ttl(
-        self,
-        ctx: commands.Context,
-        *,
-        time: datetime.timedelta = commands.parameter(converter=TIMEDELTA_CONV),
-    ):
-        """
-        Set the time to live for the stored files.
-        """
-        await self.config.ttl.set(time.total_seconds())
-        await ctx.send(
-            f"Time to live for stored files set to {cf.humanize_timedelta(timedelta=time)}"
-        )
-
-    @memberhistory.command(name="purge")
-    @commands.is_owner()
-    async def purge(self, ctx: commands.Context):
-        """
-        Purge all stored files.
-        """
-        view = ConfirmView(ctx.author)
-        await ctx.send(
-            "# ARE YOU ABSOLUTELY SURE YOU WANT TO DELETE ALL MEMBER HISTORY FILES STORED ON YOUR SYSTEM??????????",
-            view=view,
-        )
-        if await view.wait():
-            return await ctx.send("Operation cancelled. You took too long to respond.")
-
-        if not view.result:
-            return await ctx.send("Operation cancelled.")
-        self.path_util.delete_all_files()
-        await ctx.send("All stored files have been purged.")
-
-    @memberhistory.command(name="purgeuser")
-    @commands.is_owner()
-    async def purgeuser(self, ctx: commands.Context, user: discord.Member):
-        """
-        Purge all stored files for a user.
-        """
-        view = ConfirmView(ctx.author)
-        await ctx.send(
-            f"Are you sure you want to delete all stored files for {user.mention}?",
-            view=view,
-            allowed_mentions=discord.AllowedMentions.none(),
-        )
-        if await view.wait():
-            return await ctx.send("Operation cancelled. You took too long to respond.")
-
-        if not view.result:
-            return await ctx.send(
-                "Operation cancelled.", allowed_mentions=discord.AllowedMentions.none()
-            )
-        self.path_util.delete_all_files(user)
-        await ctx.send(f"All stored files for {user.mention} have been purged.")
 
     @commands.Cog.listener()
     async def on_user_update(self, before: discord.User, after: discord.User):
@@ -465,6 +405,79 @@ class MemberHistory(commands.Cog):
             log.debug(
                 f"Banner changed for {before}\n%s\n%s", before.banner, after.banner
             )
+
+    @commands.group(aliases=["memhis"])
+    @commands.guild_only()
+    async def memberhistory(self, ctx: commands.Context):
+        pass
+
+    @memberhistory.command()
+    @commands.guildowner()
+    async def toggle(self, ctx: commands.Context):
+        """
+        Toggle the current state of member history."""
+        toggle = await self.config.guild(ctx.guild).toggle()
+        await self.config.guild(ctx.guild).toggle.set(not toggle)
+        await ctx.send(
+            f"Member history is now {'enabled' if not toggle else 'disabled'}. This means that the bot will now store server member avatars and banners when they change."
+        )
+
+    @memberhistory.command()
+    @commands.is_owner()
+    async def ttl(
+        self,
+        ctx: commands.Context,
+        *,
+        time: datetime.timedelta = commands.parameter(converter=TIMEDELTA_CONV),
+    ):
+        """
+        Set the time to live for the stored files.
+        """
+        await self.config.ttl.set(time.total_seconds())
+        await ctx.send(
+            f"Time to live for stored files set to {cf.humanize_timedelta(timedelta=time)}"
+        )
+
+    @memberhistory.command(name="purge")
+    @commands.is_owner()
+    async def purge(self, ctx: commands.Context):
+        """
+        Purge all stored files.
+        """
+        view = ConfirmView(ctx.author)
+        await ctx.send(
+            "# ARE YOU ABSOLUTELY SURE YOU WANT TO DELETE ALL MEMBER HISTORY FILES STORED ON YOUR SYSTEM??????????",
+            view=view,
+        )
+        if await view.wait():
+            return await ctx.send("Operation cancelled. You took too long to respond.")
+
+        if not view.result:
+            return await ctx.send("Operation cancelled.")
+        self.path_util.delete_all_files()
+        await ctx.send("All stored files have been purged.")
+
+    @memberhistory.command(name="purgeuser")
+    @commands.is_owner()
+    async def purgeuser(self, ctx: commands.Context, user: discord.Member):
+        """
+        Purge all stored files for a user.
+        """
+        view = ConfirmView(ctx.author)
+        await ctx.send(
+            f"Are you sure you want to delete all stored files for {user.mention}?",
+            view=view,
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
+        if await view.wait():
+            return await ctx.send("Operation cancelled. You took too long to respond.")
+
+        if not view.result:
+            return await ctx.send(
+                "Operation cancelled.", allowed_mentions=discord.AllowedMentions.none()
+            )
+        self.path_util.delete_all_files(user)
+        await ctx.send(f"All stored files for {user.mention} have been purged.")
 
     @memberhistory.group()
     async def avatar(self, ctx: commands.Context):
@@ -577,16 +590,17 @@ class MemberHistory(commands.Cog):
     @commands.admin()
     async def ss(self, ctx: commands.Context):
         """
-        Get the number of stored files.
+        See the configured settings and additional data about MemberHistory.
         """
         total_files = self.path_util.get_all_files_stored()
         all_files = self.path_util.get_all_files_stored_guild(ctx.guild)
         total_guild = len(all_files)
         total_all = len(total_files)
+        is_owner = await self.bot.is_owner(ctx.author)
         conf = await self.config.guild(ctx.guild).all()
         embed = discord.Embed(
             title="Member History Stats",
-            description=f"Total stored files for this server: {total_guild}\nTotal stored files across all servers: {total_all}",
+            description=f"Total stored files for this server: {total_guild}\n{is_owner and f'Total stored files across all servers: {total_all}' or ''}",
             color=await ctx.embed_color(),
         )
         embed.add_field(
@@ -617,14 +631,30 @@ class MemberHistory(commands.Cog):
             )
             or "No users in the global ignore list.",
         )
+
         embed.add_field(
-            name="Time to live",
-            value="How old files can be before they get deleted:\n"
-            + cf.humanize_timedelta(
-                timedelta=datetime.timedelta(seconds=await self.config.ttl())
+            name="Total file space occupied by this server",
+            value=self.format_storage(
+                self.path_util.get_total_size(self.path_util.get_guild(ctx.guild))
             ),
             inline=False,
         )
+
+        if is_owner:
+            embed.add_field(
+                name="Time to live",
+                value="How old files can be before they get deleted:\n"
+                + cf.humanize_timedelta(
+                    timedelta=datetime.timedelta(seconds=await self.config.ttl())
+                ),
+                inline=False,
+            )
+            embed.add_field(
+                name="Total file space occupied by all guilds",
+                value=self.format_storage(
+                    self.path_util.get_total_size(self.path_util.base)
+                ),
+            )
 
         await ctx.send(embed=embed)
 
