@@ -84,7 +84,7 @@ class PageSource(menus.PageSource):
             embed = discord.Embed(
                 title=f"**{self.user.display_name}**'s {self.attr_qname[self.attr]}s",
                 description=f"No past {self.attr_qname[self.attr]}s found"
-                + (ignored and " because the user is in the ignore list." or ""),
+                + (ignored and " because the user is in the ignore list" or ""),
                 color=await menu.ctx.embed_color(),
             )
             if gotten:
@@ -239,7 +239,19 @@ class MemberHistory(commands.Cog):
         path = self.path_util.get_user(guild, user, attr)
         filename = f"{datetime.datetime.now(datetime.timezone.utc).isoformat()}_{user.name.replace('_', '')}{urllib.parse.urlparse(file.url).path[-4:]}"
         async with aiofiles.open(path / filename, "wb") as f:
-            await f.write(await file.read())
+            try:
+                await f.write(await file.read())
+
+            except Exception as e:
+                log.exception(
+                    "Failed to save %s for %s in %s due to %s",
+                    attr,
+                    user.display_name,
+                    guild,
+                    e.__class__.__name__,
+                    exc_info=e,
+                )
+                return
 
         log.debug(
             "Saved %s for %s in %s at %s",
@@ -253,6 +265,7 @@ class MemberHistory(commands.Cog):
         time=datetime.time(hour=0, minute=0, second=0, tzinfo=datetime.timezone.utc)
     )
     async def cleanup(self):
+        log.debug("Running cleanup task.")
         all_files = self.path_util.get_all_files_stored()
         file_timestamps = map(
             lambda x: (x, datetime.datetime.fromisoformat(x.stem.split("_")[0])),
@@ -261,6 +274,7 @@ class MemberHistory(commands.Cog):
         ttl = datetime.timedelta(seconds=await self.config.ttl())
         now = datetime.datetime.now(datetime.timezone.utc)
         filtered = filter(lambda x: (now - x[1]) >= ttl, file_timestamps)
+        index = 0
         for index, (file, timestamp) in enumerate(filtered, 1):
             file.unlink()
             log.debug("Deleted %s because it was older than the set TTL.", file)
@@ -271,7 +285,11 @@ class MemberHistory(commands.Cog):
                 now - timestamp,
             )
 
-        log.debug("Deleted %s files.", index)
+        if index != 0:
+            log.debug("Deleted %s files.", index)
+
+        else:
+            log.debug("No files to delete.")
 
     @commands.group(aliases=["memhis"])
     @commands.guild_only()
