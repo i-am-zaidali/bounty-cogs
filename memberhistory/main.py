@@ -604,12 +604,12 @@ class MemberHistory(commands.Cog):
             color=await ctx.embed_color(),
         )
         embed.add_field(
-            name="Member History Enabled",
+            name="**Member History Enabled**",
             value="Yes" if conf["toggle"] else "No",
             inline=False,
         )
         embed.add_field(
-            name="Server Ignore List",
+            name="**Server Ignore List**",
             value=cf.humanize_list(
                 [
                     ur.mention
@@ -621,7 +621,7 @@ class MemberHistory(commands.Cog):
             inline=False,
         )
         embed.add_field(
-            name="Global Ignore List",
+            name="**Global Ignore List**",
             value=cf.humanize_list(
                 [
                     ur.mention
@@ -633,16 +633,19 @@ class MemberHistory(commands.Cog):
         )
 
         embed.add_field(
-            name="Total file space occupied by this server",
-            value=self.format_storage(
-                self.path_util.get_total_size(self.path_util.get_guild(ctx.guild))
+            name="**Total file space occupied by this server**",
+            value=(
+                "*This only includes the size of guild specific avatars and banners.*\n"
+                + self.format_storage(
+                    self.path_util.get_total_size(self.path_util.get_guild(ctx.guild))
+                )
             ),
             inline=False,
         )
 
         if is_owner:
             embed.add_field(
-                name="Time to live",
+                name="**Time to live**",
                 value="How old files can be before they get deleted:\n"
                 + cf.humanize_timedelta(
                     timedelta=datetime.timedelta(seconds=await self.config.ttl())
@@ -650,9 +653,12 @@ class MemberHistory(commands.Cog):
                 inline=False,
             )
             embed.add_field(
-                name="Total file space occupied by all guilds",
-                value=self.format_storage(
-                    self.path_util.get_total_size(self.path_util.base)
+                name="**Total file space occupied",
+                value=(
+                    "*This includes the size of all stored files.*\n"
+                    + self.format_storage(
+                        self.path_util.get_total_size(self.path_util.base)
+                    )
                 ),
             )
 
