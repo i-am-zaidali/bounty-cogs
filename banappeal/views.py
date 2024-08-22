@@ -1,3 +1,4 @@
+import datetime
 import typing
 
 import discord
@@ -6,6 +7,7 @@ from redbot.core import commands, Config
 from redbot.vendored.discord.ext import menus
 from redbot.core.utils.views import ConfirmView
 from redbot.core.bot import Red
+from redbot.core.modlog import create_case
 
 
 __all__ = [
@@ -458,6 +460,16 @@ class AcceptRejectButton(
             await self.conf.member_from_ids(
                 interaction.guild.id, self.user.id
             ).has_appealed.set(False)
+            await create_case(
+                interaction.client,
+                interaction.guild,
+                datetime.datetime.now(datetime.timezone.utc),
+                "unban",
+                self.user,
+                interaction.user,
+                "Ban Appeal Accepted",
+                channel=interaction.channel,
+            )
 
         else:
             view = ConfirmView(interaction.user, disable_buttons=True)
