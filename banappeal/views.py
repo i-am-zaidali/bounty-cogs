@@ -591,7 +591,7 @@ class QuestionnaireModal(discord.ui.Modal):
             )
             self.add_item(getattr(self, f"question_{ind}"))
 
-    async def on_submit(self, interaction: discord.Interaction):
+    async def on_submit(self, interaction: discord.Interaction[Red]):
         answers = {}
         for ind, question in enumerate(self.questions, 1):
             tinput: discord.ui.TextInput = getattr(self, f"question_{ind}")
@@ -631,16 +631,21 @@ class QuestionnaireModal(discord.ui.Modal):
                             f"- **{question}**\n  - {answer}"
                             for question, answer in answers.items()
                         ),
+                        color=await interaction.client.get_embed_color(
+                            interaction.channel
+                        ),
                     ),
-                    view=discord.ui.View(timeout=180)
-                    .add_item(
-                        AcceptRejectButton(
-                            "accept", interaction.user, self.appeal_channel.guild
+                    view=(
+                        discord.ui.View(timeout=180)
+                        .add_item(
+                            AcceptRejectButton(
+                                "accept", interaction.user, self.appeal_channel.guild
+                            )
                         )
-                    )
-                    .add_item(
-                        AcceptRejectButton(
-                            "reject", interaction.user, self.appeal_channel.guild
+                        .add_item(
+                            AcceptRejectButton(
+                                "reject", interaction.user, self.appeal_channel.guild
+                            )
                         )
                     ),
                 )
