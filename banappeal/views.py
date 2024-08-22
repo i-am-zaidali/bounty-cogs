@@ -624,7 +624,7 @@ class QuestionnaireModal(discord.ui.Modal):
             )
             try:
                 await self.appeal_channel.send(
-                    f"**{interaction.user}** has submitted an appeal",
+                    f"**{interaction.user.mention} ({interaction.user.id})** has submitted an appeal",
                     embed=discord.Embed(
                         title="Ban Appeal",
                         description="\n".join(
