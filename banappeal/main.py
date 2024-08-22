@@ -371,7 +371,9 @@ class BanAppeal(commands.Cog):
         )
 
     @appealset.command(name="banmessage", aliases=["bm"])
-    async def appealset_banmessage(self, ctx: commands.Context, *, message: str):
+    async def appealset_banmessage(
+        self, ctx: commands.Context, *, message: typing.Optional[str] = None
+    ):
         """
         Set the message sent to a user when they are banned
 
@@ -379,7 +381,7 @@ class BanAppeal(commands.Cog):
         and `{user_install_link}` to be replaced with the bot install link
         """
         await self.config.guild(ctx.guild).ban_message.set(message)
-        await ctx.send("Updated ban message")
+        await ctx.send("Updated ban message" if message else "Cleared ban message")
 
     @appealset.command(name="ss", aliases=["showsettings"])
     async def appealset_showsettings(self, ctx: commands.Context):
