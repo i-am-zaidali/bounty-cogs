@@ -213,6 +213,7 @@ class BanAppeal(commands.Cog):
         view.message = interaction.original_response()
 
     @commands.group(name="appealset", aliases=["aset"])
+    @commands.admin()
     async def appealset(self, ctx: commands.Context):
         """
         Set up ban appeal settings
