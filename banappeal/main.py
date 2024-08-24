@@ -383,7 +383,7 @@ class BanAppeal(commands.Cog):
         await self.config.guild(ctx.guild).ban_message.set(message)
         await ctx.send("Updated ban message" if message else "Cleared ban message")
 
-    @appealset.command(name="ss", aliases=["showsettings"])
+    @appealset.command(name="showsettings", aliases=["ss"])
     async def appealset_showsettings(self, ctx: commands.Context):
         """
         Show ban appeal settings
