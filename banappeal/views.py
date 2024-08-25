@@ -431,6 +431,16 @@ class AcceptRejectButton(
         return False
 
     async def callback(self, interaction: discord.Interaction[Red]) -> None:
+        banned_from = await self.conf.user(self.user).banned_from()
+        if self.guild.id not in banned_from:
+            self.item.disabled = True
+            disable_items(self.view)
+            await interaction.response.edit_message(view=self.view)
+            return await interaction.followup.send(
+                f"It seems {self.user.mention} ({self.user.id}) is not banned in this server anymore.",
+                ephemeral=True,
+            )
+
         if "accept" in self.custom_id.lower():
             self.item.label = " User Appeal Accepted"
             self.item.style = discord.ButtonStyle.green
