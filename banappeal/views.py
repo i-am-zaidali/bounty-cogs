@@ -462,9 +462,14 @@ class AcceptRejectButton(
                 ephemeral=True,
             )
             await self.user.send(
-                (
-                    await self.conf.guild(interaction.guild).appeal_messages.accepted()
-                ).format(guild_name=interaction.guild.name)
+                embed=discord.Embed(
+                    description=(
+                        await self.conf.guild(
+                            interaction.guild
+                        ).appeal_messages.accepted()
+                    ).format(guild_name=interaction.guild.name),
+                    color=await interaction.client.get_embed_color(interaction.channel),
+                )
             )
             await interaction.followup.send("User has been informed", ephemeral=True)
             await self.conf.member_from_ids(
@@ -506,11 +511,16 @@ class AcceptRejectButton(
                     ephemeral=True,
                 )
                 await self.user.send(
-                    (
-                        await self.conf.guild(
-                            interaction.guild
-                        ).appeal_messages.second_chance()
-                    ).format(guild_name=interaction.guild.name)
+                    embed=discord.Embed(
+                        description=(
+                            await self.conf.guild(
+                                interaction.guild
+                            ).appeal_messages.second_chance()
+                        ).format(guild_name=interaction.guild.name),
+                        color=await interaction.client.get_embed_color(
+                            interaction.channel
+                        ),
+                    )
                 )
                 await interaction.followup.send(
                     "User has been informed", ephemeral=True
@@ -530,9 +540,14 @@ class AcceptRejectButton(
                 ephemeral=True,
             )
             await self.user.send(
-                (
-                    await self.conf.guild(interaction.guild).appeal_messages.rejected()
-                ).format(guild_name=interaction.guild.name)
+                embed=discord.Embed(
+                    description=(
+                        await self.conf.guild(
+                            interaction.guild
+                        ).appeal_messages.rejected()
+                    ).format(guild_name=interaction.guild.name),
+                    color=await interaction.client.get_embed_color(interaction.channel),
+                )
             )
             await interaction.followup.send("User has been informed", ephemeral=True)
 

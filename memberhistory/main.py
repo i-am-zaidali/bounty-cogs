@@ -458,7 +458,7 @@ class MemberHistory(commands.Cog):
         toggle = await self.config.guild(ctx.guild).toggle()
         await self.config.guild(ctx.guild).toggle.set(not toggle)
         await ctx.send(
-            f"Member history is now {'enabled' if not toggle else 'disabled'}. This means that the bot will now store server member avatars and banners when they change."
+            f"Member history is now {not toggle and 'enabled' or 'disabled'}. This means that the bot will no{not toggle and 'w' or 't'} store server member avatars and banners when they change."
         )
 
     @memberhistory.command()

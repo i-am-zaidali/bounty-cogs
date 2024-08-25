@@ -130,9 +130,12 @@ class BanAppeal(commands.Cog):
             try:
                 log.debug("Sending the ban message to the user")
                 await user.send(
-                    msg.format(
-                        guild_name=ctx.guild.name,
-                        user_install_link=self.user_install_link,
+                    embed=discord.Embed(
+                        description=msg.format(
+                            guild_name=ctx.guild.name,
+                            user_install_link=self.user_install_link,
+                        ),
+                        color=await ctx.embed_colour(),
                     )
                 )
 
