@@ -50,7 +50,9 @@ class PageSource(menus.PageSource):
             self.user.guild, self.user, self.attr
         )
         self.avs.sort(
-            key=lambda x: datetime.datetime.fromisoformat(x.stem.split("_")[0])
+            key=lambda x: datetime.datetime.fromtimestamp(
+                int(x.stem.split("_")[0]), tz=datetime.timezone.utc
+            ),
         )
 
     async def get_page(self, page_number: int):
@@ -94,12 +96,12 @@ class PageSource(menus.PageSource):
                 embed.description += " and no current one found."
             return embed
         filename = f"{self.attr_qname[self.attr].replace(' ', '_')}_{menu.current_page}{page.suffix}"
-        timestamp = datetime.datetime.fromisoformat(page.stem.split("_")[0])
+        timestamp = int(page.stem.split("_")[0])
         async with aiofiles.open(page, "rb") as f:
             f = discord.File(io.BytesIO(await f.read()), filename=filename)
         embed = discord.Embed(
             title=f"Past {self.attr_qname[self.attr]}s of {self.user.display_name}",
-            description=f"Changed on: <t:{int(timestamp.timestamp())}:F>\n"
+            description=f"Changed on: <t:{timestamp}:F>\n"
             f"Page {menu.current_page+1}/{self.get_max_pages()}",
             color=await menu.ctx.embed_color(),
         )
@@ -178,7 +180,7 @@ class PathUtil:
                 shutil.rmtree(parent)
 
     def get_user_all_files(self, user: typing.Union[discord.Member, discord.User, int]):
-        return [*self.base.glob(f"**/{user}/*")]
+        return [*self.base.glob(f"**/{getattr(user, 'id', user)}/*")]
 
     def get_all_users_folder(
         self, guild: typing.Optional[typing.Union[discord.Guild, int]] = None
@@ -192,6 +194,18 @@ class PathUtil:
 
         all_guild_files = self.get_all_files_stored_guild(guild)
         return [*{*map(lambda x: x.parent, all_guild_files)}]
+
+    def get_file_from_hash(
+        self,
+        guild: typing.Union[discord.Guild, int],
+        user: typing.Union[discord.Member, discord.User],
+        hash: str,
+        attr: typing.Optional[
+            typing.Literal["avatar_global", "avatar_guild", "avatar_deco", "banner"]
+        ] = None,
+    ):
+        p = self.get_user(guild, user, attr)
+        return next(p.rglob(f"*_{hash}.*"), None)
 
 
 TIMEDELTA_CONV = commands.get_timedelta_converter(minimum=datetime.timedelta(days=1))
@@ -247,13 +261,37 @@ class MemberHistory(commands.Cog):
         user: typing.Union[discord.User, discord.Member],
         guild: typing.Union[discord.Guild, int],
         file: discord.Asset,
-        attr: typing.Literal["avatar_global", "avatar_guild", "banner"],
+        attr: typing.Literal["avatar_global", "avatar_guild", "banner", "avatar_deco"],
     ):
+        if sim_path := self.path_util.get_file_from_hash(guild, user, file.key, attr):
+            log.debug(
+                "A file of %s with a similar hash key (%s) already exists for %s in %s at %s",
+                attr,
+                file.key,
+                user.display_name,
+                guild,
+                sim_path,
+            )
         path = self.path_util.get_user(guild, user, attr)
-        filename = f"{datetime.datetime.now(datetime.timezone.utc).isoformat()}_{user.name.replace('_', '')}{urllib.parse.urlparse(file.url).path[-4:]}"
-        async with aiofiles.open(path / filename, "wb") as f:
+        filename = f"{int(datetime.datetime.now().timestamp())}_{file.key.replace('_', '')}{urllib.parse.urlparse(file.url).path[-4:]}"
+        try:
+            binary = await file.read()
+
+        except Exception as e:
+            log.exception(
+                "Failed to read %s for %s in %s due to %s",
+                attr,
+                user.display_name,
+                guild,
+                e.__class__.__name__,
+                exc_info=e,
+            )
+            return
+
+        else:
             try:
-                await f.write(await file.read())
+                async with aiofiles.open(path / filename, "wb") as f:
+                    await f.write(binary)
 
             except Exception as e:
                 log.exception(
@@ -264,15 +302,16 @@ class MemberHistory(commands.Cog):
                     e.__class__.__name__,
                     exc_info=e,
                 )
+                (path / filename).unlink()
                 return
 
-        log.debug(
-            "Saved %s for %s in %s at %s",
-            attr,
-            user.display_name,
-            guild,
-            path / filename,
-        )
+            log.debug(
+                "Saved %s for %s in %s at %s",
+                attr,
+                user.display_name,
+                guild,
+                path / filename,
+            )
 
     @tasks.loop(
         time=datetime.time(hour=0, minute=0, second=0, tzinfo=datetime.timezone.utc)
