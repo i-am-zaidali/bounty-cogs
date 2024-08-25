@@ -511,6 +511,31 @@ class BoosterRoles(commands.Cog):
 
         await Paginator(source, use_select=True).start(ctx)
 
+    @boosterrole.command(name="listboosters", aliases=["boosters"])
+    async def listboosters(self, ctx: commands.Context):
+        """
+        List all boosters in the server"""
+        members = await self.config.all_members(ctx.guild)
+        if not members:
+            return await ctx.send("No boosters found.")
+
+        async def format_page(menu, page: list[tuple[int, dict]]):
+            embed = discord.Embed(title="Boosters", color=await ctx.embed_color())
+            for member_id, data in page:
+                member = ctx.guild.get_member(member_id)
+                embed.add_field(
+                    name=getattr(member, "mention", "User not found")
+                    + f" ({member_id})",
+                    value="Boosts: " + str(data["boosts"]),
+                    inline=False,
+                )
+            return embed
+
+        source = ListPageSource(list(members.items()), per_page=10)
+        source.format_page = format_page
+
+        await Paginator(source, use_select=True).start(ctx)
+
     @boosterrole.command(name="rolelimit")
     @commands.admin()
     async def rolelimit(self, ctx: commands.Context, limit: commands.positive_int):
