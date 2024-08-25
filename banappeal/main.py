@@ -116,7 +116,7 @@ class BanAppeal(commands.Cog):
 
         else:
             try:
-                user = await commands.UserConverter().convert(ctx)
+                user = await commands.UserConverter().convert(ctx, ctx.current_argument)
             except commands.BadArgument:
                 log.debug(f"{ctx.current_parameter} is not a valid user")
                 return
@@ -126,26 +126,30 @@ class BanAppeal(commands.Cog):
         #     return
         # there is no point in checking this incase the user has already installed the bot.
 
-        try:
-            log.debug("Sending the ban message to the user")
-            await user.send(
-                (await self.config.guild(ctx.guild).ban_message()).format(
-                    guild_name=ctx.guild.name, user_install_link=self.user_install_link
+        if msg := await self.config.guild(ctx.guild).ban_message():
+            try:
+                log.debug("Sending the ban message to the user")
+                await user.send(
+                    msg.format(
+                        guild_name=ctx.guild.name,
+                        user_install_link=self.user_install_link,
+                    )
                 )
-            )
 
-        except discord.Forbidden:
-            log.debug("Failed to send the ban message to the user")
-            channel = self.bot.get_channel(await self.config.guild(ctx.guild).channel())
-            if not channel:
-                log.debug("Channel not found")
-                await ctx.send("Unable to dm the appeal message to the user.")
-
-            else:
-                log.debug("Channel found")
-                await channel.send(
-                    f"Unable to dm the appeal message to {user.mention}."
+            except discord.Forbidden:
+                log.debug("Failed to send the ban message to the user")
+                channel = self.bot.get_channel(
+                    await self.config.guild(ctx.guild).channel()
                 )
+                if not channel:
+                    log.debug("Channel not found")
+                    await ctx.send("Unable to dm the appeal message to the user.")
+
+                else:
+                    log.debug("Channel found")
+                    await channel.send(
+                        f"Unable to dm the appeal message to {user.mention}."
+                    )
 
     @commands.Cog.listener()
     async def on_member_ban(self, guild: discord.Guild, user: discord.User):
@@ -156,6 +160,8 @@ class BanAppeal(commands.Cog):
         async with self.config.user(user).banned_from() as banned_from:
             if guild.id not in banned_from:
                 banned_from.append(guild.id)
+
+        await self.config.member_from_ids(guild.id, user.id).has_appealed.set(False)
 
     @commands.Cog.listener()
     async def on_member_unban(self, guild: discord.Guild, user: discord.User):
@@ -168,6 +174,8 @@ class BanAppeal(commands.Cog):
                 banned_from.remove(guild.id)
             except ValueError:
                 pass
+
+        await self.config.member_from_ids(guild.id, user.id).has_appealed.set(False)
 
     @app_commands.command(name="appeal")
     @app_commands.checks.cooldown(1, 180)
