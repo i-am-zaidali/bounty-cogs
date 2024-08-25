@@ -1,0 +1,12 @@
+{
+    "$schema": "../.vscode/schema.json",
+    "author": [
+        "crayyy_zee"
+    ],
+    "description": "Allow users to voteout other users from the server. Has settings for allowed role which are mutually exclusive, aka a user with one of these roles cannot start a voteout against another user with the same or different role.",
+    "disabled": false,
+    "hidden": false,
+    "install_msg": "For any support, visit the cog support server: https://discord.gg/GET4DVk and go to the `#support_othercogs` channel.",
+    "type": "COG",
+    "short": "Voteout users from the server"
+}

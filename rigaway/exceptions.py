@@ -1,2 +1,0 @@
-class GiveawayError(Exception):
-    pass

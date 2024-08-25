@@ -95,7 +95,9 @@ class Processor(MixinMeta):
         super().__init__()
 
     def get_adapter(
-        self, option_type: discord.AppCommandOptionType, default: tse.Adapter = tse.StringAdapter
+        self,
+        option_type: discord.AppCommandOptionType,
+        default: tse.Adapter = tse.StringAdapter,
     ) -> tse.Adapter:
         return self.OPTION_ADAPTERS.get(option_type, default)
 
@@ -119,7 +121,9 @@ class Processor(MixinMeta):
         command = self.get_command(interaction.command_id)
         for original_option in command.options:
             if original_option.name not in seed_variables:
-                log.debug("optional option %s not found, using empty adapter", original_option)
+                log.debug(
+                    "optional option %s not found, using empty adapter", original_option
+                )
                 seed_variables[original_option.name] = self.EMPTY_ADAPTER
 
         guild = interaction.guild
@@ -153,7 +157,9 @@ class Processor(MixinMeta):
         **kwargs,
     ) -> str:
         log.debug("processing tag %s | options: %r", tag, interaction.options)
-        seed_variables = await self.handle_seed_variables(interaction, seed_variables or {})
+        seed_variables = await self.handle_seed_variables(
+            interaction, seed_variables or {}
+        )
         output = tag.run(self.engine, seed_variables=seed_variables, **kwargs)
         await tag.update_config()
         content = output.body[:2000] if output.body else None
@@ -175,9 +181,13 @@ class Processor(MixinMeta):
                 self.create_task(self.react_to_list(interaction.ctx, message, react))
         else:
             try:
-                await interaction.response.defer(ephemeral=ephemeral)
+                await interaction.interaction.response.defer(
+                    ephemeral=ephemeral, thinking=True
+                )
             except discord.NotFound:
-                pass
+                interaction.interaction.response._response_type = (
+                    discord.InteractionResponseType.deferred_message_update
+                )
 
         await self.process_commands(interaction, actions)
 
@@ -210,7 +220,9 @@ class Processor(MixinMeta):
             if response is not None and (response := response.strip()):
                 await interaction.send(response[:2000], ephemeral=True)
             else:
-                await interaction.send("You aren't allowed to use this tag.", ephemeral=True)
+                await interaction.send(
+                    "You aren't allowed to use this tag.", ephemeral=True
+                )
             raise
 
     async def process_commands(self, interaction: InteractionWrapper, actions: dict):
@@ -223,7 +235,9 @@ class Processor(MixinMeta):
         for command in commands:
             inter = interaction.interaction
             message = await FakeMessage.from_interaction(inter, prefix + command)
-            command_task = self.create_task(self.process_command(interaction, message, overrides))
+            command_task = self.create_task(
+                self.process_command(interaction, message, overrides)
+            )
             command_tasks.append(command_task)
             await asyncio.sleep(0.1)
         await asyncio.gather(*command_tasks)
@@ -336,7 +350,11 @@ class Processor(MixinMeta):
             self.channel_converter.convert(ctx, argument),
             return_exceptions=True,
         )
-        objects = [obj for obj in objects if isinstance(obj, (discord.Role, discord.TextChannel))]
+        objects = [
+            obj
+            for obj in objects
+            if isinstance(obj, (discord.Role, discord.TextChannel))
+        ]
         return objects[0] if objects else None
 
     async def validate_requires(self, ctx: commands.Context, requires: dict):

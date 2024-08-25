@@ -116,6 +116,10 @@ countries_list = list(get_args(COUNTRIES))
 
 
 class TicketMaster(commands.Cog):
+    """
+    Use the [ticketmaster API](https://developer.ticketmaster.com/products-and-docs/apis) to be informed about nfl events and concerts.
+    """
+
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=1234567890)

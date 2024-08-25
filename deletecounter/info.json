@@ -1,0 +1,22 @@
+{
+    "$schema": "../.vscode/schema.json",
+    "author": [
+        "crayyy_zee"
+    ],
+    "description": "Allows the bot to count deleted messages in a sever and punish a user if he passes a threshold of deletes. Lets you set an exempt list of users and channels.",
+    "disabled": false,
+    "hidden": false,
+    "install_msg": "For any support, visit the cog support server: https://discord.gg/GET4DVk and go to the `#support_othercogs` channel.",
+    "requirements": [
+        "git+https://github.com/astanin/python-tabulate.git@master"
+    ],
+    "short": "Count deleted messages and punish users",
+    "tags": [
+        "moderation",
+        "messages",
+        "delete",
+        "punish",
+        "threshold"
+    ],
+    "type": "COG"
+}

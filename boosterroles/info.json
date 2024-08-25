@@ -1,0 +1,26 @@
+{
+    "$schema": "../.vscode/schema.json",
+    "author": [
+        "crayyy_zee"
+    ],
+    "description": "A cog that allows server owners to create roles 'templates' that server boosters can create custom roles from.",
+    "disabled": false,
+    "hidden": false,
+    "install_msg": "For any support, visit the cog support server: https://discord.gg/GET4DVk and go tot he `#support_othercogs` channel.",
+    "required_cogs": {
+        "boostutils": "https://github.com/japandotorg/Seina-Cogs"
+    },
+    "requirements": [
+        "emoji"
+    ],
+    "short": "Give custom roles to server boosters",
+    "tags": [
+        "boost",
+        "roles",
+        "server",
+        "custom",
+        "boosters",
+        "nitro"
+    ],
+    "type": "COG"
+}

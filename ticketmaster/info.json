@@ -1,0 +1,21 @@
+{
+    "$schema": "../.vscode/schema.json",
+    "author": [
+        "crayyy_zee"
+    ],
+    "description": "Use the ticketmaster API to be informed about nfl games and concerts.",
+    "disabled": false,
+    "hidden": false,
+    "install_msg": "For any support, visit the cog support server: https://discord.gg/GET4DVk and go to the `#support_othercogs` channel.",
+    "requirements": [
+        "pytz"
+    ],
+    "short": "Get informed about nfl games and concerts",
+    "tags": [
+        "ticketmaster",
+        "nfl",
+        "concerts",
+        "events"
+    ],
+    "type": "COG"
+}

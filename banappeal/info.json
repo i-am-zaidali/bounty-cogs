@@ -1,0 +1,19 @@
+{
+    "$schema": "../.vscode/schema.json",
+    "author": [
+        "crayyy_zee"
+    ],
+    "description": "A cog that makes use of user installable applciations to allow users to appeal after they have been banned from a server that has appeals enabled",
+    "disabled": false,
+    "hidden": false,
+    "install_msg": "Please make sure to enable user installs in the discord developer portal for your app in order to use this cog",
+    "required_cogs": {
+        "Mod": "https://github.com/cog-creators/red-discordbot"
+    },
+    "requirements": [],
+    "short": "A user installable slash command to be able to appeal bans on servers that have appeals enabled",
+    "tags": [
+        "appeal",
+        "ban"
+    ]
+}
