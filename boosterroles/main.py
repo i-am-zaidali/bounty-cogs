@@ -524,7 +524,7 @@ class BoosterRoles(commands.Cog):
             for member_id, data in page:
                 member = ctx.guild.get_member(member_id)
                 embed.add_field(
-                    name=getattr(member, "mention", "User not found")
+                    name=getattr(member, "display_name", "User not found")
                     + f" ({member_id})",
                     value="Boosts: " + str(data["boosts"]),
                     inline=False,
