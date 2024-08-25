@@ -98,7 +98,7 @@ class BanAppeal(commands.Cog):
             log.debug("Mod cog not found")
             return
         if ctx.command.qualified_name.lower() != "ban" or ctx.cog != ModCog:
-            log.debug("Not a ban command")
+            # log.debug("Not a ban command")
             return
 
         if not await ctx.command.can_run(ctx):
@@ -108,10 +108,6 @@ class BanAppeal(commands.Cog):
         if not await self.config.guild(ctx.guild).toggle():
             log.debug("Ban appeals are disabled")
             return
-
-        log.debug(
-            f"{ctx.args=}\n{ctx.kwargs=}\n{ctx.current_argument=}\n{ctx.current_parameter=}"
-        )
 
         user: discord.User
 
