@@ -104,42 +104,52 @@ class BoosterRoles(commands.Cog):
         self.config.register_member(**default_member)
 
     @commands.Cog.listener()
-    async def on_member_boost(self, member: discord.Member):
+    async def on_member_boost(
+        self,
+        member: discord.Member,
+        _type: typing.Literal["system", "premium_subscriber_role"],
+    ):
+        if not _type == "system":
+            log.debug(
+                "Boost event ignored because it was triggered by premium role addition."
+            )
         boosts = await self.config.member(member).boosts()
         boosts += 1
         await self.config.member(member).boosts.set(boosts)
 
     @commands.Cog.listener()
-    async def on_member_unboost(self, member: discord.Member):
+    async def on_member_unboost(
+        self, member: discord.Member, _type: typing.Literal["premium_subscriber_role"]
+    ):
+        # event will only be triggered when the user unboosts the server completely
         boosts = await self.config.member(member).boosts()
         if boosts == 0:
             return
-        boosts -= 1
-        if boosts == 0:
-            log.debug(
-                f"{member.display_name} has unboosted the server, removing booster role."
-            )
-            role_id = await self.config.member(member).booster_role.id()
-            role = member.guild.get_role(role_id)
-            if role:
-                log.debug(f"Deleting role {role.name}")
-                await role.delete(reason="Booster role unassignment")
-                log.debug(f"Role {role.name} deleted.")
-                await self.config.member(member).clear()
-                return
-
-        await self.config.member(member).boosts.set(boosts)
-
-    @commands.Cog.listener()
-    async def on_member_remove(self, member: discord.Member):
-        log.debug(f"{member.display_name} has left the server, removing booster role.")
+        log.debug(
+            f"{member.display_name} has unboosted the server, removing booster role."
+        )
         role_id = await self.config.member(member).booster_role.id()
         role = member.guild.get_role(role_id)
         if role:
             log.debug(f"Deleting role {role.name}")
+            await role.delete(reason="Booster role unassignment")
+            log.debug(f"Role {role.name} deleted.")
+
+        await self.config.member(member).boosts.set(0)
+
+    @commands.Cog.listener()
+    async def on_member_remove(self, member: discord.Member):
+        role_id = await self.config.member(member).booster_role.id()
+        role = member.guild.get_role(role_id)
+        if role:
+            log.debug(
+                f"{member.display_name} has left the server, removing booster role."
+            )
+            log.debug(f"Deleting role {role.name}")
             await role.delete(reason="User left the server")
             log.debug(f"Role {role.name} deleted.")
-            await self.config.member(member).clear()
+
+        await self.config.member(member).set(0)
 
     @commands.group(aliases=["boosterroles"])
     @commands.guild_only()
