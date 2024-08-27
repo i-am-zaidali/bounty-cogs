@@ -149,7 +149,7 @@ class BoosterRoles(commands.Cog):
             await role.delete(reason="User left the server")
             log.debug(f"Role {role.name} deleted.")
 
-        await self.config.member(member).set(0)
+        await self.config.member(member).boosts.set(0)
 
     @commands.group(aliases=["boosterroles"])
     @commands.guild_only()
