@@ -541,7 +541,9 @@ class BoosterRoles(commands.Cog):
                 )
             return embed
 
-        source = ListPageSource(list(members.items()), per_page=10)
+        source = ListPageSource(
+            list(filter(lambda x: x[1]["boosts"] > 0, members.items())), per_page=10
+        )
         source.format_page = format_page
 
         await Paginator(source, use_select=True).start(ctx)
