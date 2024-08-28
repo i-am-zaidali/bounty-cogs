@@ -320,7 +320,12 @@ class MemberHistory(commands.Cog):
         log.debug("Running cleanup task.")
         all_files = self.path_util.get_all_files_stored()
         file_timestamps = map(
-            lambda x: (x, datetime.datetime.fromisoformat(x.stem.split("_")[0])),
+            lambda x: (
+                x,
+                datetime.datetime.fromtimestamp(
+                    int(x.stem.split("_")[0]), tz=datetime.timezone.utc
+                ),
+            ),
             all_files,
         )
         ttl = datetime.timedelta(seconds=await self.config.ttl())
