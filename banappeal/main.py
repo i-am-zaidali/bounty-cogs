@@ -113,7 +113,7 @@ class BanAppeal(commands.Cog):
 
         from redbot.cogs.mod.kickban import _
 
-        user: typing.Optional[discord.User, discord.Member]
+        user: typing.Union[discord.User, discord.Member]
 
         if len(ctx.args) > 2:
             user = ctx.args[2]
