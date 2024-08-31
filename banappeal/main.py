@@ -430,7 +430,7 @@ class BanAppeal(commands.Cog):
 
     @appealset.command(name="banmessage", aliases=["bm"])
     async def appealset_banmessage(
-        self, ctx: commands.Context, *, message: typing.Optional[str] = None
+        self, ctx: commands.Context, *, message: str = ""
     ):
         """
         Set the message sent to a user when they are banned
