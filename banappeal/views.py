@@ -649,7 +649,6 @@ class QuestionnaireModal(discord.ui.Modal):
             )
             try:
                 await self.appeal_channel.send(
-                    f"**{interaction.user.mention} ({interaction.user.id})** has submitted an appeal",
                     embed=discord.Embed(
                         description="\n".join(
                             f"- **{question}**\n  - {answer}"
@@ -660,7 +659,7 @@ class QuestionnaireModal(discord.ui.Modal):
                         ),
                         timestamp=discord.utils.utcnow(),
                     ).set_author(
-                        name=f"{interaction.user.display_name} has submitted an appeal",
+                        name=f"{interaction.user.display_name} ({interaction.user.id}) has submitted an appeal",
                         icon_url=interaction.user.avatar.url,
                     ),
                     view=(
