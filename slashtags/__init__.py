@@ -36,27 +36,27 @@ from .models import *  # noqa
 from .objects import *  # noqa
 from .utils import validate_tagscriptengine
 
-VERSION_RE = re.compile(r"AdvancedTagScriptEngine==(\d\.\d\.\d)")
+# VERSION_RE = re.compile(r"AdvancedTagScriptEngine==(\d\.\d\.\d)")
 
 with open(Path(__file__).parent / "info.json") as fp:
     data = json.load(fp)
 
 __red_end_user_data_statement__ = data["end_user_data_statement"]
 
-tse_version = None
-for requirement in data.get("requirements", []):
-    match = VERSION_RE.search(requirement)
-    if match:
-        tse_version = match.group(1)
-        break
+# tse_version = None
+# for requirement in data.get("requirements", []):
+#     match = VERSION_RE.search(requirement)
+#     if match:
+#         tse_version = match.group(1)
+#         break
 
-if not tse_version:
-    raise CogLoadError(
-        "Failed to find AdvancedTagScriptEngine version number. Please report this to the cog author."
-    )
+# if not tse_version:
+#     raise CogLoadError(
+#         "Failed to find AdvancedTagScriptEngine version number. Please report this to the cog author."
+# )
 
 
 async def setup(bot: Red):
-    await validate_tagscriptengine(bot, tse_version)
+    # await validate_tagscriptengine(bot, tse_version)
     cog = SlashTags(bot)
     await bot.add_cog(cog)
