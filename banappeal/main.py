@@ -1,3 +1,5 @@
+import asyncio
+import contextlib
 import discord
 from discord import app_commands
 import discord.ui
@@ -81,7 +83,7 @@ class BanAppeal(commands.Cog):
                 "You have been banned from {guild_name}. "
                 "To appeal this ban, please "
                 f"[install the bot to your account](<https://discord.com/developers/docs/resources/application#installation-context>) "
-                "with the following link: <{user_install_link}>\n"
+                "with the following link: <{user_install_link}> or by clicking the button below this embed.\n"
                 "After installing, run the `/appeal` command and it will guide you through what to do."
             ),
         )
@@ -109,6 +111,8 @@ class BanAppeal(commands.Cog):
             log.debug("Ban appeals are disabled")
             return
 
+        from redbot.cogs.mod.kickban import _
+
         user: discord.User
 
         if len(ctx.args) > 2:
@@ -126,12 +130,58 @@ class BanAppeal(commands.Cog):
         #     return
         # there is no point in checking this incase the user has already installed the bot.
 
-        if msg := await self.config.guild(ctx.guild).ban_message():
+        banmsg: str = await self.config.guild(ctx.guild).ban_message()
+        dm_toggle = await ModCog.config.guild(ctx.guild).dm_on_kickban()
+        if dm_toggle:
+
+            def dm_check(msg: discord.Message):
+                return (
+                    msg.author.id == self.bot.user.id
+                    and msg.channel.id == user.dm_channel.id
+                    and msg.embeds
+                )
+
+            try:
+                msg: discord.Message = await self.bot.wait_for(
+                    "message", check=dm_check, timeout=30
+                )
+            except asyncio.TimeoutError:
+                pass
+
+            else:
+                log.debug("Found a message sent to the banned user.")
+                embed = msg.embeds[0]
+                banTitle = cf.bold(
+                    _("You have been banned from {guild}.").format(guild=ctx.guild)
+                )
+                log.debug("The translated title is: %s", banTitle)
+                if embed.title == banTitle:
+                    log.debug("The title matches the ban message title")
+                    embed.description = banmsg.format(
+                        guild_name=ctx.guild.name,
+                        user_install_link=self.user_install_link,
+                    )
+                    view = discord.ui.View().add_item(
+                        discord.ui.Button(
+                            style=discord.ButtonStyle.url,
+                            url=self.user_install_link,
+                            label="Install the bot",
+                        )
+                    )
+                    try:
+                        log.debug("Editing the message to include the install link")
+                        return await msg.edit(embed=embed, view=view)
+
+                    except discord.HTTPException:
+                        log.debug("Failed to edit the message")
+                        pass
+
+        if banmsg:
             try:
                 log.debug("Sending the ban message to the user")
                 await user.send(
                     embed=discord.Embed(
-                        description=msg.format(
+                        description=banmsg.format(
                             guild_name=ctx.guild.name,
                             user_install_link=self.user_install_link,
                         ),
