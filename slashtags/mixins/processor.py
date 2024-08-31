@@ -38,7 +38,7 @@ from ..abc import MixinMeta
 from ..blocks import HideBlock, ReactBlock
 from ..errors import RequireCheckFailure
 from ..models import InteractionWrapper
-from ..objects import FakeMessage, SlashTag
+from ..objects import FakeMessage, SlashTag, ApplicationCommand
 from ..utils import dev_check, TemporaryAttributes
 
 PL = commands.PrivilegeLevel
@@ -118,13 +118,15 @@ class Processor(MixinMeta):
                 )
                 seed_variables[option["name"]] = tse.StringAdapter(option["value"])
 
-        command = self.get_command(interaction.command_id)
+        command: ApplicationCommand = self.get_command(interaction.command_id)
         for original_option in command.options:
             if original_option.name not in seed_variables:
                 log.debug(
                     "optional option %s not found, using empty adapter", original_option
                 )
-                seed_variables[original_option.name] = self.EMPTY_ADAPTER
+                seed_variables[original_option._rename or original_option.name] = (
+                    self.EMPTY_ADAPTER
+                )
 
         guild = interaction.guild
         author = interaction.author
