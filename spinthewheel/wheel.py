@@ -53,7 +53,9 @@ def get_animated_wheel(
         colors.appendleft(colors.pop())
 
         draw_sections(img, num_sections, section_angle, colors, center, radius, offset)
-        draw_labels(cog_path, img, num_sections, section_angle, labels, center, radius, i)
+        draw_labels(
+            cog_path, img, num_sections, section_angle, labels, center, radius, i
+        )
         draw_arrow(img, center, radius)
 
         images.append(img)
@@ -154,8 +156,12 @@ def draw_labels(
         label_width: float = label_bbox[2] - label_bbox[0]
         label_height: float = label_bbox[3] - label_bbox[1]
         label_angle: float = mid_angle + math.radians(iteration * section_angle)
-        label_x: float = center[0] + (radius * 0.7) * math.cos(label_angle) - label_width / 2
-        label_y: float = center[1] + (radius * 0.7) * math.sin(label_angle) - label_height / 2
+        label_x: float = (
+            center[0] + (radius * 0.7) * math.cos(label_angle) - label_width / 2
+        )
+        label_y: float = (
+            center[1] + (radius * 0.7) * math.sin(label_angle) - label_height / 2
+        )
         draw.text(
             (label_x, label_y),
             label,

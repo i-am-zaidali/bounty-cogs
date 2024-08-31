@@ -1,7 +1,7 @@
 {
     "name": "spinthewheel",
-    "short": "A minigame where users can spin a wheel to win items",
-    "description": "This cog allows the bot owner to add items to a wheel which can be spinned twice a week by users to win items. These items will be added to a user's inventory but do not serve any purpose.",
+    "short": "Spin the wheel with custom item labels",
+    "description": "This cog allows the bot owner to add items to wheels and spin them whence the bot creates and sends a gif of the wheel spinning. Items can have arbitrary labels and rarities (these affect the outcome of the wheel spin).",
     "end_user_data_statement": "This cog does not store any user data persistently.",
     "install_msg": "Thanks for installing spinthewheel!\nPlease report any bugs/log output in *#support_other-cogs* on the cog support server (https://discord.gg/GET4DVk).",
     "author": [
@@ -14,8 +14,10 @@
     ],
     "tags": [
         "minigame",
-        "inventory",
-        "items"
+        "spin",
+        "spinthewheel",
+        "wheel",
+        "random"
     ],
     "type": "COG"
 }
