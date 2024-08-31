@@ -136,7 +136,7 @@ class BanAppeal(commands.Cog):
             discord.ui.Button(
                 style=discord.ButtonStyle.url,
                 url=self.user_install_link,
-                label="Install the bot",
+                label="Bot Install",
             )
         )
         if dm_toggle and isinstance(user, discord.Member):
@@ -429,9 +429,7 @@ class BanAppeal(commands.Cog):
         )
 
     @appealset.command(name="banmessage", aliases=["bm"])
-    async def appealset_banmessage(
-        self, ctx: commands.Context, *, message: str = ""
-    ):
+    async def appealset_banmessage(self, ctx: commands.Context, *, message: str = ""):
         """
         Set the message sent to a user when they are banned
 
