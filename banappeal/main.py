@@ -113,7 +113,7 @@ class BanAppeal(commands.Cog):
 
         from redbot.cogs.mod.kickban import _
 
-        user: discord.User
+        user: typing.Optional[discord.User, discord.Member]
 
         if len(ctx.args) > 2:
             user = ctx.args[2]
@@ -132,14 +132,27 @@ class BanAppeal(commands.Cog):
 
         banmsg: str = await self.config.guild(ctx.guild).ban_message()
         dm_toggle = await ModCog.config.guild(ctx.guild).dm_on_kickban()
-        if dm_toggle:
+        view = discord.ui.View().add_item(
+            discord.ui.Button(
+                style=discord.ButtonStyle.url,
+                url=self.user_install_link,
+                label="Install the bot",
+            )
+        )
+        if dm_toggle and isinstance(user, discord.Member):
 
             def dm_check(msg: discord.Message):
-                return (
+                conditions = (
                     msg.author.id == self.bot.user.id
-                    and msg.channel.id == user.dm_channel.id
+                    and msg.channel.type
+                    and msg.channel.type == discord.ChannelType.private
                     and msg.embeds
+                    and msg.embeds[0].title
+                    == cf.bold(
+                        _("You have been banned from {guild}.").format(guild=ctx.guild)
+                    )
                 )
+                return conditions
 
             try:
                 msg: discord.Message = await self.bot.wait_for(
@@ -151,30 +164,17 @@ class BanAppeal(commands.Cog):
             else:
                 log.debug("Found a message sent to the banned user.")
                 embed = msg.embeds[0]
-                banTitle = cf.bold(
-                    _("You have been banned from {guild}.").format(guild=ctx.guild)
+                embed.description = banmsg.format(
+                    guild_name=ctx.guild.name,
+                    user_install_link=self.user_install_link,
                 )
-                log.debug("The translated title is: %s", banTitle)
-                if embed.title == banTitle:
-                    log.debug("The title matches the ban message title")
-                    embed.description = banmsg.format(
-                        guild_name=ctx.guild.name,
-                        user_install_link=self.user_install_link,
-                    )
-                    view = discord.ui.View().add_item(
-                        discord.ui.Button(
-                            style=discord.ButtonStyle.url,
-                            url=self.user_install_link,
-                            label="Install the bot",
-                        )
-                    )
-                    try:
-                        log.debug("Editing the message to include the install link")
-                        return await msg.edit(embed=embed, view=view)
+                try:
+                    log.debug("Editing the message to include the install link")
+                    return await msg.edit(embed=embed, view=view)
 
-                    except discord.HTTPException:
-                        log.debug("Failed to edit the message")
-                        pass
+                except discord.HTTPException:
+                    log.debug("Failed to edit the message")
+                    pass
 
         if banmsg:
             try:
@@ -186,7 +186,8 @@ class BanAppeal(commands.Cog):
                             user_install_link=self.user_install_link,
                         ),
                         color=await ctx.embed_colour(),
-                    )
+                    ),
+                    view=view,
                 )
 
             except discord.Forbidden:
