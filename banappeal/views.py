@@ -651,7 +651,6 @@ class QuestionnaireModal(discord.ui.Modal):
                 await self.appeal_channel.send(
                     f"**{interaction.user.mention} ({interaction.user.id})** has submitted an appeal",
                     embed=discord.Embed(
-                        title="Ban Appeal",
                         description="\n".join(
                             f"- **{question}**\n  - {answer}"
                             for question, answer in answers.items()
@@ -659,6 +658,10 @@ class QuestionnaireModal(discord.ui.Modal):
                         color=await interaction.client.get_embed_color(
                             interaction.channel
                         ),
+                        timestamp=discord.utils.utcnow(),
+                    ).set_author(
+                        name=f"{interaction.user.display_name} has submitted an appeal",
+                        icon_url=interaction.user.avatar.url,
                     ),
                     view=(
                         discord.ui.View(timeout=180)

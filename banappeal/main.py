@@ -122,7 +122,7 @@ class BanAppeal(commands.Cog):
             try:
                 user = await commands.UserConverter().convert(ctx, ctx.current_argument)
             except commands.BadArgument:
-                log.debug(f"{ctx.current_parameter} is not a valid user")
+                log.debug(f"{ctx.current_argument} is not a valid user")
                 return
 
         # if not user.mutual_guilds:
@@ -132,7 +132,7 @@ class BanAppeal(commands.Cog):
 
         banmsg: str = await self.config.guild(ctx.guild).ban_message()
         dm_toggle = await ModCog.config.guild(ctx.guild).dm_on_kickban()
-        view = discord.ui.View().add_item(
+        view = discord.ui.View(timeout=None).add_item(
             discord.ui.Button(
                 style=discord.ButtonStyle.url,
                 url=self.user_install_link,
@@ -268,7 +268,7 @@ class BanAppeal(commands.Cog):
         await interaction.response.send_message(
             "Select a server to appeal from", view=view
         )
-        view.message = interaction.original_response()
+        view.message = await interaction.original_response()
 
     @commands.group(name="appealset", aliases=["aset"])
     @commands.admin()
