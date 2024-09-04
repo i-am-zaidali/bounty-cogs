@@ -1,3 +1,5 @@
+import asyncio
+import dateparser
 from datetime import datetime, timezone
 import logging
 from typing import Optional
@@ -17,7 +19,7 @@ YOUTUBE_BASE_URL = "https://www.googleapis.com/youtube/v3"
 YOUTUBE_CHANNELS_ENDPOINT = YOUTUBE_BASE_URL + "/channels"
 YOUTUBE_VIDEOS_ENDPOINT = YOUTUBE_BASE_URL + "/videos"
 
-log = logging.getLogger("red.cray.youtube")
+log = logging.getLogger("red.bounty.youtube")
 
 
 class Youtube(commands.Cog):
@@ -29,6 +31,7 @@ class Youtube(commands.Cog):
         default_guild = {
             "subscribed_channels": [],
             "last_checked": datetime.now(timezone.utc).isoformat(),
+            "posted_vids": [],
             "post_channels": {},  # would be like {"shorts": channel_id, "videos": channel_id, "live": channel_id}
         }
         self.config.register_guild(**default_guild)
@@ -51,12 +54,15 @@ class Youtube(commands.Cog):
             subscribed_channels = data["subscribed_channels"]
             last_checked = datetime.fromisoformat(data["last_checked"])
             post_channels = data["post_channels"]
+            posted_vids = data["posted_vids"]
 
             if len(subscribed_channels) == 0 or all(
                 (val is None for val in post_channels.values())
             ):
                 continue
 
+            ids = []
+            msgs = []
             for channel_id in subscribed_channels:
                 async with self.session.get(
                     YOUTUBE_FEED_URL.format(channel_id=channel_id)
@@ -69,77 +75,83 @@ class Youtube(commands.Cog):
 
                     feed = feedparser.parse(await resp.text())
                     videos = feed["entries"]
-                    log.debug(
-                        f"Got {len(videos)} videos from channel {channel_id}\n{videos}"
-                    )
+                    log.debug(f"Got {len(videos)} videos from channel {channel_id}")
                     latest_videos = sorted(
                         filter(
-                            lambda x: datetime.strptime(
-                                x["updated"], "%Y-%m-%dT%H:%M:%S%z"
-                            )
-                            > last_checked,
+                            lambda x: dateparser.parse(x["published"]) >= last_checked
+                            and x["yt_videoid"] not in posted_vids,
                             videos,
                         ),
-                        key=lambda x: x["updated_parsed"],
+                        key=lambda x: dateparser.parse(x["published"]),
                     )
 
                     if len(latest_videos) == 0:
-                        log.info("No new videos found.")
+                        log.info(f"No new videos found from channel {channel_id}")
+                        continue
 
-                    for vid in latest_videos:
-                        log.debug(vid)
-                        try:
-                            data = await self.get_video_data_from_id(vid.yt_videoid)
-                        except Exception as e:
-                            log.error("Error fetching video data", exc_info=e)
-                            continue
-                        published = datetime.strptime(
-                            data["snippet"]["publishedAt"], "%Y-%m-%dT%H:%M:%S%z"
-                        )
+                    ids += [vid.yt_videoid for vid in latest_videos]
 
-                        message_to_send = f"<t:{int(published.timestamp())}:F> :\n**{data['snippet']['title']}**\n\n{vid.link}"
+                    log.info(
+                        f"Found {len(latest_videos)} new videos from channel {channel_id}"
+                    )
 
-                        if (
-                            data["snippet"]["liveBroadcastContent"]
-                            not in ["None", "none", None]
-                            or data.get("liveStreamingDetails") is not None
-                        ):
-                            chan = post_channels.get("live")
-                            if chan is None:
-                                continue
-                            channel = guild.get_channel(chan)
-                            if channel is None:
-                                log.info("No channel for live streams found.")
-                                continue
-                            await channel.send(f"New live started at {message_to_send}")
+            try:
+                data = await self.get_video_data_from_id(ids)
 
-                        else:
-                            chan = post_channels.get("videos")
-                            if chan is None:
-                                continue
-                            channel = guild.get_channel(chan)
-                            if channel is None:
-                                log.info("No channel for main videos found.")
-                                continue
-                            await channel.send(
-                                f"New video uploaded at {message_to_send}"
-                            )
+            except Exception as e:
+                log.error("Error fetching video data", exc_info=e)
+                continue
 
-                        # check if it's a short
-                        if (
-                            self.parse_duration(data["contentDetails"]["duration"])
-                            <= 60
-                        ):
-                            chan = post_channels.get("shorts")
-                            if chan is None:
-                                continue
-                            channel = guild.get_channel(chan)
-                            if channel is None:
-                                log.info("No channel for shorts found.")
-                                continue
-                            await channel.send(
-                                f"New short uploaded at {message_to_send}"
-                            )
+            for ytvid in data:
+                reelvid = next(
+                    vid for vid in latest_videos if vid.yt_videoid == ytvid["id"]
+                )
+                # reelvid would always be present since we requested based on it
+                log.debug(ytvid, reelvid)
+                published = dateparser.parse(ytvid["snippet"]["publishedAt"])
+
+                message_to_send = f"<t:{int(published.timestamp())}:F> :\n**{ytvid['snippet']['title']}**\n\n{reelvid.link}"
+
+                if (
+                    ytvid["snippet"]["liveBroadcastContent"]
+                    not in ["None", "none", None]
+                    or ytvid.get("liveStreamingDetails") is not None
+                ):
+                    chan = post_channels.get("live")
+                    if chan is None:
+                        continue
+                    channel = guild.get_channel(chan)
+                    if channel is None:
+                        log.info("No channel for live streams found.")
+                        continue
+                    msgs.append(channel.send(f"New live started at {message_to_send}"))
+
+                else:
+                    chan = post_channels.get("videos")
+                    if chan is None:
+                        continue
+                    channel = guild.get_channel(chan)
+                    if channel is None:
+                        log.info("No channel for main videos found.")
+                        continue
+                    msgs.append(
+                        channel.send(f"New video uploaded at {message_to_send}")
+                    )
+
+                # check if it's a short
+                if self.parse_duration(ytvid["contentDetails"]["duration"]) <= 60:
+                    chan = post_channels.get("shorts")
+                    if chan is None:
+                        continue
+                    channel = guild.get_channel(chan)
+                    if channel is None:
+                        log.info("No channel for shorts found.")
+                        continue
+                    msgs.append(
+                        channel.send(f"New short uploaded at {message_to_send}")
+                    )
+
+            await asyncio.gather(*msgs)
 
             now = datetime.now(timezone.utc)
             log.info(
@@ -148,6 +160,8 @@ class Youtube(commands.Cog):
             await self.config.guild(guild).last_checked.set(
                 datetime.now(timezone.utc).isoformat()
             )
+            async with self.config.guild(guild).posted_vids() as posted_vids:
+                posted_vids.extend(ids)
 
     @checking.before_loop
     async def before_checking(self):
@@ -185,16 +199,16 @@ class Youtube(commands.Cog):
 
         return seconds
 
-    async def get_video_data_from_id(self, video_id):
+    async def get_video_data_from_id(self, video_ids: list[int]):
         params = {
             "part": "snippet,liveStreamingDetails,contentDetails",
-            "id": video_id,
+            "id": ",".join(video_ids),
             "key": self.api_key,
         }
         async with self.session.get(YOUTUBE_VIDEOS_ENDPOINT, params=params) as resp:
             data = await resp.json()
             self.check_resp_for_errors(data)
-            return data["items"][0]
+            return data["items"]
 
     async def get_id_from_channel_name(self, channel_name: str, api_key: str):
         params = {
