@@ -221,7 +221,7 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
             commands_not_synced = dict[int, SlashTag](
                 filter(
                     lambda x: commands_synced.pop(x[0], False)
-                    and all_commands.pop(x[0]),
+                    and all_commands.pop(x[0], False),
                     all_commands.copy().items(),
                 )
             )
