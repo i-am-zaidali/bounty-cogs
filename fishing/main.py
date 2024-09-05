@@ -81,21 +81,32 @@ class Fishing(commands.Cog):
             )
 
         except asyncio.TimeoutError:
-            await ctx.message.clear_reactions()
+            try:
+                await ctx.message.clear_reactions()
+            except Exception:
+                pass
             await message.edit(content="You didn't catch anything.")
             return
 
         t2 = time.time()
         diff = t2 - t1
 
-        await ctx.message.clear_reactions()
+        try:
+            await ctx.message.clear_reactions()
+
+        except Exception:
+            pass
 
         ch = self.calculate_catch_chance(diff)
         rand = random.random()
 
         if ch > rand:
-            fish = random.choices(list(fishes.items()), weights=list(fishes.values()))[0]
-            rarity = "Common" if fish[1] == 3 else "Uncommon" if fish[1] == 2 else "Rare"
+            fish = random.choices(list(fishes.items()), weights=list(fishes.values()))[
+                0
+            ]
+            rarity = (
+                "Common" if fish[1] == 3 else "Uncommon" if fish[1] == 2 else "Rare"
+            )
             await message.edit(
                 content=f"You caught a {fish[0]}! It is **{rarity}** and took you {diff:.2f} seconds to catch."
             )
