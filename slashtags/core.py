@@ -55,7 +55,7 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
     The TagScript documentation can be found [here](https://phen-cogs.readthedocs.io/en/latest/index.html).
     """
 
-    __version__ = "1.5.2"
+    __version__ = "1.5.3"
     __author__ = ("PhenoM4n4n", "crayyy_zee")
 
     def format_help_for_context(self, ctx: commands.Context):
@@ -196,7 +196,7 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
         guilds_data = guild_data or await self.config.all_guilds()
         for guild_id, guild_data in guilds_data.items():
             guild = self.bot.get_guild(guild_id)
-            if not guild:
+            if not guild or not guild_data["tags"]:
                 continue
             all_commands = dict[int, SlashTag](
                 map(
@@ -225,6 +225,10 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
                     all_commands.copy().items(),
                 )
             )
+
+            if not commands_synced and not commands_not_synced:
+                log.info("No slash tags to sync in guild %s", guild_id)
+                continue
 
             synced = await self.bot.http.bulk_upsert_guild_commands(
                 self.application_id,
