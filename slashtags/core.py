@@ -55,7 +55,7 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
     The TagScript documentation can be found [here](https://phen-cogs.readthedocs.io/en/latest/index.html).
     """
 
-    __version__ = "1.5.1"
+    __version__ = "1.5.2"
     __author__ = ("PhenoM4n4n", "crayyy_zee")
 
     def format_help_for_context(self, ctx: commands.Context):
@@ -220,7 +220,8 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
 
             commands_not_synced = dict[int, SlashTag](
                 filter(
-                    lambda x: commands_synced.pop(x[0]) and all_commands.pop(x[0]),
+                    lambda x: commands_synced.pop(x[0], False)
+                    and all_commands.pop(x[0]),
                     all_commands.copy().items(),
                 )
             )
@@ -248,7 +249,7 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
                 "Completed caching slash tags for guild %s: %d commands (non tags) and %d tags were synced",
                 guild_id,
                 len(commands_synced),
-                len(synced),
+                len(commands_not_synced),
             )
 
     @commands.Cog.listener()
