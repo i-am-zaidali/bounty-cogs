@@ -13,7 +13,6 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf, bounded_gather
 
-ss
 from .errors import APIError, InvalidYoutubeCredentials, YoutubeQuotaExceeded
 
 YOUTUBE_FEED_URL = "https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
