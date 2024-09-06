@@ -2,6 +2,7 @@ import asyncio
 import dateparser
 from datetime import datetime, timezone
 import logging
+import re
 from typing import Optional
 
 import aiohttp
@@ -10,14 +11,16 @@ import feedparser
 from discord.ext import tasks
 from redbot.core import Config, commands
 from redbot.core.bot import Red
-from redbot.core.utils import chat_formatting as cf
+from redbot.core.utils import chat_formatting as cf, bounded_gather
 
+ss
 from .errors import APIError, InvalidYoutubeCredentials, YoutubeQuotaExceeded
 
 YOUTUBE_FEED_URL = "https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
 YOUTUBE_BASE_URL = "https://www.googleapis.com/youtube/v3"
 YOUTUBE_CHANNELS_ENDPOINT = YOUTUBE_BASE_URL + "/channels"
 YOUTUBE_VIDEOS_ENDPOINT = YOUTUBE_BASE_URL + "/videos"
+YOUTUBE_DURATION_REGEX = r"P(?:(?P<days>\d+)D)?T(?:(?P<hours>\d+)H)?(?:(?P<minutes>\d+)M)?(?:(?P<seconds>\d+)S)?"
 
 log = logging.getLogger("red.bounty.youtube")
 
@@ -63,6 +66,7 @@ class Youtube(commands.Cog):
 
             ids = []
             msgs = []
+            latest_videos = []
             for channel_id in subscribed_channels:
                 async with self.session.get(
                     YOUTUBE_FEED_URL.format(channel_id=channel_id)
@@ -76,7 +80,7 @@ class Youtube(commands.Cog):
                     feed = feedparser.parse(await resp.text())
                     videos = feed["entries"]
                     log.debug(f"Got {len(videos)} videos from channel {channel_id}")
-                    latest_videos = sorted(
+                    latest_videos += sorted(
                         filter(
                             lambda x: dateparser.parse(x["published"]) >= last_checked
                             and x["yt_videoid"] not in posted_vids,
@@ -113,8 +117,8 @@ class Youtube(commands.Cog):
                 message_to_send = f"<t:{int(published.timestamp())}:F> :\n**{ytvid['snippet']['title']}**\n\n{reelvid.link}"
 
                 if (
-                    ytvid["snippet"]["liveBroadcastContent"]
-                    not in ["None", "none", None]
+                    ytvid["snippet"]["liveBroadcastContent"].lower()
+                    not in ["none", None]
                     or ytvid.get("liveStreamingDetails") is not None
                 ):
                     chan = post_channels.get("live")
@@ -126,7 +130,9 @@ class Youtube(commands.Cog):
                         continue
                     msgs.append(channel.send(f"New live started at {message_to_send}"))
 
-                else:
+                elif (
+                    duration := self.parse_duration(ytvid["contentDetails"]["duration"])
+                ) > 600:
                     chan = post_channels.get("videos")
                     if chan is None:
                         continue
@@ -139,7 +145,7 @@ class Youtube(commands.Cog):
                     )
 
                 # check if it's a short
-                if self.parse_duration(ytvid["contentDetails"]["duration"]) <= 60:
+                elif duration <= 60:
                     chan = post_channels.get("shorts")
                     if chan is None:
                         continue
@@ -151,7 +157,7 @@ class Youtube(commands.Cog):
                         channel.send(f"New short uploaded at {message_to_send}")
                     )
 
-            await asyncio.gather(*msgs)
+            await bounded_gather(*msgs)
 
             now = datetime.now(timezone.utc)
             log.info(
@@ -176,26 +182,15 @@ class Youtube(commands.Cog):
         log.exception("There was an error in the youtube checking loop", exc_info=error)
 
     def parse_duration(self, duration: str) -> int:
-        if not duration.startswith("PT"):
-            raise ValueError("Invalid duration {}".format(duration))
+        if not (match := re.match(YOUTUBE_DURATION_REGEX, duration)):
+            raise ValueError("Invalid duration string")
 
-        duration = duration[2:]
-        seconds = 0
-        # duration looks like this: xHxMxS
+        times = match.groups()
 
-        # get the hours
-        if "H" in duration:
-            hours, duration = duration.split("H")
-            seconds += int(hours) * 3600
-
-        # get the minutes
-        if "M" in duration:
-            minutes, duration = duration.split("M")
-            seconds += int(minutes) * 60
-
-        # get the seconds
-        if "S" in duration:
-            seconds += int(duration[:-1])
+        multi = [86400, 3600, 60, 1]
+        seconds = sum(
+            int(time) * multi[i] for i, time in enumerate(times) if time is not None
+        )
 
         return seconds
 
