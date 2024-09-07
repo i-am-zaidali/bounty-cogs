@@ -1,6 +1,6 @@
-import asyncio
 import dateparser
 from datetime import datetime, timezone
+import functools
 import logging
 import re
 from typing import Optional
@@ -79,14 +79,17 @@ class Youtube(commands.Cog):
                     feed = feedparser.parse(await resp.text())
                     videos = feed["entries"]
                     log.debug(f"Got {len(videos)} videos from channel {channel_id}")
-                    latest_videos_cc = set(sorted(
-                        filter(
-                            lambda x: dateparser.parse(x["published"]) >= last_checked
-                            and x["yt_videoid"] not in posted_vids,
-                            videos,
-                        ),
-                        key=lambda x: dateparser.parse(x["published"]),
-                    ))
+                    latest_videos_cc = set(
+                        sorted(
+                            filter(
+                                lambda x: dateparser.parse(x["published"])
+                                >= last_checked
+                                and x["yt_videoid"] not in posted_vids,
+                                videos,
+                            ),
+                            key=lambda x: dateparser.parse(x["published"]),
+                        )
+                    )
                     latest_videos |= latest_videos_cc
 
                     if len(latest_videos_cc) == 0:
@@ -351,12 +354,21 @@ class Youtube(commands.Cog):
 
     @youtube.command(name="setlasttimechecked", aliases=["sltc"])
     @commands.is_owner()
-    async def sltc(self, ctx:commands.Context, *, date: dateparser.parse):
-        dt = date.replace(tzinfo=timezone.utc)
-        if dt >= discord.utils.utcnow():
+    async def sltc(
+        self,
+        ctx: commands.Context,
+        *,
+        date: functools.partial(
+            dateparser.parse,
+            settings={"TIMEZONE": "UTC", "RETURN_AS_TIMEZONE_AWARE": True},
+        ),
+    ):
+        if date >= discord.utils.utcnow():
             return await ctx.send("Cant have ladt checked date in the future")
         await self.config.guild(ctx.guild).last_checked.set(date.isoformat())
-        await ctx.send(f"Last checked date has been set to <t:{int(date.timestamp())}:F>")
+        await ctx.send(
+            f"Last checked date has been set to <t:{int(date.timestamp())}:F>"
+        )
 
     @youtube.command(name="showsettings", aliases=["settings", "ss"])
     async def show_settings(self, ctx: commands.Context):
