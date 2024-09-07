@@ -101,8 +101,8 @@ class PageSource(menus.PageSource):
             f = discord.File(io.BytesIO(await f.read()), filename=filename)
         embed = discord.Embed(
             title=f"Past {self.attr_qname[self.attr]}s of {self.user.display_name}",
-            description=f"Changed on: <t:{timestamp}:F>\n"
-            f"Page {menu.current_page+1}/{self.get_max_pages()}",
+            description=f"Changed on: <t:{timestamp}:F>\n",
+            #f"Page {menu.current_page+1}/{self.get_max_pages()}",
             color=await menu.ctx.embed_color(),
         )
         embed.set_author(name=self.user.display_name, icon_url=self.user.avatar.url)
