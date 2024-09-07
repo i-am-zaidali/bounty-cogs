@@ -351,7 +351,7 @@ class Youtube(commands.Cog):
 
     @youtube.command(name="setlasttimechecked", aliases=["sltc"])
     @commands.is_owner()
-    async def sltc(self, ctx:commands.Context, *, date: dateparse.parse):
+    async def sltc(self, ctx:commands.Context, *, date: dateparser.parse):
         dt = date.replace(tzinfo=timezone.utc)
         if dt >= discord.utils.utcnow():
             return await ctx.send("Cant have ladt checked date in the future")
