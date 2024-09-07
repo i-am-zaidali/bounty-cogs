@@ -63,9 +63,9 @@ class Youtube(commands.Cog):
             ):
                 continue
 
-            ids = []
+            ids = set()
             msgs = []
-            latest_videos = []
+            latest_videos = set()
             for channel_id in subscribed_channels:
                 async with self.session.get(
                     YOUTUBE_FEED_URL.format(channel_id=channel_id)
@@ -79,23 +79,24 @@ class Youtube(commands.Cog):
                     feed = feedparser.parse(await resp.text())
                     videos = feed["entries"]
                     log.debug(f"Got {len(videos)} videos from channel {channel_id}")
-                    latest_videos += sorted(
+                    latest_videos_cc = set(sorted(
                         filter(
                             lambda x: dateparser.parse(x["published"]) >= last_checked
                             and x["yt_videoid"] not in posted_vids,
                             videos,
                         ),
                         key=lambda x: dateparser.parse(x["published"]),
-                    )
+                    ))
+                    latest_videos |= latest_videos_cc
 
-                    if len(latest_videos) == 0:
+                    if len(latest_videos_cc) == 0:
                         log.info(f"No new videos found from channel {channel_id}")
                         continue
 
-                    ids += [vid.yt_videoid for vid in latest_videos]
+                    ids |= set([vid.yt_videoid for vid in latest_videos_cc])
 
                     log.info(
-                        f"Found {len(latest_videos)} new videos from channel {channel_id}"
+                        f"Found {len(latest_videos_cc)} new videos from channel {channel_id}"
                     )
 
             try:
@@ -337,6 +338,7 @@ class Youtube(commands.Cog):
         await ctx.send(f"Interval set to {interval} seconds.")
 
     @youtube.command(name="forcecheck")
+    @commands.is_owner()
     async def force_check(self, ctx: commands.Context):
         """
         Force check for new videos.
@@ -346,6 +348,15 @@ class Youtube(commands.Cog):
         await ctx.send("Checking for new videos...")
         await self.checking()
         await ctx.send("Done.")
+
+    @youtube.command(name="setlasttimechecked", aliases=["sltc"])
+    @commands.is_owner()
+    async def sltc(self, ctx:commands.Context, *, date: dateparse.parse):
+        dt = date.replace(tzinfo=timezone.utc)
+        if dt >= discord.utils.utcnow():
+            return await ctx.send("Cant have ladt checked date in the future")
+        await self.config.guild(ctx.guild).last_checked.set(date.isoformat())
+        await ctx.send(f"Last checked date has been set to <t:{int(date.timestamp())}:F>")
 
     @youtube.command(name="showsettings", aliases=["settings", "ss"])
     async def show_settings(self, ctx: commands.Context):
