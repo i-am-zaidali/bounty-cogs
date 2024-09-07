@@ -563,6 +563,7 @@ class MemberHistory(commands.Cog):
         await menu.start(ctx)
 
     @memberhistory.group("ignore")
+    @commands.admin()
     async def ignore(self, ctx: commands.Context):
         """
         Add a user or role to the ignore list.
@@ -597,6 +598,7 @@ class MemberHistory(commands.Cog):
         await ctx.send(f"Added {user.name} to the global ignore list.")
 
     @memberhistory.group("unignore")
+    @commands.admin()
     async def unignore(self, ctx: commands.Context):
         """
         Remove a user or role from the ignore list.
