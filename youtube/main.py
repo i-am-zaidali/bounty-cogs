@@ -21,7 +21,7 @@ YOUTUBE_CHANNELS_ENDPOINT = YOUTUBE_BASE_URL + "/channels"
 YOUTUBE_VIDEOS_ENDPOINT = YOUTUBE_BASE_URL + "/videos"
 YOUTUBE_DURATION_REGEX = r"P(?:(?P<days>\d+)D)?T(?:(?P<hours>\d+)H)?(?:(?P<minutes>\d+)M)?(?:(?P<seconds>\d+)S)?"
 
-log = logging.getLogger("red.bounty.youtube")
+log = logging.getLogger("red.craycogs.youtube")
 
 
 class Youtube(commands.Cog):
@@ -364,7 +364,7 @@ class Youtube(commands.Cog):
         ),
     ):
         if date >= discord.utils.utcnow():
-            return await ctx.send("Cant have ladt checked date in the future")
+            return await ctx.send("Cant have laSt checked date in the future")
         await self.config.guild(ctx.guild).last_checked.set(date.isoformat())
         await ctx.send(
             f"Last checked date has been set to <t:{int(date.timestamp())}:F>"
