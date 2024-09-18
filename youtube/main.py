@@ -114,7 +114,8 @@ class Youtube(commands.Cog):
                     vid for vid in latest_videos if vid.yt_videoid == ytvid["id"]
                 )
                 # reelvid would always be present since we requested based on it
-                log.debug(ytvid, reelvid)
+                log.debug(ytvid)
+                log.debug(reelvid)
                 published = dateparser.parse(ytvid["snippet"]["publishedAt"])
 
                 message_to_send = f"<t:{int(published.timestamp())}:F> :\n**{ytvid['snippet']['title']}**\n\n{reelvid.link}"
