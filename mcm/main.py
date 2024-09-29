@@ -822,7 +822,7 @@ class MissionChiefMetrics(commands.Cog):
                                     categories.values()
                                 )
                                 and entry[1].get(vehicle, 0) > 0
-                            }
+                            }.items()
                         ),
                         key=lambda x: x[1],
                         reverse=True,
