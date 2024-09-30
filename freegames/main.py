@@ -41,7 +41,9 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
     """
     Sources updates on freely available games on popular stores such as epic and steam.
 
-    Uses two APIs: [GamerPower](https://www.gamerpower.com/) (FREE) and [FreeStuffBot](https://docs.freestuffbot.xyz/) (PAID)."""
+    Uses two APIs: [GamerPower](https://www.gamerpower.com/) (FREE) and [FreeStuffBot](https://docs.freestuffbot.xyz/) (PAID, requires API key).
+
+    To set the API key for FreeStuffBot API, use `[p]set api freestuff api_key,<your_key>`."""
 
     __author__ = "crayyy_zee"
     __version__ = "0.0.1"
