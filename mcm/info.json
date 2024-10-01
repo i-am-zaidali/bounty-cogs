@@ -1,7 +1,7 @@
 {
-    "name": "MissionChief",
-    "short": "A cog for keeping track of player's vehicle stats and other things from the game MissionChief in Discord.",
-    "description": "This cog allows players to keep track of their vehicle stats and other important information from the game MissionChief in Discord.",
+    "name": "MissionChiefMetrics",
+    "short": "A cog for keeping track of player's vehicle stats and other things from the game MissionChief.",
+    "description": "This cog allows players to keep track of their vehicle stats and other important information from the game MissionChief.",
     "end_user_data_statement": "This cog does not store any user data persistently.",
     "install_msg": "Thanks for installing MCM!\nPlease report any bugs/log output in *#support_other-cogs* on the cog support server (https://discord.gg/GET4DVk).",
     "author": [
@@ -10,7 +10,9 @@
     "required_cogs": {
         "reminder": "https://github.com/AAA3A-AAA3A/AAA3A-cogs"
     },
-    "requirements": [],
+    "requirements": [
+        "git+https://github.com/astanin/python-tabulate.git@master"
+    ],
     "tags": [
         "MissionChief",
         "game",
