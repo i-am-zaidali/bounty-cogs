@@ -5,7 +5,7 @@ import typing
 import aiohttp
 import discord
 from redbot.core import commands
-from redbot.core.utils.chat_formatting import box as cf
+from redbot.core.utils import chat_formatting as cf
 from redbot.core.utils.views import ConfirmView
 from tabulate import tabulate
 
