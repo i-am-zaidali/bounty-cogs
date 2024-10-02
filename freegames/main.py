@@ -46,7 +46,7 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
     To set the API key for FreeStuffBot API, use `[p]set api freestuff api_key,<your_key>`."""
 
     __author__ = "crayyy_zee"
-    __version__ = "0.0.1"
+    __version__ = "0.0.2"
 
     def __init__(self, bot: Red):
         super().__init__()
@@ -62,7 +62,9 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
 
     def format_help_for_context(self, ctx: commands.Context):
         helpcmd = super().format_help_for_context(ctx)
-        txt = "Version: {}\nAuthor: {}".format(self.__version__, self.__author__)
+        txt = "Version: {}\nAuthor: {}".format(
+            self.__version__, self.__author__
+        )
         return f"{helpcmd}\n\n{txt}"
 
     async def cog_load(self) -> None:
@@ -101,7 +103,9 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
 
         async with self.session.get(url, params=params) as resp:
             if resp.status not in [200, 201]:
-                log.error("Failed to fetch gamerpower games: %s", await resp.json())
+                log.error(
+                    "Failed to fetch gamerpower games: %s", await resp.json()
+                )
                 return
             data = await resp.json()
             return GamerPowerResponse(
@@ -129,7 +133,9 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
                     await asyncio.sleep(int(ratelimit["retry-after"]))
                     continue
                 elif resp.status not in [200, 201]:
-                    log.error("Failed to fetch freestuff games: %s", await resp.json())
+                    log.error(
+                        "Failed to fetch freestuff games: %s", await resp.json()
+                    )
                     return
                 data: dict[str, list[int]] = await resp.json()
 
@@ -143,7 +149,8 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
                     ) as resp2:
                         if resp2.status not in [200, 201]:
                             log.error(
-                                "Failed to fetch freestuff game: %s", await resp2.json()
+                                "Failed to fetch freestuff game: %s",
+                                await resp2.json(),
                             )
                             continue
 
@@ -159,7 +166,12 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
                 )
 
     @tasks.loop(
-        time=[datetime.time(hour=i, minute=0, second=0) for i in range(0, 24, 4)]
+        time=[
+            datetime.time(
+                hour=i, minute=0, second=0, tzinfo=datetime.timezone.utc
+            )
+            for i in range(0, 24, 4)
+        ]
     )
     async def check_for_freegames(self, save_after=True):
         for guildid, conf in self.db.configs.items():
@@ -177,7 +189,8 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
                 if not channel:
                     fs.toggle = False
                     log.info(
-                        "Channel not found, disabling freestuff for guild %s", guild
+                        "Channel not found, disabling freestuff for guild %s",
+                        guild,
                     )
                     continue
 
@@ -203,7 +216,8 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
                 if not channel:
                     gp.toggle = False
                     log.info(
-                        "Channel not found, disabling gamerpower for guild %s", guild
+                        "Channel not found, disabling gamerpower for guild %s",
+                        guild,
                     )
                     continue
 
@@ -253,7 +267,11 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
         )
         view = (
             discord.ui.View()
-            .add_item(discord.ui.Button(label="Open in browser", url=data.urls.browser))
+            .add_item(
+                discord.ui.Button(
+                    label="Open in browser", url=data.urls.browser
+                )
+            )
             .add_item(
                 discord.ui.Button(
                     label=f"Open in {data.store.title()}", url=data.urls.client
@@ -279,16 +297,24 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
             .set_image(url=data.image)
             .set_thumbnail(
                 url=StoreLogos._member_map_.get(
-                    next(iter(data.platforms), "").replace("-", "_"), data.thumbnail
+                    next(iter(data.platforms), "").replace("-", "_"),
+                    data.thumbnail,
                 )
             )
             .add_field(
-                name="Instructions:", value=cf.quote(data.instructions), inline=False
+                name="Instructions:",
+                value=cf.quote(data.instructions),
+                inline=False,
             )
             .add_field(
                 name="Platforms",
                 value=cf.humanize_list(
-                    [*map(lambda x: x.replace("-", " ").capitalize(), data.platforms)]
+                    [
+                        *map(
+                            lambda x: x.replace("-", " ").capitalize(),
+                            data.platforms,
+                        )
+                    ]
                 ),
             )
         )
@@ -296,9 +322,15 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
         view = (
             discord.ui.View()
             .add_item(
-                discord.ui.Button(label="GamerPower Link", url=data.gamerpower_url)
+                discord.ui.Button(
+                    label="GamerPower Link", url=data.gamerpower_url
+                )
             )
-            .add_item(discord.ui.Button(label="Direct URL", url=data.open_giveaway_url))
+            .add_item(
+                discord.ui.Button(
+                    label="Direct URL", url=data.open_giveaway_url
+                )
+            )
         )
 
         return embed, view
