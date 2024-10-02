@@ -8,7 +8,9 @@ from ..common.utils import lower_str_param, teacher_check
 from .group import MCMGroup
 
 mcm_courses = typing.cast(commands.Group, MCMGroup.mcm_courses)
-mcm_courses_shorthand = typing.cast(commands.Group, MCMGroup.mcm_courses_shorthand)
+mcm_courses_shorthand = typing.cast(
+    commands.Group, MCMGroup.mcm_courses_shorthand
+)
 
 
 class MCMCourses(MixinMeta):
@@ -23,9 +25,7 @@ class MCMCourses(MixinMeta):
         *,
         location: str,
     ):
-        """Ping for a course announcement
-
-        Use subcommands for more options"""
+        """Ping for a course announcement"""
         conf = self.db.get_conf(ctx.guild)
         if not (role := ctx.guild.get_role(conf.course_role)):
             return await ctx.send("The course ping role has not been set yet.")
@@ -52,7 +52,11 @@ class MCMCourses(MixinMeta):
 
     @mcm_courses_shorthand.command(name="add")
     async def mcm_courses_shorthand_add(
-        self, ctx: commands.Context, shorthand: str = lower_str_param, *, course: str
+        self,
+        ctx: commands.Context,
+        shorthand: str = lower_str_param,
+        *,
+        course: str,
     ):
         """Add a course shorthand"""
         async with self.db.get_conf(ctx.guild) as conf:

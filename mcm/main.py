@@ -12,6 +12,7 @@ from .abc import CompositeMetaClass
 from .commands import Commands
 from .common.models import DB
 from .common.utils import union_dicts
+from .listeners import Listeners
 from .views import (
     AddVehicles,
     Clear,
@@ -26,7 +27,9 @@ log = logging.getLogger("red.craycogs.mcm")
 RequestType = t.Literal["discord_deleted_user", "owner", "user", "user_strict"]
 
 
-class MissionChiefMetrics(Commands, commands.Cog, metaclass=CompositeMetaClass):
+class MissionChiefMetrics(
+    Commands, Listeners, commands.Cog, metaclass=CompositeMetaClass
+):
     """Mission Chief Metrics"""
 
     __author__ = "crayyy_zee"
@@ -103,6 +106,7 @@ class MissionChiefMetrics(Commands, commands.Cog, metaclass=CompositeMetaClass):
             guilds[guild_id]["members"] = data
 
         await self.config.db.set({"configs": guilds})
+        await self.config.version.set(2)
 
     async def log_new_stats(
         self,
