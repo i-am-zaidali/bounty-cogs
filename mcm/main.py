@@ -15,7 +15,7 @@ from .common.utils import union_dicts
 from .views import (
     AddVehicles,
     Clear,
-    InvalidStats,
+    IgnoreStats,
     MergeStats,
     Not,
     RejectStats,
@@ -44,7 +44,7 @@ class MissionChiefMetrics(Commands, commands.Cog, metaclass=CompositeMetaClass):
         self.bot.add_dynamic_items(
             Clear,
             Not,
-            InvalidStats,
+            IgnoreStats,
             RejectStats,
             MergeStats,
             AddVehicles,
@@ -62,7 +62,7 @@ class MissionChiefMetrics(Commands, commands.Cog, metaclass=CompositeMetaClass):
         self.bot.remove_dynamic_items(
             Clear,
             Not,
-            InvalidStats,
+            IgnoreStats,
             RejectStats,
             MergeStats,
             AddVehicles,
@@ -79,8 +79,9 @@ class MissionChiefMetrics(Commands, commands.Cog, metaclass=CompositeMetaClass):
             await self.migrate_to_v2()
 
         data = await self.config.db()
+        print(data)
+        DB.cog = self
         self.db = await asyncio.to_thread(DB.model_validate, data)
-        self.db.cog = self
         log.info("Config loaded")
 
     async def save(self) -> None:
@@ -97,11 +98,11 @@ class MissionChiefMetrics(Commands, commands.Cog, metaclass=CompositeMetaClass):
 
     async def migrate_to_v2(self):
         config = Config.get_conf(self, identifier=1234567890)
-        guilds = config.all_guilds()
-        for data in (await config.all_members()).values():
-            guilds["members"] = data
+        guilds = await config.all_guilds()
+        for guild_id, data in (await config.all_members()).items():
+            guilds[guild_id]["members"] = data
 
-        await self.config.db.set(guilds)
+        await self.config.db.set({"configs": guilds})
 
     async def log_new_stats(
         self,

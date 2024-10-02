@@ -1,11 +1,12 @@
-from redbot.core import commands
 import typing
-from .group import MCMGroup
-import discord
-from ..abc import MixinMeta
 
-mcm_channel = typing.cast(commands.Gorup, MCMGroup.mcm_channel)
-mcm_channel_courses = typing.cast(commands.Group, MCMGroup.mcm_channel_courses)
+import discord
+from redbot.core import commands
+
+from ..abc import MixinMeta
+from .group import MCMGroup
+
+mcm_channel = typing.cast(commands.Group, MCMGroup.mcm_channel)
 
 
 class MCMChannels(MixinMeta):

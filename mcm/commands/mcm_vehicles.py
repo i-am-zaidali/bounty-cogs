@@ -9,7 +9,9 @@ from ..views import NewCategory, UpdateCategory
 from .group import MCMGroup
 
 mcm_vehicle = typing.cast(commands.Group, MCMGroup.mcm_vehicles)
-mcm_vehicle_category = typing.cast(commands.Group, MCMGroup.mcm_vehicle_categories)
+mcm_vehicle_category = typing.cast(
+    commands.Group, MCMGroup.mcm_vehicle_categories
+)
 
 
 class MCMVehicles(MixinMeta):
@@ -53,12 +55,16 @@ class MCMVehicles(MixinMeta):
         message = ""
         for category, vehicles in categories.items():
             message += f"{category}:\n"
-            message += "\n".join([f"  - {vehicle}" for vehicle in vehicles]) + "\n"
+            message += (
+                "\n".join([f"  - {vehicle}" for vehicle in vehicles]) + "\n"
+            )
 
         await ctx.send(cf.box(message, "yaml"))
 
     @mcm_vehicle.command(name="add")
-    async def mcm_vehicle_add(self, ctx: commands.Context, *vehicles: str.lower):
+    async def mcm_vehicle_add(
+        self, ctx: commands.Context, *vehicles: str.lower
+    ):
         """Add a vehicle to the list of allowed vehicles"""
         if not vehicles:
             return await ctx.send_help()
@@ -69,7 +75,9 @@ class MCMVehicles(MixinMeta):
             await ctx.tick()
 
     @mcm_vehicle.command(name="remove")
-    async def mcm_vehicle_remove(self, ctx: commands.Context, *vehicles: str.lower):
+    async def mcm_vehicle_remove(
+        self, ctx: commands.Context, *vehicles: str.lower
+    ):
         """Remove a vehicle from the list of allowed vehicles"""
         if not vehicles:
             return await ctx.send_help()
@@ -83,7 +91,7 @@ class MCMVehicles(MixinMeta):
     @mcm_vehicle.command(name="list")
     async def mcm_vehicle_list(self, ctx: commands.Context):
         """List the allowed vehicles"""
-        vehicles = await self.db.get_conf(ctx.guild).vehicles
+        vehicles = self.db.get_conf(ctx.guild).vehicles
         if not vehicles:
             return await ctx.send("No vehicles have been added yet.")
         await ctx.send("- " + "\n- ".join(vehicles))

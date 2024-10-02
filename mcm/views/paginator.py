@@ -41,7 +41,7 @@ class CloseButton(Button["Paginator"]):
             style=discord.ButtonStyle.red,
             label="Close",
             emoji="\N{CROSS MARK}",
-            row=5,  # close should always be at the bottom
+            row=4,  # close should always be at the bottom
         )
 
     async def callback(self, interaction: discord.Interaction):
