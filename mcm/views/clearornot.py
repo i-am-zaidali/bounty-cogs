@@ -119,9 +119,9 @@ class ClearOrNot(discord.ui.View):
     """
     A generic view subclass which \
         rids me of having to manually add the items \
-            in places where they are requires."""
+            in places where they are required."""
 
     def __init__(self, user: discord.Member):
-        super().__init__(timeout=1)
+        super().__init__(timeout=None)
         self.add_item(Clear(user.id))
         self.add_item(Not(user.id))
