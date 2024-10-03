@@ -21,11 +21,13 @@ class CategoryEditor(ViewDisableOnTimeout):
         self.remaining = set(self.conf.vehicles).difference(
             itertools.chain.from_iterable(self.conf.vehicle_categories.values())
         )
-        self.selected = set(self.conf.vehicle_categories.setdefault(category_name, []))
+        self.selected = set(
+            self.conf.vehicle_categories.setdefault(category_name, [])
+        )
 
         self.generate_selects()
 
-    def generate_selects(self, inter: discord.Interaction[Red] | None):
+    def generate_selects(self, inter: discord.Interaction[Red] | None = None):
         self.clear_items()
         for ind, chunk in enumerate(chunks(self.remaining, 25)):
             select = discord.ui.Select(
@@ -73,13 +75,17 @@ class SaveOrBackView(ViewDisableOnTimeout):
         super().__init__(timeout=60)
 
     @discord.ui.button(
-        label="Save Changes", custom_id="_save_changes", style=discord.ButtonStyle.green
+        label="Save Changes",
+        custom_id="_save_changes",
+        style=discord.ButtonStyle.green,
     )
     async def save_callback(
         self, inter: discord.Interaction, button: discord.ui.Button
     ):
         await inter.response.edit_message(content="Saving changes...")
         async with self.parent.conf as conf:
-            conf.vehicle_categories[self.parent.category] = list(self.parent.selected)
+            conf.vehicle_categories[self.parent.category] = list(
+                self.parent.selected
+            )
 
         await inter.message.edit(content="Changes saved.", delete_after=10)

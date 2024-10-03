@@ -206,7 +206,7 @@ class Listeners(MixinMeta, metaclass=CompositeMetaClass):
             alertchan = message.guild.get_channel(conf.alertchannel)
             assert isinstance(alertchan, discord.abc.GuildChannel)
             await alertchan.send(
-                embed=view.generate_embed(message, vehicle_amount, unknown),
+                embed=view.generate_embed(message, vehicle_amount, vehicles),
                 view=view,
             )
             return

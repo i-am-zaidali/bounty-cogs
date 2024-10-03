@@ -18,7 +18,11 @@ class MCMUserStats(MixinMeta):
     async def mcm_userstats_show(
         self,
         ctx: commands.GuildContext,
-        user_or_role: typing.Union[discord.Member, discord.Role] = commands.param(
+        user_or_role: typing.Union[
+            discord.Member,
+            discord.Role,
+            discord.User,  # User to allow viewing stats of someone who left the server
+        ] = commands.param(
             default=operator.attrgetter("author"), displayed_default="<You>"
         ),
         *userlist: discord.Member,
@@ -50,7 +54,10 @@ class MCMUserStats(MixinMeta):
                     None,
                     dict(
                         sum(
-                            (collections.Counter(user[1]) for user in all_users),
+                            (
+                                collections.Counter(user[1])
+                                for user in all_users
+                            ),
                             collections.Counter(),
                         )
                     ),

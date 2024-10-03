@@ -42,12 +42,17 @@ class GuildSettings(Base):
     trackchannel: typing.Optional[int] = None
     coursechannel: typing.Optional[int] = None
     vehicles: list[str] = pydantic.Field(default_factory=list)
-    vehicle_categories: dict[str, list[str]] = pydantic.Field(default_factory=dict)
+    vehicle_categories: dict[str, list[str]] = pydantic.Field(
+        default_factory=dict
+    )
     course_shorthands: dict[str, str] = pydantic.Field(default_factory=dict)
     course_role: typing.Optional[int] = None
     course_teacher_role: typing.Optional[int] = None
+    course_count: dict[str, int] = pydantic.Field(default_factory=dict)
     state_roles: dict[str, typing.Optional[int]] = pydantic.Field(
-        default_factory=lambda: dict.fromkeys(StateShorthands.__members__.keys(), None)
+        default_factory=lambda: dict.fromkeys(
+            StateShorthands.__members__.keys(), None
+        )
     )
     members: dict[int, MemberData] = pydantic.Field(default_factory=dict)
 

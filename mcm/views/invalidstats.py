@@ -34,9 +34,8 @@ __all__ = [
 
 
 def extract_member_from_description(guild: discord.Guild, description: str):
-    return guild.get_member(
-        description.splitlines()[1].split()[0].lstrip("<@!").rstrip(">")
-    )
+    id = int(description.split()[0].lstrip("<@").rstrip(">"))
+    return guild.get_member(id)
 
 
 async def interaction_check(interaction: discord.Interaction[Red]) -> bool:
@@ -82,12 +81,17 @@ class AddWhichVehiclesView(ViewDisableOnTimeout):
             self.add_item(select)
             select.callback = functools.partial(self.callback, select)
 
-    @discord.ui.button(label="Add All", style=discord.ButtonStyle.green, row=5)
+        self.add_item(CloseButton())
+        self.selected = []
+
+    @discord.ui.button(label="Add All", style=discord.ButtonStyle.green, row=4)
     async def butt_callback(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         self.selected = self.unknown_vehicles.copy()
-        await interaction.response.send_message(
+        await interaction.response.defer()
+        await interaction.delete_original_response()
+        await interaction.followup.send(
             "Added all vehicles to allowed vehicles"
         )
         self.stop()
@@ -95,9 +99,12 @@ class AddWhichVehiclesView(ViewDisableOnTimeout):
     async def callback(
         self, select: discord.ui.Select, interaction: discord.Interaction
     ):
-        await interaction.response.send_message(
+        await interaction.response.defer()
+        await interaction.delete_original_response()
+        await interaction.followup.send(
             f"Added {cf.humanize_list(select.values)} to allowed vehicles"
         )
+
         self.selected = select.values
         self.stop()
 
@@ -105,12 +112,14 @@ class AddWhichVehiclesView(ViewDisableOnTimeout):
 class SelectWhichVehicleToMergeWithView(ViewDisableOnTimeout):
     def __init__(
         self,
+        org_view: "SelectUnknownVehicleView",
         vehicles: list[str],
         unknown_vehicles: list[str],
         stats: dict[str, int],
         vehicle: str,
         **kwargs,
     ):
+        self.org_view = org_view
         self._kwargs = kwargs
         super().__init__(timeout=60, **kwargs)
         self.stats = stats
@@ -119,6 +128,7 @@ class SelectWhichVehicleToMergeWithView(ViewDisableOnTimeout):
         self.generate_selects(vehicles)
 
     def generate_selects(self, vehicles: list[str]):
+        self.clear_items()
         for ind, vehicles in enumerate(chunks(vehicles, 25), 1):
             select = discord.ui.Select(
                 custom_id=f"_merge_select_{ind}",
@@ -138,13 +148,19 @@ class SelectWhichVehicleToMergeWithView(ViewDisableOnTimeout):
     ):
         self.unknown_vehicles.remove(self.selected)
         self.stats[select.values[0]] = self.stats.pop(self.selected)
-        view = SelectUnknownVehicleView(
-            self.unknown_vehicles, self.stats, **self._kwargs
-        )
-        await interaction.response.edit_message(
-            content="Please select the vehicle you want to merge with another:",
-            view=view,
-        )
+        if not self.unknown_vehicles:
+            await interaction.response.defer()
+            await interaction.delete_original_response()
+            await interaction.followup.send(
+                "Successfully merged all vehicles with another."
+            )
+            self.stop()
+        else:
+            self.org_view.generate_selects()
+            await interaction.response.edit_message(
+                content="Please select the vehicle you want to merge with another:",
+                view=self.org_view,
+            )
         await interaction.followup.send(
             f"Successfully merged {self.selected} with {select.values[0]}"
         )
@@ -159,9 +175,10 @@ class SelectUnknownVehicleView(ViewDisableOnTimeout):
         self.stats = stats
         self.unknown_vehicles = unknown_vehicles
         self.generate_selects()
-        self.add_item(CloseButton())
+        self.child_view = None
 
     def generate_selects(self):
+        self.clear_items()
         for ind, vehicles in enumerate(chunks(self.unknown_vehicles, 25), 1):
             select = discord.ui.Select(
                 custom_id=f"_merge_select_{ind}",
@@ -175,6 +192,7 @@ class SelectUnknownVehicleView(ViewDisableOnTimeout):
             )
             self.add_item(select)
             select.callback = functools.partial(self.callback, select)
+        self.add_item(CloseButton())
 
     async def callback(
         self, select: discord.ui.Select, interaction: discord.Interaction
@@ -183,17 +201,21 @@ class SelectUnknownVehicleView(ViewDisableOnTimeout):
             "MissionChiefMetrics"
         )
         conf = cog.db.get_conf(interaction.guild)
-        view = SelectWhichVehicleToMergeWithView(
+        self.child_view = self.child_view or SelectWhichVehicleToMergeWithView(
+            self,
             conf.vehicles,
             self.unknown_vehicles,
             self.stats,
-            select.values,
+            select.values[0],
             **self._kwargs,
         )
+        self.child_view.selected = select.values[0]
+        self.child_view.generate_selects(conf.vehicles)
         await interaction.response.edit_message(
             content="Please select the vehicle you want to merge with:",
-            view=view,
+            view=self.child_view,
         )
+        await self.child_view.wait()
         self.stop()
 
 
@@ -259,19 +281,18 @@ class AddVehicles(
         )
         disable_items(self.view)
         self.item.disabled = True
-        await interaction.response.edit_message(view=self)
+        await interaction.response.edit_message(view=self.view)
         view.message = await interaction.followup.send(
             "Please select which vehicles you want to add from the below menu: ",
             view=view,
             wait=True,
         )
         result = await view.wait()
-        await view.message.delete()
         if result:
+            await view.message.delete()
             return
 
         to_add = view.selected
-        prev = self.unknown_vehicles.copy()
         self.unknown_vehicles = [
             vehicle
             for vehicle in self.unknown_vehicles
@@ -280,11 +301,6 @@ class AddVehicles(
         async with conf:
             conf.vehicles.extend((x.lower() for x in to_add))
             conf.vehicles = list(set(conf.vehicles))
-        await cog.log_new_stats(
-            user,
-            conf.get_member(user.id),
-            self.stats,
-        )
         if not self.unknown_vehicles:
             disable_items(self.view)
             await interaction.message.edit(view=self.view)
@@ -294,18 +310,22 @@ class AddVehicles(
 
             except discord.HTTPException:
                 pass
+            await cog.log_new_stats(
+                user,
+                conf.get_member(user.id).stats,
+                self.stats,
+            )
+            async with conf.get_member(user.id) as member:
+                member.stats = self.stats
 
         else:
-            new_embed = interaction.message.embeds[0]
-            new_embed.description = new_embed.description.replace(
-                cf.humanize_list(prev),
-                cf.humanize_list(self.unknown_vehicles),
+            new_embed = InvalidStats.generate_embed(
+                self.message, self.stats, conf.vehicles, user
             )
             await interaction.message.edit(embed=new_embed)
-        async with conf.get_member(user.id) as member:
-            member.stats = self.stats
-        enable_items(self.view)
-        await interaction.edit_original_response(view=self.view)
+            enable_items(self.view)
+            self.item.disabled = False
+            await interaction.edit_original_response(view=self.view)
 
     async def interaction_check(
         self, interaction: discord.Interaction[Red]
@@ -380,12 +400,13 @@ class IgnoreStats(
         memdata = cog.db.get_conf(interaction.guild).get_member(user)
         await cog.log_new_stats(
             user,
-            await cog.config.member(user).stats(),
+            memdata.stats,
             self.stats,
         )
         async with memdata:
             memdata.stats = self.stats
         disable_items(self.view)
+        self.item.disabled = True
         await interaction.response.edit_message(view=self.view)
         await interaction.followup.send("Ignoring the unknown vehicles.")
 
@@ -442,13 +463,15 @@ class RejectStats(
 
     async def callback(self, interaction: discord.Interaction[Red]):
         disable_items(self.view)
+        self.item.disabled = True
         await interaction.response.edit_message(view=self.view)
         await interaction.followup.send("Rejecting the stats.")
         try:
             await self.message.delete()
         except discord.NotFound:
-            await interaction.response.send_message(
-                "Message not found. It might have been deleted already."
+            await interaction.followup.send(
+                "Message not found. It might have been deleted already.",
+                ephemeral=True,
             )
 
     async def interaction_check(
@@ -516,22 +539,22 @@ class MergeStats(
             return await interaction.response.send_message(
                 "User not found. They might have left the server"
             )
-        await interaction.defer()
+        await interaction.response.defer()
         view.message = await interaction.followup.send(
-            f"The options in the select menu below represent each of the unknown vehicles detected in {member.mentions}'s stats message.\n"
+            f"The options in the select menu below represent each of the unknown vehicles detected in {member.mention}'s stats message.\n"
             f"Once clicked, this will edit to a different select menu with options to merge the selected vehicle with.\n"
             f"BE AWARE: When merging, the vehicle you select from the menu, it's stats will be replace with the stats of the vehicle you selected first.",
             view=view,
             wait=True,
         )
 
-        await view.wait()
-        if org == self.stats:
+        timed_out = await view.wait()
+        if org == self.stats and timed_out:
             await view.message.delete()
             return await interaction.followup.send(
                 "No changes were made and the menu has timed out."
             )
-        else:
+        elif timed_out:
             confirm = ConfirmView(
                 interaction.user, timeout=60, disable_buttons=True
             )
@@ -562,9 +585,16 @@ class MergeStats(
                     f"Failed to update the reactions on the stats message. Please clear them manually. {self.message.jump_url}"
                 )
 
-        embeds = interaction.message.embeds
-        embeds[0].set_image(url=embed_metadata_into_url(self.stats))
-        await interaction.edit_original_response(embeds=embeds)
+        cog: MissionChiefMetrics = interaction.client.get_cog(
+            "MissionChiefMetrics"
+        )
+        conf = cog.db.get_conf(interaction.guild)
+        interaction.message.embeds[0] = InvalidStats.generate_embed(
+            self.message, self.stats, conf.vehicles, member
+        )
+        await interaction.edit_original_response(
+            embeds=interaction.message.embeds
+        )
 
     async def interaction_check(
         self, interaction: discord.Interaction[Red]
@@ -600,6 +630,7 @@ class ViewStats(
         stats: dict[str, int] = extract_metadata_from_url(
             interaction.message.embeds[0].image.url
         )
+        stats.pop("unknown_vehicles", None)
         tabbed = tabulate(
             stats.items(),
             headers=["Vehicle", "Amount"],
@@ -645,15 +676,19 @@ class InvalidStats(discord.ui.View):
         self.add_item(
             MergeStats(message.channel.id, message.id, stats, unknown, message)
         )
+        self.add_item(ViewStats(message.channel.id, message.id))
 
     @staticmethod
     def generate_embed(
-        message: discord.Message, stats: dict[str, int], vehicles: list[str]
+        message: discord.Message | discord.PartialMessage,
+        stats: dict[str, int],
+        vehicles: list[str],
+        user: discord.Member | None = None,
     ):
         return (
             discord.Embed(
                 title=f"Invalid Stats Posted: **__{message.jump_url}__**",
-                description=f"{message.author.mention} has submitted stats for vehicles that are not in the list of allowed vehicles:\n",
+                description=f"{(user or message.author).mention} has submitted stats for vehicles that are not in the list of allowed vehicles:\n",
                 color=discord.Color.red(),
                 timestamp=message.created_at,
             )
@@ -661,21 +696,30 @@ class InvalidStats(discord.ui.View):
                 name="Unknown Vehicles",
                 value="- "
                 + "\n- ".join(
-                    [vehicle for vehicle in stats if vehicle not in vehicles]
+                    unknown := [
+                        vehicle for vehicle in stats if vehicle not in vehicles
+                    ]
                 ),
+                inline=False,
             )
             .add_field(
                 name="Instructions: ",
                 value=(
                     "Use the buttons below to decide what to do.\n\n"
-                    "- `Add Vehicle` - The unknown vehicle will be \
-                        added to the list of allowed vehicles\n"
-                    "- `Ignore` - The unknown vehicle will be \
-                        ignored and the stats will be updated\n"
-                    "- `Reject` - The stats will be \
-                        rejected and the message will be deleted\n"
-                    "- `Merge` - You will be given a dropdown to merge \
-                        the unknown vehicles with an existing vehicle\n"
+                    "- `Add Vehicle` - The unknown vehicle will be "
+                    "added to the list of allowed vehicles\n"
+                    "- `Ignore` - The unknown vehicle will be "
+                    "ignored and the stats will be updated\n"
+                    "- `Reject` - The stats will be "
+                    "rejected and the message will be deleted\n"
+                    "- `Merge` - You will be given a dropdown to merge "
+                    "the unknown vehicles with an existing vehicle\n"
                 ),
+                inline=False,
+            )
+            .set_image(
+                url=embed_metadata_into_url(
+                    {**stats, "unknown_vehicles": unknown}
+                )
             )
         )

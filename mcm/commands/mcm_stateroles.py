@@ -15,7 +15,9 @@ class MCMStateRoles(MixinMeta):
     async def mcm_sr_set(
         self,
         ctx: commands.Context,
-        state: typing.Literal["NSW", "QLD", "SA", "TAS", "VIC", "WA", "ACT", "NT"],
+        state: typing.Literal[
+            "NSW", "QLD", "SA", "TAS", "VIC", "WA", "ACT", "NT"
+        ],
         role: discord.Role,
     ):
         """Add a state role"""
@@ -33,9 +35,9 @@ class MCMStateRoles(MixinMeta):
         await ctx.send(
             "- "
             + "\n- ".join(
-                map(
-                    lambda x: f"**{StateShorthands.__members__[x[0]]}**: {getattr(ctx.guild.get_role(x[1]),'mention', 'Not set')}",
-                    roles.items(),
+                (
+                    f"**{StateShorthands.__members__[x[0]]}**: {getattr(ctx.guild.get_role(x[1]),'mention', 'Not set')}"
+                    for x in roles.items()
                 )
             )
         )

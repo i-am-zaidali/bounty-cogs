@@ -68,7 +68,9 @@ class MCMTopLevel(MixinMeta):
 
     @mcm.command(name="purge", aliases=["clearall"], usage="")
     @commands.is_owner()
-    async def mcm_purge(self, ctx: commands.Context, ARE_YOU_SURE: bool = False):
+    async def mcm_purge(
+        self, ctx: commands.Context, ARE_YOU_SURE: bool = False
+    ):
         """Purge EVERYTHING.
 
         This will delete all settings. from set channels, to allowed vehicles, to stats. EVERYTHING.
@@ -80,3 +82,70 @@ class MCMTopLevel(MixinMeta):
         self.db.configs[ctx.guild.id] = GuildSettings()
         await ctx.tick()
         await self.save()
+
+    @mcm.command(name="showsettings", aliases=["ss"])
+    async def mcm_showsettings(self, ctx: commands.Context):
+        """Show the current settings"""
+        conf = self.db.get_conf(ctx.guild)
+        message = f"Settings for **__{ctx.guild.name}__**\n"
+        message += (
+            "**__Log channel: __**"
+            + getattr(
+                ctx.guild.get_channel(conf.logchannel), "mention", "None set"
+            )
+            + "\n"
+        )
+        message += (
+            "**__Alert channel: __**"
+            + getattr(
+                ctx.guild.get_channel(conf.alertchannel), "mention", "None set"
+            )
+            + "\n"
+        )
+        message += (
+            "**__Track channel: __**"
+            + getattr(
+                ctx.guild.get_channel(conf.trackchannel), "mention", "None set"
+            )
+            + "\n"
+        )
+        message += (
+            "**__Course channel: __**"
+            + getattr(
+                ctx.guild.get_channel(conf.coursechannel), "mention", "None set"
+            )
+            + "\n"
+        )
+        message += (
+            "**__Course role: __**"
+            + getattr(
+                ctx.guild.get_role(conf.course_role), "mention", "None set"
+            )
+            + "\n"
+        )
+        message += (
+            "**__Course teacher role: __**"
+            + getattr(
+                ctx.guild.get_role(conf.course_teacher_role),
+                "mention",
+                "None set",
+            )
+            + "\n"
+        )
+        message += (
+            "**__Vehicles:__**"
+            f" *Use `{ctx.clean_prefix}mcm vehicles list` to view these\n"
+        )
+        message += (
+            "**__Vehicle categories:__**"
+            f" *Use `{ctx.clean_prefix}mcm vehicle category list` to view these\n"
+        )
+        message += (
+            "**__Course shorthands:__**"
+            f" *Use `{ctx.clean_prefix}mcm courses shorthand list` to view these\n"
+        )
+        message += (
+            "**__State roles:__**"
+            f" *Use `{ctx.clean_prefix}mcm staterole list` to view these\n"
+        )
+        await ctx.send(message)

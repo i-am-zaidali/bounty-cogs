@@ -5,7 +5,7 @@ import typing as t
 import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
-from redbot.core.utils.chat_formatting import box as cf
+from redbot.core.utils import chat_formatting as cf
 from tabulate import tabulate
 
 from .abc import CompositeMetaClass
@@ -82,7 +82,6 @@ class MissionChiefMetrics(
             await self.migrate_to_v2()
 
         data = await self.config.db()
-        print(data)
         DB.cog = self
         self.db = await asyncio.to_thread(DB.model_validate, data)
         log.info("Config loaded")

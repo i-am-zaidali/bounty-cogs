@@ -1,3 +1,4 @@
+import contextlib
 import typing
 
 import discord
@@ -50,7 +51,8 @@ class ViewDisableOnTimeout(View):
     async def on_timeout(self):
         if self.message:
             disable_items(self)
-            await self.message.edit(view=self)
+            with contextlib.suppress(discord.HTTPException):
+                await self.message.edit(view=self)
 
     async def interaction_check(self, interaction: discord.Interaction):
         return (

@@ -2,9 +2,10 @@ import typing
 
 import discord
 from redbot.core import commands
+from tabulate import tabulate
 
 from ..abc import MixinMeta
-from ..common.utils import lower_str_param, teacher_check
+from ..common.utils import lower_str_param
 from .group import MCMGroup
 
 mcm_courses = typing.cast(commands.Group, MCMGroup.mcm_courses)
@@ -14,42 +15,6 @@ mcm_courses_shorthand = typing.cast(
 
 
 class MCMCourses(MixinMeta):
-    @mcm_courses.command(name="announce", aliases=["ann", "a"])
-    @teacher_check()
-    async def mcm_courses_announce(
-        self,
-        ctx: commands.Context,
-        shorthand: str,
-        days: int,
-        cost: int,
-        *,
-        location: str,
-    ):
-        """Ping for a course announcement"""
-        conf = self.db.get_conf(ctx.guild)
-        if not (role := ctx.guild.get_role(conf.course_role)):
-            return await ctx.send("The course ping role has not been set yet.")
-
-        if not (course := (conf.course_shorthands).get(shorthand.lower())):
-            return await ctx.send("That course shorthand does not exist.")
-
-        channel = ctx.guild.get_channel(conf.coursechannel)
-        embed = discord.Embed(
-            title="NEW COURSE!",
-            description=f"New course started!\n\n"
-            f"**TYPE:** {course}\n"
-            f"**LOCATION:** {location}\n"
-            f"**Start Time**: {days} days\n"
-            f"**Cost per person per day**: {cost}\n",
-            color=0x202026,
-        )
-
-        await (channel or ctx).send(
-            role.mention,
-            embed=embed,
-            allowed_mentions=discord.AllowedMentions(roles=True),
-        )
-
     @mcm_courses_shorthand.command(name="add")
     async def mcm_courses_shorthand_add(
         self,
@@ -112,3 +77,22 @@ class MCMCourses(MixinMeta):
                 )
             conf.course_teacher_role = role.id
             await ctx.tick()
+
+    @mcm_courses.command(name="stats", aliases=["count"])
+    async def mcm_courses_stats(self, ctx: commands.Context):
+        """Get the course stats"""
+        stats = self.db.get_conf(ctx.guild).course_count
+        if not stats:
+            return await ctx.send("No courses have been announced yet.")
+        tabbed = tabulate(
+            stats.items(),
+            headers=["Course", "Count"],
+            tablefmt="fancy_grid",
+            maxcolwidths=[14, 4],
+        )
+        await ctx.send(
+            embed=discord.Embed(
+                title="Course Announcement Stats",
+                description=f"```{tabbed}```",
+            )
+        )

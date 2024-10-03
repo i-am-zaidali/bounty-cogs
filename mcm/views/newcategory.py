@@ -18,11 +18,16 @@ class NewCategory(ViewDisableOnTimeout):
         self.add_item(CloseButton())
 
     @discord.ui.button(
-        label="Add Category", custom_id="_add_category", style=discord.ButtonStyle.green
+        label="Add Category",
+        custom_id="_add_category",
+        style=discord.ButtonStyle.green,
     )
-    async def ac_callback(self, inter: discord.Interaction, button: discord.ui.Button):
+    async def ac_callback(
+        self, inter: discord.Interaction, button: discord.ui.Button
+    ):
         modal = CategoryNameModal(
-            categories=self.conf.vehicle_categories, title="Enter the category name:"
+            categories=self.conf.vehicle_categories,
+            title="Enter the category name:",
         )
         await inter.response.send_modal(modal)
         if await modal.wait():
@@ -51,11 +56,13 @@ class CategoryNameModal(discord.ui.Modal):
             )
             return
 
-        all_categories = await self.config.guild(interaction.guild).vehicle_categories()
+        all_categories = self.categories
         if self.name.value.strip().lower() in all_categories:
             return await interaction.response.send_message(
                 "That category already exists.", ephemeral=True
             )
         await interaction.response.defer()
-        await self.stop()
-        await self.further_handling(interaction, self.name.value.strip().lower())
+        self.stop()
+        await self.further_handling(
+            interaction, self.name.value.strip().lower()
+        )

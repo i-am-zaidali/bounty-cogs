@@ -1,15 +1,11 @@
 import collections
-import datetime
 import itertools
-import typing
 
 import discord
-from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
 from redbot.vendored.discord.ext import menus
 from tabulate import tabulate
 
-from ..common.models import GuildSettings
 from . import Paginator
 
 __all__ = ["TotalStatsSource", "UserStatsSource"]
@@ -19,7 +15,9 @@ GroupByEntry = collections.namedtuple("GroupByEntry", ["key", "items"])
 
 class TotalStatsSource(menus.GroupByPageSource):
     def __init__(self, items: list[tuple[str, int]], vehicles: list[str]):
-        super().__init__(items, key=lambda x: x[0] in vehicles, per_page=20, sort=False)
+        super().__init__(
+            items, key=lambda x: x[0] in vehicles, per_page=20, sort=False
+        )
 
     async def format_page(self, menu: Paginator, entry: GroupByEntry):
         embed = discord.Embed(
@@ -35,7 +33,9 @@ class TotalStatsSource(menus.GroupByPageSource):
                     colalign=("left", "center"),
                 )
             ),
-        ).set_footer(text=f"Page {menu.current_page + 1}/{self.get_max_pages()}")
+        ).set_footer(
+            text=f"Page {menu.current_page + 1}/{self.get_max_pages()}"
+        )
         return embed
 
 
@@ -61,7 +61,9 @@ class UserStatsSource(menus.ListPageSource):
         user_or_role = self.user_or_role
         vehicles = self.vehicles
         categories = self.categories
-        categoried_vehicles = [*itertools.chain.from_iterable(categories.values())]
+        categoried_vehicles = [
+            *itertools.chain.from_iterable(categories.values())
+        ]
         all_users = self.all_users
 
         if not entry[1]:
@@ -112,7 +114,11 @@ class UserStatsSource(menus.ListPageSource):
             }
         )
         category_totals.update(
-            {"uncategorised": sum(category_individuals["uncategorised"].values())}
+            {
+                "uncategorised": sum(
+                    category_individuals["uncategorised"].values()
+                )
+            }
         )
 
         description = (

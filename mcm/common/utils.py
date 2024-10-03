@@ -1,7 +1,9 @@
 import itertools
+import json
 import re
 import typing
 import urllib.parse
+import zlib
 
 from redbot.core import commands
 
@@ -22,13 +24,22 @@ base_regex = re.compile(
 
 
 def extract_metadata_from_url(url: str) -> dict[str, typing.Any]:
-    return urllib.parse.unquote_plus(url).lstrip(
-        "https://www.notavalidsite.com/"
+    return json.loads(
+        urllib.parse.unquote_plus(
+            zlib.decompress(
+                bytes.fromhex(url.lstrip("https://www.notavalidsite.com/"))
+            ).decode()
+        )
     )
 
 
-def embed_metadata_into_url(metadata: dict[str, typing.Any]) -> str:
-    return "https://www.notavalidsite.com/" + urllib.parse.quote_plus(metadata)
+def embed_metadata_into_url(metadata: dict[str, typing.Any]):
+    return (
+        "https://www.notavalidsite.com/"
+        + zlib.compress(
+            urllib.parse.quote_plus(json.dumps(metadata)).encode()
+        ).hex()
+    )
 
 
 def dehumanize_list(humanized_list: str):
@@ -55,7 +66,7 @@ def parse_vehicles(string: str):
                 "The message you sent does not match the expected format. Please check the pins to see how to get the correct format for the stats."
             )
 
-        vehicle_name = match.group("vehicle_name")
+        vehicle_name = match.group("vehicle_name").strip()
         amount = int(match.group("amount"))
         if vehicle_name in vehicle_amount:
             raise ValueError(
@@ -73,8 +84,7 @@ def teacher_check():
             await ctx.bot.is_owner(ctx.author)
             or await ctx.bot.is_mod(ctx.author)
             or ctx.author.get_role(
-                await ctx.cog.config.guild(ctx.guild).course_teacher_role()
-                or -1
+                ctx.cog.db.get_conf(ctx.guild).course_teacher_role
             )
             is not None
         )
