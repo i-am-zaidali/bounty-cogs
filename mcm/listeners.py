@@ -270,7 +270,8 @@ class Listeners(MixinMeta, metaclass=CompositeMetaClass):
             )
             is None
         ):
-            await self.config.member(user).reminder_enabled.set(False)
+            async with self.db.get_conf(user.guild.id).get_member(user.id) as memdata:
+                memedata.reminder_enabled = False
             return False
 
         return True
