@@ -261,7 +261,7 @@ class Listeners(MixinMeta, metaclass=CompositeMetaClass):
             or next(
                 (
                     reminder
-                    for reminder in reminders
+                    for reminder in reminders.values()
                     if reminder.content.get("text", "").startswith(
                         "MissionChiefMetrics REMINDER"
                     )
