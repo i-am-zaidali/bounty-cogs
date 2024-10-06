@@ -9,22 +9,27 @@ class MCMGroup(MixinMeta, metaclass=CompositeMetaClass):
     """Just the group commands for MCM"""
 
     @commands.group(name="missionchiefmetrics", aliases=["mcm"])
+    @commands.guild_only()
     async def mcm(self, ctx: commands.Context):
         """The top level command for MCM management."""
 
     @mcm.group(name="vehicles", aliases=["vehicle", "vhc"])
+    @commands.admin()
     async def mcm_vehicles(self, ctx: commands.Context):
         """Commands for managing vehicles."""
 
     @mcm_vehicles.group(name="categories", aliases=["category", "cat"])
+    @commands.admin()
     async def mcm_vehicle_categories(self, ctx: commands.Context):
         """Commands for managing vehicle categories."""
 
     @mcm.group(name="stateroles", aliases=["staterole", "sr"])
+    @commands.admin()
     async def mcm_stateroles(self, ctx: commands.Context):
         """Commands for managing stateroles"""
 
     @mcm.group(name="channel", aliases=["channels", "ch"])
+    @commands.admin()
     async def mcm_channel(self, ctx: commands.Context):
         """Commands for managing channels"""
 
@@ -37,6 +42,7 @@ class MCMGroup(MixinMeta, metaclass=CompositeMetaClass):
         name="courses", aliases=["c", "course"], invoke_without_command=True
     )
     @teacher_check()
+    @commands.admin()
     async def mcm_courses(
         self,
         ctx: commands.Context,

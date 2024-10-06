@@ -70,10 +70,10 @@ class Listeners(MixinMeta, metaclass=CompositeMetaClass):
         content = message.embeds[0].description or ""
         # search for postcode in the content which is just 4 digits long and boundary on each side
 
-        postcode: re.Match[str] = re.search(r"\b\d{4}\b", content)
-        admin_channel = self.bot.get_channel(conf.alertchannel)
-        if postcode:
-            postcode = postcode.group()
+        postcodematch: re.Match[str] = re.search(r"\b\d{4}\b", content)
+        admin_channel = message.guild.get_channel(conf.alertchannel)
+        if postcodematch:
+            postcode = int(postcodematch.group())
 
             # find the state that the postcode belongs to with the help of the australian_state_to_postcodes dict
             state = next(
@@ -270,8 +270,10 @@ class Listeners(MixinMeta, metaclass=CompositeMetaClass):
             )
             is None
         ):
-            async with self.db.get_conf(user.guild.id).get_member(user.id) as memdata:
-                memedata.reminder_enabled = False
+            async with self.db.get_conf(user.guild.id).get_member(
+                user.id
+            ) as memdata:
+                memdata.reminder_enabled = False
             return False
 
         return True

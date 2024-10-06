@@ -33,7 +33,7 @@ class MissionChiefMetrics(
     """Mission Chief Metrics"""
 
     __author__ = "crayyy_zee"
-    __version__ = "2.0.0"
+    __version__ = "2.0.1"
 
     def __init__(self, bot: Red):
         super().__init__()
@@ -42,7 +42,7 @@ class MissionChiefMetrics(
         self.config.register_global(db={}, version=1)
 
         self.db: DB = DB()
-        self.saving = False
+        self.saving: asyncio.Future[t.Literal[True]] | t.Literal[False] = False
 
         self.bot.add_dynamic_items(
             Clear,
@@ -88,15 +88,33 @@ class MissionChiefMetrics(
 
     async def save(self) -> None:
         if self.saving:
-            return
+            log.debug("%s", self.saving)
+            if self.saving.done() and (exc := self.saving.exception()):
+                log.exception(
+                    "Failed to save config before so not saving again to avoid data corruption",
+                    exc_info=exc,
+                )
+                return
+
+            elif not self.saving.done():
+                try:
+                    log.debug("Awaiting saving previous instance")
+                    await self.saving
+
+                except Exception as e:
+                    log.exception("Failed to save config", exc_info=e)
         try:
-            self.saving = True
+            log.debug("Creating new future")
+            self.saving = self.bot.loop.create_future()
+            log.debug("Future: %s", self.saving)
             dump = await asyncio.to_thread(self.db.model_dump, mode="json")
             await self.config.db.set(dump)
+            log.debug("Saved config")
+            self.saving.set_result(True)
+            log.debug("Set result to True")
         except Exception as e:
             log.exception("Failed to save config", exc_info=e)
-        finally:
-            self.saving = False
+            self.saving.set_exception(e)
 
     async def migrate_to_v2(self):
         config = Config.get_conf(self, identifier=1234567890)

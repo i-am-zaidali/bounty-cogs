@@ -68,6 +68,7 @@ class MCMUserStats(MixinMeta):
         await Paginator(source, 0, use_select=True).start(ctx)
 
     @mcm_userstats.command(name="clear", usage="<user = YOU>")
+    @commands.admin()
     async def mcm_userstats_clear(
         self,
         ctx: commands.Context,
@@ -90,6 +91,7 @@ class MCMUserStats(MixinMeta):
             await ctx.tick()
 
     @mcm_userstats.command(name="update")
+    @commands.admin()
     async def mcm_userstats_update(
         self,
         ctx: commands.Context,
