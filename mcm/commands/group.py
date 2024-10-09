@@ -42,7 +42,6 @@ class MCMGroup(MixinMeta, metaclass=CompositeMetaClass):
         name="courses", aliases=["c", "course"], invoke_without_command=True
     )
     @teacher_check()
-    @commands.admin()
     async def mcm_courses(
         self,
         ctx: commands.Context,
