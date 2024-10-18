@@ -86,7 +86,7 @@ class MCMUserStats(MixinMeta):
             )
 
         async with self.db.get_conf(ctx.guild) as conf:
-            userid = user.id if isinstance(user, discord.Member) else user
+            userid = user.id if isinstance(user, discord.User) else user
             conf.members.pop(userid, None)
             await ctx.tick()
 
