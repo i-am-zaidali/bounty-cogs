@@ -127,7 +127,9 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
                     "x-ratelimit-limit",
                     "retry-after",
                 ]
-                ratelimit = dict((k, resp.headers.get(k, 0)) for k in rl_keys)
+                ratelimit: dict[str, int] = {
+                    k: resp.headers.get(k, 0) for k in rl_keys
+                }
                 if resp.status == 429:
                     log.warning("Ratelimited: %s", ratelimit)
                     await asyncio.sleep(int(ratelimit["retry-after"]))
@@ -180,8 +182,8 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
             gp = conf.gamerpower
             pings = " ".join(
                 itertools.chain(
-                    map(lambda x: f"<@&{x}>", conf.pingroles),
-                    map(lambda x: f"<@{x}>", conf.pingusers),
+                    (f"<@&{x}>" for x in conf.pingroles),
+                    (f"<@{x}>" for x in conf.pingusers),
                 )
             )
             if fs.toggle:
@@ -209,7 +211,7 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
                         allowed_mentions=discord.AllowedMentions.all(),
                     )
 
-                fs.posted_ids.update(map(lambda x: x.id, data.games))
+                fs.posted_ids.update((x.id for x in data.games))
 
             if gp.toggle:
                 channel = guild.get_channel(gp.channel)
@@ -236,7 +238,7 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
                         allowed_mentions=discord.AllowedMentions.all(),
                     )
 
-                gp.posted_ids.update(map(lambda x: x.id, data.giveaways))
+                gp.posted_ids.update((x.id for x in data.giveaways))
 
         if save_after:
             await self.save()
@@ -309,12 +311,7 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
             .add_field(
                 name="Platforms",
                 value=cf.humanize_list(
-                    [
-                        *map(
-                            lambda x: x.replace("-", " ").capitalize(),
-                            data.platforms,
-                        )
-                    ]
+                    [x.replace("-", " ").capitalize() for x in data.platforms]
                 ),
             )
         )

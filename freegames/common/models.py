@@ -1,3 +1,4 @@
+import contextlib
 import datetime
 import enum
 import typing
@@ -58,15 +59,21 @@ class ServiceConfig(Base):
 
 
 class GamerPowerConfig(ServiceConfig):
-    stores_to_check: typing.Set[GamerPowerStores] = pydantic.Field(default_factory=set)
+    stores_to_check: typing.Set[GamerPowerStores] = pydantic.Field(
+        default_factory=set
+    )
 
 
 class FreeStuffConfig(ServiceConfig):
-    stores_to_check: typing.Set[FreeStuffStores] = pydantic.Field(default_factory=set)
+    stores_to_check: typing.Set[FreeStuffStores] = pydantic.Field(
+        default_factory=set
+    )
 
 
 class GuildSettings(Base):
-    gamerpower: GamerPowerConfig = pydantic.Field(default_factory=GamerPowerConfig)
+    gamerpower: GamerPowerConfig = pydantic.Field(
+        default_factory=GamerPowerConfig
+    )
     freestuff: FreeStuffConfig = pydantic.Field(default_factory=FreeStuffConfig)
     pingroles: typing.Set[int] = pydantic.Field(default_factory=set)
     pingusers: typing.Set[int] = pydantic.Field(default_factory=set)
@@ -105,22 +112,20 @@ class GamerPowerGiveaway(Base):
     @pydantic.field_validator("platforms", mode="before")
     @classmethod
     def str_to_list(cls, v: str):
-        normalized_list = list(
-            map(
-                lambda x: x.lower()
+        normalized_list = [
+            (
+                x.lower()
                 .strip()
                 .replace("playstation ", "ps")
                 .replace("|", "")
                 .replace(".", "")
-                .replace("ninetendo ", "")
-                .replace(" ", "-"),
-                v.split(","),
+                .replace("nintendo ", "")
+                .replace(" ", "-")
             )
-        )
-        try:
+            for x in v.split(",")
+        ]
+        with contextlib.suppress(ValueError):
             normalized_list.remove("pc")
-        except ValueError:
-            pass
         return normalized_list
 
     @pydantic.model_validator(mode="before")
@@ -176,8 +181,12 @@ class GameFlags(enum.IntEnum):
     THIRDPARTY = 1 << 1
 
 
-ProductKind = typing.Literal["game", "dlc", "software", "art", "ost", "book", "other"]
-AnnouncementType = typing.Literal["free", "weekend", "discount", "ad", "unknown"]
+ProductKind = typing.Literal[
+    "game", "dlc", "software", "art", "ost", "book", "other"
+]
+AnnouncementType = typing.Literal[
+    "free", "weekend", "discount", "ad", "unknown"
+]
 
 
 class FreeStuffGameInfo(Base):
@@ -212,7 +221,9 @@ class FreeStuffResponse(Base):
 
 class StoreLogos(enum.Enum):
     steam = "https://store.steampowered.com/favicon.ico"
-    epic_games_store = epic = "https://cdn.brandfetch.io/epicgames.com/w/441/h/512/logo"
+    epic_games_store = epic = (
+        "https://cdn.brandfetch.io/epicgames.com/w/441/h/512/logo"
+    )
     ubisoft = uplay = (
         "https://cdn.brandfetch.io/ubisoft.com/w/493/h/512/theme/light/symbol"
     )
@@ -222,7 +233,9 @@ class StoreLogos(enum.Enum):
         "https://cdn.brandfetch.io/sonyentertainmentnetwork.com/w/400/h/400"
     )
     switch = "https://cdn.brandfetch.io/nintendo.com/w/400/h/400"
-    android = google = "https://cdn.brandfetch.io/android.com/w/512/h/289/symbol"
+    android = google = (
+        "https://cdn.brandfetch.io/android.com/w/512/h/289/symbol"
+    )
     ios = apple = "https://cdn.brandfetch.io/apple.com/w/419/h/512/logo"
     vr = "https://designbundles.net/xfankystore/1181849-vr-glasses-icon-logo-virtual-reality-concept-glass"
     battlenet = "https://www.pngegg.com/en/search?q=Battle.net"

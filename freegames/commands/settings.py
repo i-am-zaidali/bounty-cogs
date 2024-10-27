@@ -1,6 +1,11 @@
 import operator
+
+# import typing
+import discord
+from redbot.core import commands
 from redbot.core.utils import chat_formatting as cf
-import typing
+from redbot.core.utils.views import ConfirmView
+
 from ..abc import MixinMeta
 from ..common.models import (
     FreeStuffStores,
@@ -8,9 +13,6 @@ from ..common.models import (
     GuildMessageable,
     GuildSettings,
 )
-from redbot.core import commands
-from redbot.core.utils.views import ConfirmView
-import discord
 
 
 class Settings(MixinMeta):
@@ -48,7 +50,9 @@ class Settings(MixinMeta):
         await self.save()
 
     @fsapi.command(name="channel")
-    async def fsapi_channel(self, ctx: commands.Context, channel: GuildMessageable):
+    async def fsapi_channel(
+        self, ctx: commands.Context, channel: GuildMessageable
+    ):
         """
         Set the channel for FreeStuffAPI to post in.
         """
@@ -58,7 +62,9 @@ class Settings(MixinMeta):
         await self.save()
 
     @fsapi.command(name="stores")
-    async def fsapi_stores(self, ctx: commands.Context, *stores: FreeStuffStores):
+    async def fsapi_stores(
+        self, ctx: commands.Context, *stores: FreeStuffStores
+    ):
         """
         Set the stores to check for free games via the FreeStuffAPI
 
@@ -67,7 +73,7 @@ class Settings(MixinMeta):
         if not stores:
             view = ConfirmView(ctx.author, disable_buttons=True)
             view.message = await ctx.send(
-                f"Are you sure you want to remove all stores?", view=view
+                "Are you sure you want to remove all stores?", view=view
             )
             if await view.wait():
                 return await ctx.send(
@@ -75,11 +81,15 @@ class Settings(MixinMeta):
                 )
 
             if not view.result:
-                return await ctx.send("So indecisive ISTG. Stop wasting my time.")
+                return await ctx.send(
+                    "So indecisive ISTG. Stop wasting my time."
+                )
         conf = self.db.get_conf(ctx.guild)
         conf.freestuff.stores_to_check = set(stores)
         await ctx.send(
-            f"Stores set to {cf.humanize_list(stores)}" if stores else "Stores removed."
+            f"Stores set to {cf.humanize_list(stores)}"
+            if stores
+            else "Stores removed."
         )
         await self.save()
 
@@ -109,7 +119,9 @@ class Settings(MixinMeta):
         await self.save()
 
     @gpapi.command(name="channel")
-    async def gpapi_channel(self, ctx: commands.Context, channel: GuildMessageable):
+    async def gpapi_channel(
+        self, ctx: commands.Context, channel: GuildMessageable
+    ):
         """
         Set the channel for GamerPowerAPI to post in.
         """
@@ -119,7 +131,9 @@ class Settings(MixinMeta):
         await self.save()
 
     @gpapi.command(name="stores")
-    async def gpapi_stores(self, ctx: commands.Context, *stores: GamerPowerStores):
+    async def gpapi_stores(
+        self, ctx: commands.Context, *stores: GamerPowerStores
+    ):
         """
         Set the stores to check for free games via the GamerPowerAPI
 
@@ -128,7 +142,7 @@ class Settings(MixinMeta):
         if not stores:
             view = ConfirmView(ctx.author, disable_buttons=True)
             view.message = await ctx.send(
-                f"Are you sure you want to remove all stores?", view=view
+                "Are you sure you want to remove all stores?", view=view
             )
             if await view.wait():
                 return await ctx.send(
@@ -136,7 +150,9 @@ class Settings(MixinMeta):
                 )
 
             if not view.result:
-                return await ctx.send("So indecisive ISTG. Stop wasting my time.")
+                return await ctx.send(
+                    "So indecisive ISTG. Stop wasting my time."
+                )
         conf = self.db.get_conf(ctx.guild)
         conf.gamerpower.stores_to_check = set(stores)
         await ctx.send(f"Stores set to {cf.humanize_list(stores)}")
@@ -150,7 +166,7 @@ class Settings(MixinMeta):
         if not roles:
             view = ConfirmView(ctx.author, disable_buttons=True)
             view.message = await ctx.send(
-                f"Are you sure you want to remove all ping roles?", view=view
+                "Are you sure you want to remove all ping roles?", view=view
             )
             if await view.wait():
                 return await ctx.send(
@@ -158,7 +174,9 @@ class Settings(MixinMeta):
                 )
 
             if not view.result:
-                return await ctx.send("So indecisive ISTG. Stop wasting my time.")
+                return await ctx.send(
+                    "So indecisive ISTG. Stop wasting my time."
+                )
         conf = self.db.get_conf(ctx.guild)
         conf.pingroles = set(map(operator.attrgetter("id"), roles))
         await ctx.send(f"Roles set to {cf.humanize_list(roles)}")
@@ -170,13 +188,15 @@ class Settings(MixinMeta):
         Toggle whether the bot should ping you when a new game is posted.
         """
         conf = self.db.get_conf(ctx.guild)
-        if not ctx.author.id in conf.pingusers:
+        if ctx.author.id not in conf.pingusers:
             conf.pingusers.add(ctx.author.id)
             await ctx.send("You will now be pinged when a new game is posted.")
 
         else:
             conf.pingusers.remove(ctx.author.id)
-            await ctx.send("You will no longer be pinged when a new game is posted.")
+            await ctx.send(
+                "You will no longer be pinged when a new game is posted."
+            )
 
         await self.save()
 
