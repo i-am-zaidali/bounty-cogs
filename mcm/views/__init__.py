@@ -8,3 +8,4 @@ from .updatecategory import *  # noqa: F403
 from .clearornot import *  # noqa: F403
 from .invalidstats import *  # noqa: F403
 from .reminderduration import *  # noqa: F403
+from .register import *  # noqa: F403

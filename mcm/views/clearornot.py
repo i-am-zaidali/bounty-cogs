@@ -122,6 +122,6 @@ class ClearOrNot(discord.ui.View):
             in places where they are required."""
 
     def __init__(self, user: discord.Member):
-        super().__init__(timeout=None)
+        super().__init__(timeout=1)
         self.add_item(Clear(user.id))
         self.add_item(Not(user.id))

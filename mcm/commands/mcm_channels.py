@@ -28,6 +28,17 @@ class MCMChannels(MixinMeta):
             conf.alertchannel = channel.id
             await ctx.tick()
 
+    @mcm_channel.command(name="modalert")
+    async def mcm_channel_modalert(
+        self, ctx: commands.Context, channel: discord.TextChannel
+    ):
+        """Set the channel to alert mods in
+
+        Currently for registrations only."""
+        async with self.db.get_conf(ctx.guild) as conf:
+            conf.modalertchannel = channel.id
+            await ctx.tick()
+
     @mcm_channel.command(name="log")
     async def mcm_channel_log(
         self, ctx: commands.Context, channel: discord.TextChannel

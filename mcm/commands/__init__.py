@@ -5,6 +5,7 @@ from .mcm_channels import MCMChannels
 from .mcm_userstats import MCMUserStats
 from .mcm_stateroles import MCMStateRoles
 from .mcm_courses import MCMCourses
+from .mcm_registration import MCMRegistration
 from .mcm import MCMTopLevel
 
 
@@ -16,6 +17,7 @@ class Commands(
     MCMChannels,
     MCMStateRoles,
     MCMUserStats,
+    MCMRegistration,
     metaclass=CompositeMetaClass,
 ):
     """Subclass all command classes"""

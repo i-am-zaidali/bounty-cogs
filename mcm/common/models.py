@@ -1,3 +1,4 @@
+import datetime
 import enum
 import typing
 
@@ -30,10 +31,29 @@ class StatePostCodeRanges(enum.Enum):
     NT = MultiRange([range(800, 999)])
 
 
+class RegistrationConfig(Base):
+    bans: dict[int, typing.Optional[datetime.datetime]] = pydantic.Field(
+        default_factory=dict
+    )
+    rejection_reasons: list[str] = pydantic.Field(
+        default_factory=list, max_length=5
+    )
+    questions: dict[str, bool] = pydantic.Field(
+        default_factory=lambda: {
+            "What is your MissionChief username (please enter exactly)?": True
+        },
+        min_length=1,
+        max_length=5,
+    )
+
+
 class MemberData(Base):
     stats: dict[str, int] = pydantic.Field(default_factory=dict)
     message_id: typing.Optional[int] = None
     reminder_enabled: bool = False
+    username: typing.Optional[str] = None
+    registration_date: typing.Optional[datetime.datetime] = None
+    leave_date: typing.Optional[datetime.datetime] = None
 
 
 class GuildSettings(Base):
@@ -41,6 +61,7 @@ class GuildSettings(Base):
     alertchannel: typing.Optional[int] = None
     trackchannel: typing.Optional[int] = None
     coursechannel: typing.Optional[int] = None
+    modalertchannel: typing.Optional[int] = None
     vehicles: list[str] = pydantic.Field(default_factory=list)
     vehicle_categories: dict[str, list[str]] = pydantic.Field(
         default_factory=dict
@@ -55,6 +76,9 @@ class GuildSettings(Base):
         )
     )
     members: dict[int, MemberData] = pydantic.Field(default_factory=dict)
+    registration: RegistrationConfig = pydantic.Field(
+        default_factory=RegistrationConfig
+    )
 
     def get_member(self, member: discord.Member | int):
         mid = member if isinstance(member, int) else member.id

@@ -1,5 +1,6 @@
 import collections
 import itertools
+import typing
 
 import discord
 from redbot.core.utils import chat_formatting as cf
@@ -8,7 +9,10 @@ from tabulate import tabulate
 
 from . import Paginator
 
-__all__ = ["TotalStatsSource", "UserStatsSource"]
+if typing.TYPE_CHECKING:
+    from ..common.models import MemberData
+
+__all__ = ["TotalStatsSource", "UserStatsSource", "RegisteredUsersSource"]
 
 GroupByEntry = collections.namedtuple("GroupByEntry", ["key", "items"])
 
@@ -171,4 +175,42 @@ class UserStatsSource(menus.ListPageSource):
                 inline=False,
             )
 
+        return embed
+
+
+class RegisteredUsersSource(menus.ListPageSource):
+    entries: list[tuple[typing.Union[int, discord.Member], "MemberData"]]
+
+    async def format_page(
+        self,
+        menu: Paginator,
+        entries: list[tuple[typing.Union[int, discord.Member], "MemberData"]],
+    ):
+        embed = discord.Embed(
+            title="Registered Users",
+            description=cf.box(
+                tabulate(
+                    [
+                        (
+                            f"{member.display_name if isinstance(member, int) else f'User Not found\n{member}'}",
+                            f"{data.username}",
+                            data.registration_date.strftime("%d-%m-%Y")
+                            if data.registration_date
+                            # should never happen since filtering is done before creating the Source object but just in case
+                            else "Not Registered",
+                        )
+                        for member, data in entries
+                    ],
+                    headers=["Server Member", "Username", "Registration Date"],
+                    tablefmt="fancy_grid",
+                    showindex=range(
+                        (start := (menu.current_page * menu.per_page) + 1),
+                        start + len(entries) + 1,
+                    ),
+                    colalign=("left", "center"),
+                )
+            ),
+        ).set_footer(
+            text=f"Page {menu.current_page + 1}/{self.get_max_pages()}"
+        )
         return embed

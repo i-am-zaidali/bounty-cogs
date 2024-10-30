@@ -1,4 +1,5 @@
 import collections
+import contextlib
 import re
 import typing
 
@@ -16,6 +17,19 @@ from .views import ClearOrNot, InvalidStats, ReminderDuration
 
 
 class Listeners(MixinMeta, metaclass=CompositeMetaClass):
+    @commands.Cog.listener()
+    async def on_member_join(self, member: discord.Member):
+        conf = self.db.get_conf(member.guild)
+        memdata = conf.get_member(member.id)
+
+        if memdata.leave_date:
+            async with conf:
+                memdata.leave_date = None
+
+        if memdata.username and memdata.registration_date:
+            with contextlib.suppress(discord.HTTPException):
+                await member.edit(nick=memdata.username)
+
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
         conf = self.db.get_conf(member.guild)
@@ -45,6 +59,35 @@ class Listeners(MixinMeta, metaclass=CompositeMetaClass):
             f"\nUse `{(await self.bot.get_valid_prefixes(member.guild))[0]}mcm userstats clear {member.id}` alternatively to clear their stats.",
         ).set_footer(text="ID: " + str(member.id))
         await logchan.send(embed=embed, view=ClearOrNot(member))
+        async with conf:
+            conf.get_member(member).leave_date = discord.utils.utcnow()
+
+    @commands.Cog.listener()
+    async def on_member_update(
+        self, before: discord.Member, after: discord.Member
+    ):
+        conf = self.db.get_conf(after.guild)
+        memdata = conf.get_member(before.id)
+        if before.nick != after.nick and memdata.username:
+            new_username: str = ""
+            if (
+                memdata.username in before.nick
+                and memdata.username not in after.nick
+            ):
+                new_username = before.nick
+
+            if memdata.username not in after.nick or (
+                not after.nick.endswith(memdata.username)
+                or not after.nick.startswith(memdata.username)
+            ):
+                new_username = f"{after.nick.replace(memdata.username, '')} | {memdata.username}"
+
+            if new_username and new_username != after.nick:
+                if len(new_username) > 32:
+                    new_username = new_username[:32]
+                    if memdata.username not in new_username:
+                        new_username = memdata.username[:32]
+                await after.edit(nick=new_username)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

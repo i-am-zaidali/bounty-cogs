@@ -14,14 +14,16 @@ from .common.models import DB
 from .common.utils import union_dicts
 from .listeners import Listeners
 from .views import (
+    AcceptRegistration,
     AddVehicles,
     Clear,
     IgnoreStats,
     MergeStats,
     Not,
+    RejectRegistration,
     RejectStats,
     ViewStats,
-)
+)  # dynamic items
 
 log = logging.getLogger("red.craycogs.mcm")
 RequestType = t.Literal["discord_deleted_user", "owner", "user", "user_strict"]
@@ -30,10 +32,12 @@ RequestType = t.Literal["discord_deleted_user", "owner", "user", "user_strict"]
 class MissionChiefMetrics(
     Commands, Listeners, commands.Cog, metaclass=CompositeMetaClass
 ):
-    """Mission Chief Metrics"""
+    """Mission Chief Metrics
+
+    A cog that helps with managing statistics for the game MissionChief"""
 
     __author__ = "crayyy_zee"
-    __version__ = "2.0.1"
+    __version__ = "2.1.0"
 
     def __init__(self, bot: Red):
         super().__init__()
@@ -45,12 +49,14 @@ class MissionChiefMetrics(
         self.saving: asyncio.Future[t.Literal[True]] | t.Literal[False] = False
 
         self.bot.add_dynamic_items(
-            Clear,
-            Not,
-            IgnoreStats,
-            RejectStats,
-            MergeStats,
+            AcceptRegistration,
             AddVehicles,
+            Clear,
+            IgnoreStats,
+            MergeStats,
+            Not,
+            RejectRegistration,
+            RejectStats,
             ViewStats,
         )
 
@@ -63,12 +69,14 @@ class MissionChiefMetrics(
 
     async def cog_unload(self):
         self.bot.remove_dynamic_items(
-            Clear,
-            Not,
-            IgnoreStats,
-            RejectStats,
-            MergeStats,
+            AcceptRegistration,
             AddVehicles,
+            Clear,
+            IgnoreStats,
+            MergeStats,
+            Not,
+            RejectRegistration,
+            RejectStats,
             ViewStats,
         )
         await self.save()
