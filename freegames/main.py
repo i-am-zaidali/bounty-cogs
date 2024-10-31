@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import itertools
+import json
 import logging
 import typing as t
 
@@ -158,14 +159,18 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
 
                         json = await resp2.json()
                         results.extend(json["data"].values())
-
-                return FreeStuffResponse(
+                try:
+                    return FreeStuffResponse(
                     games=filter(
                         lambda x: x
                         and (x["store"] in platforms if platforms else True),
                         results,
                     )
                 )
+                except Exception as e:
+                    log.exception("Malformed data recieved frkm the FreeStuffBot API", exc_info=e)
+                    log.exception("%s", json.dumps(indent =4))
+                    return None
 
     @tasks.loop(
         time=[
