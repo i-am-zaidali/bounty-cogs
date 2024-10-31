@@ -44,7 +44,7 @@ class RegistrationModal(discord.ui.Modal):
             )  # 32 for usernames
             self.add_item(butt)
             self.question_inputs.append(butt)
-            setattr(f"question_{ind}", butt)
+            setattr(self, f"question_{ind}", butt)
 
     async def on_submit(self, interaction: discord.Interaction["Red"]):
         embed = self.format_answers_embed(interaction.user)
