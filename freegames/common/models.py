@@ -151,7 +151,7 @@ class GamerPowerGiveaway(Base):
 class Urls(Base):
     default: str
     browser: str
-    client: str
+    client: typing.Optional[str]
     org: str
 
 
