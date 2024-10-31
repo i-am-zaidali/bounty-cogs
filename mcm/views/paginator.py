@@ -5,7 +5,7 @@ from discord.ui import Button, Select
 from redbot.core import commands
 from redbot.vendored.discord.ext import menus
 
-from . import ViewDisableOnTimeout
+from .viewdisableontimeout import ViewDisableOnTimeout
 
 __all__ = [
     "Paginator",
