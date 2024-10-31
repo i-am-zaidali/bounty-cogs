@@ -186,13 +186,14 @@ class RegisteredUsersSource(menus.ListPageSource):
         menu: Paginator,
         entries: list[tuple[typing.Union[int, discord.Member], "MemberData"]],
     ):
+        newline="\n"
         embed = discord.Embed(
             title="Registered Users",
             description=cf.box(
                 tabulate(
                     [
                         (
-                            f"{member.display_name if isinstance(member, int) else f'User Not found\n{member}'}",
+                            f"{member.display_name if isinstance(member, int) else f'User Not found{newline}{member}'}",
                             f"{data.username}",
                             data.registration_date.strftime("%d-%m-%Y")
                             if data.registration_date
