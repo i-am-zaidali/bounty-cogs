@@ -279,12 +279,14 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
                     label="Open in browser", url=data.urls.browser
                 )
             )
-            .add_item(
+            
+        )
+        if data.urls.client:
+            view.add_item(
                 discord.ui.Button(
                     label=f"Open in {data.store.title()}", url=data.urls.client
                 )
             )
-        )
         return embed, view
 
     def generate_gamerpower_embed_view(self, data: GamerPowerGiveaway):
