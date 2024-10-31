@@ -157,8 +157,8 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
                             )
                             continue
 
-                        json = await resp2.json()
-                        results.extend(json["data"].values())
+                        json_data = await resp2.json()
+                        results.extend(json_data["data"].values())
                 try:
                     return FreeStuffResponse(
                     games=filter(
@@ -168,8 +168,8 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
                     )
                 )
                 except Exception as e:
-                    log.exception("Malformed data recieved frkm the FreeStuffBot API", exc_info=e)
-                    log.exception("%s", json.dumps(indent =4))
+                    log.exception("Malformed data recieved from the FreeStuffBot API", exc_info=e)
+                    log.exception("%s", json.dumps(results, indent=4))
                     return None
 
     @tasks.loop(
