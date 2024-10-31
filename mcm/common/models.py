@@ -40,7 +40,7 @@ class RegistrationConfig(Base):
     )
     questions: dict[str, bool] = pydantic.Field(
         default_factory=lambda: {
-            "What is your MissionChief username (please enter exactly)?": True
+             "Enter your Mission Chief username below:": True
         },
         min_length=1,
         max_length=5,
