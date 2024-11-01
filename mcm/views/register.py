@@ -275,9 +275,6 @@ class RejectRegistration(
             view=select_ban_view,
         )
         if await select_ban_view.wait():
-            enable_items(select_ban_view)
-            self.item.disabled = False
-            await interaction.message.edit(view=select_ban_view)
             return
 
         banduration = select_ban_view.selected
