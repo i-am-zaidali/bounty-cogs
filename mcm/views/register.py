@@ -26,7 +26,7 @@ BAN_TIMEDELTAS = {
     datetime.timedelta(days=2),
     datetime.timedelta(days=3),
     datetime.timedelta(days=7),
-    datetime.timedelta(days=31),
+    datetime.timedelta(days=28),
 }
 
 __all__ = ["AcceptRegistration", "RejectRegistration", "RegistrationModal"]
