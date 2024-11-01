@@ -55,7 +55,7 @@ class RegistrationModal(discord.ui.Modal):
             )
 
         await modchannel.send(
-            interaction.user.mention,
+            f"New application from: {interaction.user.mention}",
             embed=embed,
             allowed_mentions=discord.AllowedMentions(users=[interaction.user]),
             view=RegistrationModView(
@@ -75,7 +75,7 @@ class RegistrationModal(discord.ui.Modal):
 
     def format_answers_embed(self, user: discord.Member):
         embed = discord.Embed(
-            title=f"{user.display_name} ({user.id}) would like to register themself.",
+            title=f"{user.display_name} ({user.id}) would like to register themselves.",
             color=discord.Color.blurple(),
             timestamp=discord.utils.utcnow(),
         ).set_author(name=user.name, icon_url=user.display_avatar.url)
