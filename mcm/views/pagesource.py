@@ -186,27 +186,27 @@ class RegisteredUsersSource(menus.ListPageSource):
         menu: Paginator,
         entries: list[tuple[typing.Union[int, discord.Member], "MemberData"]],
     ):
-        newline="\n"
+        newline = "\n"
         embed = discord.Embed(
             title="Registered Users",
             description=cf.box(
                 tabulate(
                     [
                         (
-                            f"{member.display_name if isinstance(member, int) else f'User Not found{newline}{member}'}",
+                            f"{member.display_name if isinstance(member, discord.Member) else f'User Not found{newline}{member}'}",
                             f"{data.username}",
-                            data.registration_date.strftime("%d-%m-%Y")
+                            data.registration_date.strftime("%d-%m-%Y\n%H:%M")
                             if data.registration_date
                             # should never happen since filtering is done before creating the Source object but just in case
                             else "Not Registered",
                         )
                         for member, data in entries
                     ],
-                    headers=["Server Member", "Username", "Registration Date"],
+                    headers=["Server Member", "Username", "Reg. Date"],
                     tablefmt="fancy_grid",
                     showindex=range(
-                        (start := (menu.current_page * menu.per_page) + 1),
-                        start + len(entries) + 1,
+                        (start := (menu.current_page * self.per_page) + 1),
+                        start + len(entries),
                     ),
                     colalign=("left", "center"),
                 )

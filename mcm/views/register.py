@@ -20,6 +20,10 @@ if typing.TYPE_CHECKING:
 
 
 BAN_TIMEDELTAS = {
+    datetime.timedelta(hours=6),
+    datetime.timedelta(hours=12),
+    datetime.timedelta(days=1),
+    datetime.timedelta(days=2),
     datetime.timedelta(days=3),
     datetime.timedelta(days=7),
     datetime.timedelta(days=31),

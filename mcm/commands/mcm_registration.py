@@ -103,7 +103,8 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
             return await ctx.send("No members have registered yet.")
 
         await Paginator(
-            RegisteredUsersSource(registered, per_page=6), use_select=True
+            RegisteredUsersSource([*registered.items()], per_page=6),
+            use_select=True,
         ).start(ctx)
 
     @mcm_registration.group(name="questions", aliases=["question", "q"])
