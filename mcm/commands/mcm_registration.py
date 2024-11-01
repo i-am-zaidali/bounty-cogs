@@ -68,16 +68,20 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
                     f"That username belong to a user with the id {memberid}, but they are not in the server anymore."
                 )
 
+        assert isinstance(member, discord.Member)
+
         memdata = conf.get_member(member.id)
         if not memdata.username:
             return await ctx.send("This member is not registered.")
+
+        username = memdata.username
 
         async with memdata:
             memdata.username = None
             memdata.registration_date = None
 
         try:
-            await member.edit(nick=member.nick.replace(memdata.username, ""))
+            await member.edit(nick=(member.nick or "").replace(username, ""))
         except discord.HTTPException:
             await ctx.send(
                 "I was unable to change this user's nickname in the server. Please do so manually."

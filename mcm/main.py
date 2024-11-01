@@ -22,6 +22,7 @@ from .views import (
     Not,
     RejectRegistration,
     RejectStats,
+    RejectWithBanRegistration,
     ViewStats,
 )  # dynamic items
 
@@ -37,7 +38,7 @@ class MissionChiefMetrics(
     A cog that helps with managing statistics for the game MissionChief"""
 
     __author__ = "crayyy_zee"
-    __version__ = "2.1.1"
+    __version__ = "2.1.2"
 
     def __init__(self, bot: Red):
         super().__init__()
@@ -57,6 +58,7 @@ class MissionChiefMetrics(
             Not,
             RejectRegistration,
             RejectStats,
+            RejectWithBanRegistration,
             ViewStats,
         )
 
@@ -77,6 +79,7 @@ class MissionChiefMetrics(
             Not,
             RejectRegistration,
             RejectStats,
+            RejectWithBanRegistration,
             ViewStats,
         )
         await self.save()
