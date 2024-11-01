@@ -64,13 +64,21 @@ class RegistrationModal(discord.ui.Modal):
                 modchannel.id,
             ),
         )
+        await interaction.response.send_message(
+            "Your registration request has been sent to the moderators. Please wait, you will be pinged in this channel once they have reached a decision.",
+            ephemeral=True,
+        )
+
+        async with self.db.get_member(interaction.user):
+            member = self.db.get_member(interaction.user)
+            member.registration_date = discord.utils.utcnow()
 
     def format_answers_embed(self, user: discord.Member):
         embed = discord.Embed(
             title=f"{user.display_name} ({user.id}) would like to register themself.",
             color=discord.Color.blurple(),
             timestamp=discord.utils.utcnow(),
-        ).set_author(name=user.name, icon_url=user.avatar_url)
+        ).set_author(name=user.name, icon_url=user.display_avatar.url)
         for question in self.question_inputs:
             embed.add_field(
                 name=question.label, value=question.value, inline=False
@@ -115,7 +123,9 @@ class AcceptRegistration(
         )
 
     async def callback(self, interaction: discord.Interaction["Red"]):
-        cog = typing.cast("MCM", interaction.bot.get_cog("MissionChiefMetrics"))
+        cog = typing.cast(
+            "MCM", interaction.client.get_cog("MissionChiefMetrics")
+        )
         db = cog.db.get_conf(interaction.guild)
         member = db.get_member(self.userid)
         user = interaction.guild.get_member(self.userid)
@@ -156,6 +166,7 @@ class AcceptRegistration(
 
         async with member:
             member.username = self.username
+            member.registration_date = discord.utils.utcnow()
         try:
             await user.edit(nick=self.username)
         except discord.HTTPException:
@@ -198,7 +209,9 @@ class RejectRegistration(
         )
 
     async def callback(self, interaction: discord.Interaction["Red"]):
-        cog = typing.cast("MCM", interaction.bot.get_cog("MissionChiefMetrics"))
+        cog = typing.cast(
+            "MCM", interaction.client.get_cog("MissionChiefMetrics")
+        )
         conf = cog.db.get_conf(interaction.guild)
         member = conf.get_member(self.userid)
         user = interaction.guild.get_member(self.userid)
@@ -216,27 +229,33 @@ class RejectRegistration(
                 ephemeral=True,
             )
 
+        reason = "No reason specified"
+
         if conf.registration.rejection_reasons:
-            view = SelectView(
+            select_reasons_view = SelectView(
+                "Select a reason for rejection",
                 [
                     discord.SelectOption(label=reason, value=reason)
                     for reason in conf.registration.rejection_reasons
-                ]
+                ],
             )
-            view.message = await interaction.followup.send(
+            select_reasons_view.message = await interaction.followup.send(
                 "Please select a reason for your rejection from the below select menu.",
-                view=view,
+                view=select_reasons_view,
                 wait=True,
                 ephemeral=True,
             )
-            if await view.wait():
-                enable_items(view)
+            if await select_reasons_view.wait():
+                enable_items(select_reasons_view)
                 self.item.disabled = False
-                await interaction.message.edit(view=view)
+                await interaction.message.edit(view=select_reasons_view)
                 return
 
-        view = SelectView(
-            [discord.SelectOption(label="Don't ban", value=None)]
+            reason = select_reasons_view.selected
+
+        select_ban_view = SelectView(
+            "Select a duration for the ban",
+            [discord.SelectOption(label="Don't ban", value="None")]
             + [
                 discord.SelectOption(
                     label=cf.humanize_timedelta(timedelta=delta),
@@ -244,29 +263,33 @@ class RejectRegistration(
                 )
                 for delta in BAN_TIMEDELTAS
             ]
-            + [discord.SelectOption(label="Permanent", value="0")]
+            + [discord.SelectOption(label="Permanent", value="0")],
         )
 
-        view.message = await interaction.followup.send(
+        select_ban_view.message = await interaction.followup.send(
             "Please select a duration from the below menu if you'd like to ban the user from reapplying:",
-            view=view,
+            view=select_ban_view,
         )
-        if await view.wait():
-            enable_items(view)
+        if await select_ban_view.wait():
+            enable_items(select_ban_view)
             self.item.disabled = False
-            await interaction.message.edit(view=view)
+            await interaction.message.edit(view=select_ban_view)
             return
 
-        if view.selected is not None and view.selected != "0":
+        banduration = select_ban_view.selected
+
+        if banduration is not None and banduration != "0":
             ban_time = discord.utils.utcnow() + datetime.timedelta(
-                seconds=int(view.selected)
+                seconds=int(banduration)
             )
             conf.registration.bans[self.userid] = ban_time
 
-        elif view.selected == "0":
+        elif banduration == "0":
+            ban_time = None
             conf.registration.bans[self.userid] = None  # permanent ban
 
         async with member:
+            member.username = None
             member.registration_date = None
             member.leave_date = None
 
@@ -277,19 +300,19 @@ class RejectRegistration(
             )
 
         await channel.send(
-            f"<@{self.userid}> ({self.userid}) your application for registration has been rejected by {interaction.user.mention} for the following reason:\n*{view.selected}*"
+            f"<@{self.userid}> ({self.userid}) your application for registration has been rejected by {interaction.user.mention} for the following reason:\n*{reason}*"
             + (
                 f"Additionally, you will not be able to re-apply until {ban_time.strftime('%Y-%m-%d %H:%M:%S') if ban_time else 'further notice'} due to your continued abuse of this form. Attempting to bypass or avoid this ban may result in additional moderation. ."
-                if view.selected
+                if select_ban_view.selected
                 else ""
             ),
             allowed_mentions=discord.AllowedMentions(users=[user]),
         )
         await interaction.followup.send(
-            f"<@{self.userid}> ({self.userid})'s registration has been rejected for the following reason:\n*{view.selected}*"
+            f"<@{self.userid}> ({self.userid})'s registration has been rejected for the following reason:\n*{reason}*"
             + (
                 f"they have also been banned from reapplying until {ban_time.strftime('%Y-%m-%d %H:%M:%S') if ban_time else 'further notice'}."
-                if view.selected
+                if select_ban_view.selected
                 else ""
             ),
             allowed_mentions=discord.AllowedMentions(users=[user]),
@@ -297,16 +320,19 @@ class RejectRegistration(
 
 
 class SelectView(ViewDisableOnTimeout):
-    def __init__(self, options: list[discord.SelectOption]):
+    def __init__(self, placeholder: str, options: list[discord.SelectOption]):
         super().__init__(timeout=300)
+        self.select.placeholder = placeholder
         self.options = options
         for ind, option in enumerate(options):
-            typing.cast(discord.ui.Select, self.callback).append_option(option)
+            typing.cast(discord.ui.Select, self.select).append_option(option)
 
-    @discord.ui.select(placeholder="Select a reason", options=[])
-    async def callback(
+    @discord.ui.select(placeholder="", options=[])
+    async def select(
         self, interaction: discord.Interaction["Red"], select: discord.ui.Select
     ):
-        self.selected = select.values[0]
-        await interaction.response.defer()
+        self.selected = select.values[0] if select.values[0] != "None" else None
+        disable_items(self)
+        await interaction.response.edit_message(view=self)
+        select.options.clear()
         self.stop()

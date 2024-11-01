@@ -119,6 +119,12 @@ class MCMGroup(MixinMeta, metaclass=CompositeMetaClass):
                 ephemeral=True,
             )
 
+        elif member.registration_date is not None:
+            return await ctx.send(
+                "You have already registered and it's pending approval.",
+                ephemeral=True,
+            )
+
         if ctx.author.id in conf.registration.bans:
             duration = conf.registration.bans[ctx.author.id]
             if duration is None:
