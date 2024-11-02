@@ -135,7 +135,7 @@ class MCMGroup(MixinMeta, metaclass=CompositeMetaClass):
 
             elif duration > discord.utils.utcnow():
                 return await ctx.send(
-                    f"You are banned from registering until <t:{int(duration.timestamp())}:D>",
+                    f"You are banned from registering until <t:{int(duration.timestamp())}:F>",
                     ephemeral=True,
                 )
 
