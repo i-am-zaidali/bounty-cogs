@@ -70,7 +70,7 @@ class RegistrationModal(discord.ui.Modal):
             view=RegistrationModView(
                 interaction.user.id,
                 getattr(self, "question_0").value,
-                modchannel.id,
+                interaction.channel.id,
             ),
         )
         await interaction.response.send_message(
@@ -307,18 +307,18 @@ class RejectRegistration(
             )
 
         await channel.send(
-            f"<@{self.userid}> ({self.userid}) your application for registration has been rejected by {interaction.user.mention} for the following reason:\n*{reason}*"
+            f"<@{self.userid}> your application for registration has been rejected by {interaction.user.mention} for the following reason:\n> {reason}\n"
             + (
-                f"Additionally, you will not be able to re-apply until {ban_time.strftime('%Y-%m-%d %H:%M:%S') if ban_time else 'further notice'} due to your continued abuse of this form. Attempting to bypass or avoid this ban may result in additional moderation. ."
+                f"Additionally, you will not be able to re-apply until {f'<t:{ban_time.timestamp():.0f}:F>' if ban_time else 'further notice'} due to your continued abuse of this form. Attempting to bypass or avoid this ban may result in additional moderation."
                 if select_ban_view.selected
                 else ""
             ),
             allowed_mentions=discord.AllowedMentions(users=[user]),
         )
         await interaction.followup.send(
-            f"<@{self.userid}> ({self.userid})'s registration has been rejected for the following reason:\n*{reason}*"
+            f"<@{self.userid}> ({self.userid})'s registration has been rejected for the following reason:\n> {reason}\n"
             + (
-                f"they have also been banned from reapplying until {ban_time.strftime('%Y-%m-%d %H:%M:%S') if ban_time else 'further notice'}."
+                f"They have also been banned from reapplying until {f'<t:{ban_time.timestamp():.0f}:F>' if ban_time else 'further notice'}."
                 if select_ban_view.selected
                 else ""
             ),
@@ -431,18 +431,18 @@ class RejectWithBanRegistration(
             )
 
         await channel.send(
-            f"<@{self.userid}> ({self.userid}) your application for registration has been rejected by {interaction.user.mention} for the following reason:\n*{reason}*"
+            f"<@{self.userid}> your application for registration has been rejected by {interaction.user.mention} for the following reason:\n> {reason}\n"
             + (
-                f"Additionally, you will not be able to re-apply until {ban_time.strftime('%Y-%m-%d %H:%M:%S') if ban_time else 'further notice'} due to your continued abuse of this form. Attempting to bypass or avoid this ban may result in additional moderation. ."
+                f"Additionally, you will not be able to re-apply until {f'<t:{ban_time.timestamp():.0f}:F>' if ban_time else 'further notice'} due to your continued abuse of this form. Attempting to bypass or avoid this ban may result in additional moderation."
                 if select_ban_view.selected
                 else ""
             ),
             allowed_mentions=discord.AllowedMentions(users=[user]),
         )
         await interaction.followup.send(
-            f"<@{self.userid}> ({self.userid})'s registration has been rejected for the following reason:\n*{reason}*"
+            f"<@{self.userid}> ({self.userid})'s registration has been rejected for the following reason:\n> {reason}\n"
             + (
-                f"they have also been banned from reapplying until {ban_time.strftime('%Y-%m-%d %H:%M:%S') if ban_time else 'further notice'}."
+                f"They have also been banned from reapplying until {f'<t:{ban_time.timestamp():.0f}:F>' if ban_time else 'further notice'}."
                 if select_ban_view.selected
                 else ""
             ),
