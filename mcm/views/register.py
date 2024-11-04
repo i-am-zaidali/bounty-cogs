@@ -263,38 +263,6 @@ class RejectRegistration(
 
             reason = select_reasons_view.selected
 
-        select_ban_view = SelectView(
-            "Select a duration for the ban",
-            [discord.SelectOption(label="Don't ban", value="None")]
-            + [
-                discord.SelectOption(
-                    label=cf.humanize_timedelta(timedelta=delta),
-                    value=f"{delta.total_seconds()}",
-                )
-                for delta in BAN_TIMEDELTAS
-            ]
-            + [discord.SelectOption(label="Permanent", value="0")],
-        )
-
-        select_ban_view.message = await interaction.followup.send(
-            "Please select a duration from the below menu if you'd like to ban the user from reapplying:",
-            view=select_ban_view,
-        )
-        if await select_ban_view.wait():
-            return
-
-        banduration = select_ban_view.selected
-
-        if banduration is not None and banduration != "0":
-            ban_time = discord.utils.utcnow() + datetime.timedelta(
-                seconds=int(banduration)
-            )
-            conf.registration.bans[self.userid] = ban_time
-
-        elif banduration == "0":
-            ban_time = None
-            conf.registration.bans[self.userid] = None  # permanent ban
-
         async with member:
             member.username = None
             member.registration_date = None
@@ -307,21 +275,11 @@ class RejectRegistration(
             )
 
         await channel.send(
-            f"<@{self.userid}> your application for registration has been rejected by {interaction.user.mention} for the following reason:\n> {reason}\n"
-            + (
-                f"Additionally, you will not be able to re-apply until {f'<t:{ban_time.timestamp():.0f}:F>' if ban_time else 'further notice'} due to your continued abuse of this form. Attempting to bypass or avoid this ban may result in additional moderation."
-                if select_ban_view.selected
-                else ""
-            ),
+            f"<@{self.userid}> your application for registration has been rejected by {interaction.user.mention} for the following reason:\n> {reason}\n",
             allowed_mentions=discord.AllowedMentions(users=[user]),
         )
         await interaction.followup.send(
-            f"<@{self.userid}> ({self.userid})'s registration has been rejected for the following reason:\n> {reason}\n"
-            + (
-                f"They have also been banned from reapplying until {f'<t:{ban_time.timestamp():.0f}:F>' if ban_time else 'further notice'}."
-                if select_ban_view.selected
-                else ""
-            ),
+            f"<@{self.userid}> ({self.userid})'s registration has been rejected for the following reason:\n> {reason}\n",
             allowed_mentions=discord.AllowedMentions(users=[user]),
         )
 
