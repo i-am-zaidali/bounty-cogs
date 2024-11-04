@@ -63,7 +63,7 @@ class RegistrationModal(discord.ui.Modal):
                 "No mod channel set up", ephemeral=True
             )
 
-        if not re.match(self.question_0.value, r"([\d\w\_\-]+)"):
+        if not re.match(r"([\d\w\_\-]+)", self.question_0.value):
             return await interaction.response.send_message("Usernames can only contain alhpanumeric characters and underscroes and hyphens", ephemeral=True)
 
         await modchannel.send(
