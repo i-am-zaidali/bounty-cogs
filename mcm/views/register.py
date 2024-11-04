@@ -48,7 +48,7 @@ class RegistrationModal(discord.ui.Modal):
         ):
             butt = discord.ui.TextInput(
                 label=question,
-                max_length=32 if ind == 1 else None,
+                max_length=32 if ind == 0 else None,
                 required=True,
             )  # 32 for usernames
             self.add_item(butt)
