@@ -40,7 +40,7 @@ class RegistrationConfig(Base):
     )
     questions: dict[str, bool] = pydantic.Field(
         default_factory=lambda: {
-             "Enter your Mission Chief username below:": True
+            "Enter your Mission Chief username below:": True
         },
         min_length=1,
         max_length=5,
@@ -53,6 +53,7 @@ class MemberData(Base):
     reminder_enabled: bool = False
     username: typing.Optional[str] = None
     registration_date: typing.Optional[datetime.datetime] = None
+    registered_by: typing.Optional[int] = None
     leave_date: typing.Optional[datetime.datetime] = None
 
 

@@ -1,8 +1,11 @@
+import itertools
+
 import discord
 from redbot.core.bot import Red
 
+from mcm.views.utilviews import SelectView
+
 from ..common.models import GuildSettings
-from .categoryeditor import CategoryEditor
 from .paginator import CloseButton
 from .viewdisableontimeout import ViewDisableOnTimeout
 
@@ -28,14 +31,41 @@ class NewCategory(ViewDisableOnTimeout):
         modal = CategoryNameModal(
             categories=self.conf.vehicle_categories,
             title="Enter the category name:",
+            timeout=60,
         )
         await inter.response.send_modal(modal)
         if await modal.wait():
             message = await inter.followup.send("Cancelled.", wait=True)
             return await message.delete(delay=10)
 
-        editor = CategoryEditor(self.conf, modal.name.value)
-        await inter.response.edit_message(view=editor)
+        options = [
+            discord.SelectOption(label=option, value=option)
+            for option in set(self.conf.vehicles).difference(
+                itertools.chain.from_iterable(
+                    self.conf.vehicle_categories.values()
+                )
+            )
+        ]
+
+        selview = SelectView(
+            "Select vehicles to add to the category", options=options
+        )
+
+        await inter.response.edit_message(view=selview)
+
+        selview.message = inter.message
+
+        if await selview.wait():
+            return await inter.followup.send(
+                "You took too long to respond. Operation Cancelled",
+                wait=True,
+                ephemeral=True,
+            )
+
+        async with self.conf:
+            self.conf.vehicle_categories[modal.name.value] = [
+                o.value for o in selview.selected
+            ]
 
 
 class CategoryNameModal(discord.ui.Modal):
@@ -63,6 +93,6 @@ class CategoryNameModal(discord.ui.Modal):
             )
         await interaction.response.defer()
         self.stop()
-        await self.further_handling(
-            interaction, self.name.value.strip().lower()
-        )
+        # await self.further_handling(
+        #     interaction, self.name.value.strip().lower()
+        # )

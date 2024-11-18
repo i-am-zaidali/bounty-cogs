@@ -1,10 +1,13 @@
+import datetime
+import fnmatch
 import typing
 
 import discord
 from redbot.core import commands
 
 from ..abc import CompositeMetaClass, MixinMeta
-from ..views import Paginator, RegisteredUsersSource
+from ..common.utils import DateInPast, MCMUsernameToDiscordUser
+from ..views import AutoDebindView, Paginator, RegisteredUsersSource
 from .group import MCMGroup
 
 mcm = typing.cast(commands.Group, MCMGroup.mcm)
@@ -17,6 +20,7 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
     @mcm.command(name="bind")
     @commands.bot_has_guild_permissions(manage_nicknames=True)
     @commands.guild_only()
+    @commands.mod()
     async def mcm_bind(
         self, ctx: commands.Context, member: discord.Member, username: str
     ):
@@ -31,6 +35,7 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
         async with memdata:
             memdata.username = username
             memdata.registration_date = ctx.message.created_at
+            memdata.registered_by = ctx.author.id
         try:
             await member.edit(nick=username)
 
@@ -43,36 +48,25 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
 
     @mcm.command(name="unbind")
     @commands.bot_has_guild_permissions(manage_nicknames=True)
+    @commands.mod()
     @commands.guild_only()
     async def mcm_unbind(
-        self, ctx: commands.Context, member: discord.Member | str
+        self,
+        ctx: commands.Context,
+        member: discord.Member | discord.User = commands.param(
+            converter=MCMUsernameToDiscordUser
+        ),
     ):
-        """De-register a user manually"""
+        """De-register a user manually
+
+        Also accepts an MCM username to de-register"""
         conf = self.db.get_conf(ctx.guild.id)
-        if isinstance(member, str):
-            memberid = next(
-                (
-                    mid
-                    for mid, data in conf.members.items()
-                    if data.username.lower() == member.lower()
-                ),
-                None,
-            )
-            if memberid is None:
-                return await ctx.send("No member found with that username.")
-
-            member = ctx.guild.get_member(memberid)
-
-            if not member:
-                return await ctx.send(
-                    f"That username belong to a user with the id {memberid}, but they are not in the server anymore."
-                )
-
-        assert isinstance(member, discord.Member)
 
         memdata = conf.get_member(member.id)
         if not memdata.username:
-            return await ctx.send("This member is not registered.")
+            return await ctx.send(
+                "This member is registered but is not found in the server."
+            )
 
         username = memdata.username
 
@@ -88,6 +82,105 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
             )
 
         await ctx.tick()
+
+    @mcm.command(name="bound")
+    @commands.guild_only()
+    @commands.mod()
+    async def mcm_bound(
+        self,
+        ctx: commands.Context,
+        member: discord.Member | discord.User = commands.param(
+            converter=MCMUsernameToDiscordUser
+        ),
+    ):
+        """A command to check what username a user is registered with
+
+        This command can also work vice versa if you give it an MCM username and it will tell you which user is registered to that username"""
+        conf = self.db.get_conf(ctx.guild)
+        memdata = conf.get_member(member.id)
+        if not memdata.username:
+            return await ctx.send("This member is not registered.")
+        await ctx.send(
+            f"{member.mention} ({member.id}) was registered as ***{memdata.username}*** {f'by <@{mid}> ({mid})' if (mid:=memdata.registered_by) else ''}on <t:{int(memdata.registration_date.timestamp())}:F>"
+        )
+
+    @mcm.command(name="autodebind")
+    @commands.guild_only()
+    @commands.mod()
+    async def mcm_autodebind(
+        self,
+        ctx: commands.Context,
+        *,
+        date: datetime.datetime = commands.param(converter=DateInPast),
+    ):
+        """Automatically de-register members who registered after a certain date and have since left the server"""
+        conf = self.db.get_conf(ctx.guild)
+        members = conf.members
+        members_to_debind = [
+            memberid
+            for memberid, member in members.items()
+            if member.registration_date
+            and member.username
+            and member.registration_date > date
+            # and not ctx.guild.get_member(memberid)
+        ]
+        if not members_to_debind:
+            return await ctx.send("No members to de-register.")
+
+        view = AutoDebindView(ctx, members_to_debind)
+        embed = discord.Embed(
+            color=await ctx.embed_color(),
+            title="De-register Members",
+            description=f"The following users registered after <t:{int(date.timestamp())}:F> and have since left the server. Would you like to de-register them?\n\n"
+            + "\n".join(
+                f"- <@{memberid}> ({memberid})\n  - {members[memberid].username}\n"
+                for memberid in members_to_debind
+            ),
+        )
+        await ctx.send(embed=embed, view=view)
+
+    @mcm.command(name="search", aliases=["find"])
+    @commands.guild_only()
+    @commands.mod()
+    async def mcm_search(self, ctx: commands.Context, *, searchpattern: str):
+        """
+        Search for members by their MCM username
+
+        This command accepts glob pattern matching.
+        `*` matches anything where it is placed between one and infinite times
+        `?` matches any single character 0 or 1 times
+
+        for example, if the registered usernames are: zay, zeh, zee, and grape
+        The following pattern `z*` will match: zay, zeh and zee
+        and `*e*` will match: zee and zeh.
+
+        You can use [this tool](https://www.digitalocean.com/community/tools/glob) to test out patterns"""
+        # `[seq]` matches any character in sequence
+        # `[!seq]` matches any character not in sequence
+        # `{a,b,c}` matches any of the sequences
+        conf = self.db.get_conf(ctx.guild)
+        members = conf.members
+        all_usernames = [
+            (ctx.guild.get_member(mid) or mid, data)
+            for mid, data in members.items()
+            if data.username
+            and data.registration_date
+            and fnmatch.fnmatch(data.username, searchpattern)
+        ]
+        if not all_usernames:
+            return await ctx.send("No members found with that search pattern.")
+
+        embed = discord.Embed(
+            color=await ctx.embed_color(),
+            title="Search Results",
+            description=f"Search pattern: `{searchpattern}`\n\n"
+            + "\n".join(
+                f"- {getattr(member,'mention', 'User not found in server')} ({getattr(member, 'id', member)})\n"
+                f"  - {data.username}\n  - Registered: <t:{int(data.registration_date.timestamp())}:F>"
+                for member, data in all_usernames
+            ),
+        )
+        await ctx.send(embed=embed)
 
     @mcm.command(name="registered", aliases=["listregistered", "lr"])
     @commands.guild_only()
@@ -111,6 +204,7 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
             use_select=True,
         ).start(ctx)
 
+    @commands.admin()
     @mcm_registration.group(name="questions", aliases=["question", "q"])
     async def mcm_registration_questions(self, ctx: commands.Context):
         """Registration question management"""
@@ -193,6 +287,7 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
     @mcm_registration.group(
         name="rejectionreasons", aliases=["rejectionreason", "rr"]
     )
+    @commands.admin()
     async def mcm_registration_reasons(self, ctx: commands.Context):
         """Registration rejection reasons"""
 

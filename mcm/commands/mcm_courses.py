@@ -21,7 +21,7 @@ class MCMCourses(MixinMeta):
         ctx: commands.Context,
         shorthand: str = lower_str_param,
         *,
-        course: str,
+        course: str = commands.param(displayed_name="Full Course Name"),
     ):
         """Add a course shorthand"""
         async with self.db.get_conf(ctx.guild) as conf:
@@ -52,18 +52,29 @@ class MCMCourses(MixinMeta):
             message += f"{shorthand}: {course}\n"
         await ctx.send(message)
 
-    @mcm_courses.command(name="pingrole", aliases=["pr"])
+    @mcm_courses.group(name="pingrole", aliases=["pr"])
     async def mcm_courses_role(
         self, ctx: commands.Context, role: typing.Optional[discord.Role] = None
     ):
         """Set the role to ping for courses"""
+
+    @mcm_courses_role.command(name="set")
+    async def mcm_courses_role_set(
+        self, ctx: commands.Context, role: discord.Role
+    ):
+        """Set the role to ping for courses"""
         async with self.db.get_conf(ctx.guild) as conf:
-            if role is None:
-                return await ctx.send(
-                    f"The course ping role is {getattr(ctx.guild.get_role(conf.course_role), 'mention', '`NOT SET`')}"
-                )
             conf.course_role = role.id
             await ctx.tick()
+
+    @mcm_courses_role.command(name="show")
+    async def mcm_courses_role_show(self, ctx: commands.Context):
+        """Show the role to ping for courses"""
+        conf = self.db.get_conf(ctx.guild)
+        role = ctx.guild.get_role(conf.course_role)
+        await ctx.send(
+            f"The course ping role is {getattr(role, 'mention', '`NOT SET`')}"
+        )
 
     @mcm_courses.command(name="teacherrole", aliases=["tr"])
     async def mcm_courses_teacherrole(

@@ -84,6 +84,7 @@ class MCMTopLevel(MixinMeta):
         await self.save()
 
     @mcm.command(name="showsettings", aliases=["ss"])
+    @commands.mod()
     async def mcm_showsettings(self, ctx: commands.Context):
         """Show the current settings"""
         conf = self.db.get_conf(ctx.guild)

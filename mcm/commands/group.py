@@ -36,10 +36,16 @@ class MCMGroup(MixinMeta, metaclass=CompositeMetaClass):
     async def mcm_stateroles(self, ctx: commands.Context):
         """Commands for managing stateroles"""
 
-    @mcm.group(name="channel", aliases=["channels", "ch"])
+    @mcm.group(
+        name="channel", aliases=["ch", "channels"], invoke_without_command=True
+    )
     @commands.admin()
     async def mcm_channel(self, ctx: commands.Context):
         """Commands for managing channels"""
+        if ctx.invoked_with == "channels":
+            return await ctx.invoke(self.mcm_channel_show)
+
+        return await ctx.send_help()
 
     @mcm.group(name="userstats", aliases=["us"])
     @commands.guild_only()
@@ -87,6 +93,7 @@ class MCMGroup(MixinMeta, metaclass=CompositeMetaClass):
             embed=embed,
             allowed_mentions=discord.AllowedMentions(roles=True),
         )
+        await ctx.tick()
 
     @mcm_courses.group(name="shorthand", aliases=["shorthands", "sh"])
     async def mcm_courses_shorthand(self, ctx: commands.Context):

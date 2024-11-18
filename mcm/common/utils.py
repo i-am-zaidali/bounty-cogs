@@ -1,3 +1,4 @@
+import datetime
 import itertools
 import json
 import re
@@ -5,7 +6,10 @@ import typing
 import urllib.parse
 import zlib
 
+import dateparser
+import discord
 from redbot.core import commands
+from redbot.core.bot import Red
 
 V = typing.TypeVar("V")
 FV = typing.TypeVar("FV")
@@ -84,7 +88,7 @@ def teacher_check():
             await ctx.bot.is_owner(ctx.author)
             or await ctx.bot.is_mod(ctx.author)
             or ctx.author.get_role(
-                ctx.cog.db.get_conf(ctx.guild).course_teacher_role
+                ctx.cog.db.get_conf(ctx.guild).course_teacher_role or 1
             )
             is not None
         )
@@ -137,3 +141,57 @@ class MultiRange:
 
     def count(self, value: int) -> typing.Literal[0, 1]:
         return int(value in self)
+
+
+class MCMUsernameToDiscordUser(commands.UserConverter):
+    async def convert(
+        self, ctx: commands.Context, argument: str
+    ) -> discord.User | discord.Member:
+        try:
+            return await super().convert(ctx, argument)
+        except commands.BadArgument:
+            from mcm import MissionChiefMetrics
+
+            assert isinstance(ctx.cog, MissionChiefMetrics)
+            assert isinstance(ctx.bot, Red)
+            conf = ctx.cog.db.get_conf(ctx.guild.id)
+            memberid = next(
+                (
+                    mid
+                    for mid, data in conf.members.items()
+                    if data.username.lower() == argument.lower()
+                ),
+                None,
+            )
+            member = ctx.guild.get_member(memberid) or ctx.bot.get_user(
+                memberid
+            )
+            if not member:
+                raise commands.BadArgument(
+                    "No member found with that username."
+                )
+
+            return member
+
+
+class DateInPast(commands.Converter[datetime.datetime]):
+    async def convert(
+        self, ctx: commands.Context, argument: str
+    ) -> datetime.datetime:
+        try:
+            date = dateparser.parse(
+                argument,
+                settings={
+                    "RETURN_AS_TIMEZONE_AWARE": True,
+                    "TO_TIMEZONE": "UTC",
+                },
+            )
+        except ValueError:
+            raise commands.BadArgument("Invalid date provided.")
+        print(date)
+        if date is None:
+            raise commands.BadArgument("Invalid date provided.")
+        if date >= discord.utils.utcnow():
+            raise commands.BadArgument("Date must be in the past.")
+
+        return date

@@ -6,6 +6,7 @@ import discord
 import redbot.core.utils.chat_formatting as cf
 from redbot.core.utils.views import ConfirmView
 
+from .utilviews import AskOneQuestion, SelectView
 from .viewdisableontimeout import (
     ViewDisableOnTimeout,
     disable_items,
@@ -64,7 +65,10 @@ class RegistrationModal(discord.ui.Modal):
             )
 
         if not re.match(r"([\d\w\_\-]+)", self.question_0.value):
-            return await interaction.response.send_message("Usernames can only contain alhpanumeric characters and underscroes and hyphens", ephemeral=True)
+            return await interaction.response.send_message(
+                "Usernames can only contain alhpanumeric characters and underscroes and hyphens",
+                ephemeral=True,
+            )
 
         await modchannel.send(
             f"New application from: {interaction.user.mention}",
@@ -264,7 +268,7 @@ class RejectRegistration(
                 await interaction.message.edit(view=select_reasons_view)
                 return
 
-            reason = select_reasons_view.selected
+            reason = select_reasons_view.selected[0]
 
         async with member:
             member.username = None
@@ -368,7 +372,11 @@ class RejectWithBanRegistration(
         if await select_ban_view.wait():
             return
 
-        banduration = select_ban_view.selected
+        banduration = (
+            None
+            if select_ban_view.selected[0] == "None"
+            else select_ban_view.selected[0]
+        )
 
         if banduration is not None and banduration != "0":
             ban_time = discord.utils.utcnow() + datetime.timedelta(
@@ -409,47 +417,3 @@ class RejectWithBanRegistration(
             ),
             allowed_mentions=discord.AllowedMentions(users=[user]),
         )
-
-
-class SelectView(ViewDisableOnTimeout):
-    def __init__(self, placeholder: str, options: list[discord.SelectOption]):
-        super().__init__(timeout=300)
-        self.select.placeholder = placeholder
-        self.options = options
-        for ind, option in enumerate(options):
-            typing.cast(discord.ui.Select, self.select).append_option(option)
-
-    @discord.ui.select(placeholder="", options=[])
-    async def select(
-        self, interaction: discord.Interaction["Red"], select: discord.ui.Select
-    ):
-        self.selected = select.values[0] if select.values[0] != "None" else None
-        disable_items(self)
-        await interaction.response.edit_message(view=self)
-        select.options.clear()
-        self.stop()
-
-
-class AskOneQuestion(discord.ui.Modal):
-    """Literally just ask one question in a modal"""
-
-    answer: str
-
-    def __init__(
-        self,
-        question: str,
-        *,
-        title: str,
-        timeout=None,
-    ):
-        super().__init__(title=title, timeout=timeout)
-        self.question = question
-        self.question_input = discord.ui.TextInput(
-            label=question, required=True
-        )
-        self.add_item(self.question_input)
-
-    async def on_submit(self, interaction: discord.Interaction["Red"]):
-        self.answer = self.question_input.value
-        await interaction.response.defer()
-        self.stop()
