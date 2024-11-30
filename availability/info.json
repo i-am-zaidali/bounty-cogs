@@ -1,1 +1,7 @@
-{"requirements": ["git+https://github.com/astanin/python-tabulate", "pytimeparse2", "dateparser"]}
+{
+    "requirements": [
+        "git+https://github.com/astanin/python-tabulate.git@ef4a407058db61dd5b8320d55adbeaba6809841f",
+        "pytimeparse2",
+        "dateparser"
+    ]
+}

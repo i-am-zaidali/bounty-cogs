@@ -1,13 +1,14 @@
-from datetime import datetime, time, timedelta, date
 import itertools
+import random
+import string
+from datetime import date, datetime, time, timedelta
+from typing import Dict, List, Literal, TypedDict
+
+import dateparser
+import discord
 import pytz
 from fuzzywuzzy import fuzz, process
-from typing import TypedDict, Dict, Literal, List
-import dateparser
 from redbot.core import commands
-import random
-import discord
-import string
 
 CHARACTERS = string.ascii_letters + string.digits + "-._~"
 
@@ -68,7 +69,8 @@ class TimeConverter(commands.Converter):
         return parsed
 
 
-chunks = lambda l, n: (l[i : i + n] for i in range(0, len(l), n))
+def chunks(l, n):
+    return (l[i : i + n] for i in range(0, len(l), n))
 
 
 def generate_unique_key():

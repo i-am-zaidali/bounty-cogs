@@ -1,16 +1,25 @@
 import functools
-from typing import Any, List, Optional, Tuple, Union, Literal
+from datetime import datetime, time, timedelta
+from typing import Any, List, Literal, Optional, Tuple, Union
 
+import dateparser
 import discord
-from redbot.core import commands, Config
+import pytz
+from redbot.core import Config, commands
 from redbot.core.config import Group
 from redbot.core.utils import chat_formatting as cf
-from datetime import timedelta, datetime
-import dateparser
-import pytz
-from .utils import get_next_occurrence, Event, Timeframe, chunks
 
-days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+from .utils import Event, Timeframe, chunks, get_next_occurrence
+
+days = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+]
 
 
 class BaseView(discord.ui.View):
@@ -49,19 +58,25 @@ class BaseView(discord.ui.View):
 
 
 class ConfirmationView(BaseView):
-    def __init__(self, timeout: int = 60, *, cancel_message: str = "Action cancelled."):
+    def __init__(
+        self, timeout: int = 60, *, cancel_message: str = "Action cancelled."
+    ):
         super().__init__(timeout=timeout)
         self.value = None
         self.cancel_message = cancel_message
 
     @discord.ui.button(label="Yes", style=discord.ButtonStyle.green)
-    async def yes(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def yes(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         self.value = True
         await self.disable_all(button, interaction)
         self.stop()
 
     @discord.ui.button(label="No", style=discord.ButtonStyle.red)
-    async def no(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def no(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         self.value = False
         await self.disable_all(button, interaction)
         self.stop()
@@ -90,7 +105,9 @@ class ConfirmationView(BaseView):
         await view.wait()
         if delete_after:
             delay = (
-                delete_after if delete_after is not True and cancel_message else None
+                delete_after
+                if delete_after is not True and cancel_message
+                else None
             )
             try:
                 await message.delete(delay=delay)
@@ -152,16 +169,18 @@ class TimeframeModal(discord.ui.Modal):
             return False
 
         if host_dates and parsed.date() not in host_dates:
-            return await interaction.response.send_message(
+            await interaction.response.send_message(
                 f"Host is not available on {parsed.date().strftime('%d/%m/%y')}. Please input a valid date among: {', '.join(d.strftime('%d/%m/%y') for d in host_dates)}",
                 ephemeral=True,
             )
+            return False
 
         return parsed.date()
 
     async def validate_times(
         self,
         interaction: discord.Interaction,
+        selected_date: datetime,
         from_time: str,
         to_time: str,
         tz=pytz.UTC,
@@ -170,6 +189,7 @@ class TimeframeModal(discord.ui.Modal):
             ft = dateparser.parse(
                 from_time,
                 settings={
+                    "RELATIVE_BASE": selected_date,
                     "PREFER_DATES_FROM": "future",
                     "RETURN_AS_TIMEZONE_AWARE": True,
                     "TIMEZONE": tz.tzname(None),
@@ -187,9 +207,10 @@ class TimeframeModal(discord.ui.Modal):
             tt = dateparser.parse(
                 to_time,
                 settings={
+                    "RELATIVE_BASE": selected_date,
                     "PREFER_DATES_FROM": "future",
                     "RETURN_AS_TIMEZONE_AWARE": True,
-                    "TIMEZONE": tz.tzname(None),
+                    "TO_TIMEZONE": tz.tzname(None),
                 },
             )
 
@@ -230,14 +251,14 @@ class TimeframeModal(discord.ui.Modal):
     async def get_user_timezone(self, interaction: discord.Interaction):
         error = ""
         if interaction.client.get_cog("Timezone"):
-            _, timezone = await interaction.client.get_cog("Timezone").get_usertime(
-                self.user
-            )
+            _, timezone = await interaction.client.get_cog(
+                "Timezone"
+            ).get_usertime(self.user)
             if not timezone:
-                error = f"You don't have a timezone set. Please set up your timezone with `[p]time me`\nUsing default timezone: UTC"
+                error = "You don't have a timezone set. Please set up your timezone with `[p]time me`\nUsing default timezone: UTC"
                 timezone = pytz.UTC
         else:
-            error = f"Timezone cog not loaded. Using default timezone: UTC"
+            error = "Timezone cog not loaded. Using default timezone: UTC"
             timezone = pytz.UTC
 
         return timezone, error
@@ -252,7 +273,7 @@ class TimeframeModal(discord.ui.Modal):
         host = self.view.event["host"]
         tz, _ = await self.get_user_timezone(interaction)
         all_host_dates = None
-        if not interaction.user.id == host:
+        if interaction.user.id != host:
             hostdata = self.view.event["signed_up"].get(
                 str(host), {"optimal": [], "suboptimal": []}
             )
@@ -264,10 +285,18 @@ class TimeframeModal(discord.ui.Modal):
             }
 
         date = await self.validate_date(interaction, date, tz, all_host_dates)
-        if not date:
+        if date is False:
             return self.stop()
         from_time, to_time = await self.validate_times(
-            interaction, from_time, to_time, tz
+            interaction,
+            datetime.combine(
+                date,
+                time.min,
+                tzinfo=tz,
+            ),
+            from_time,
+            to_time,
+            tz,
         )
         if not from_time or not to_time:
             return self.stop()
@@ -292,7 +321,9 @@ class TimeframeModal(discord.ui.Modal):
             f"<t:{int(ft.timestamp())}:F> to <t:{int(tt.timestamp())}:F>\n{warning}",
             ephemeral=True,
             view=(
-                view := ConfirmationView(cancel_message="I'll leave them as they are.")
+                view := ConfirmationView(
+                    cancel_message="I'll leave them as they are."
+                )
             ),
         )
         view.message = await interaction.original_response()
@@ -356,7 +387,9 @@ class UpdateTimeView(BaseView):
             "Are you sure you want to reset your timeframes?",
             ephemeral=True,
             view=(
-                view := ConfirmationView(cancel_message="I'll leave them as they are.")
+                view := ConfirmationView(
+                    cancel_message="I'll leave them as they are."
+                )
             ),
         )
         view.message = await interaction.original_response()
@@ -388,7 +421,9 @@ class UpdateTimeView(BaseView):
         self.stop()
 
     @discord.ui.button(label="Done", style=discord.ButtonStyle.green)
-    async def done(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def done(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         self.disable_items()
         self.stop()
         await interaction.response.edit_message(view=self)
@@ -397,12 +432,16 @@ class UpdateTimeView(BaseView):
     async def remove_timeframe(
         self, interaction: discord.Interaction, select: discord.ui.Select
     ):
-        times = [val for k, val in self.times.items() if str(k) not in select.values]
+        times = [
+            val for k, val in self.times.items() if str(k) not in select.values
+        ]
         await interaction.response.send_message(
             "Are you sure you want to reset the selected timeframes?",
             ephemeral=True,
             view=(
-                view := ConfirmationView(cancel_message="I'll leave them as they are.")
+                view := ConfirmationView(
+                    cancel_message="I'll leave them as they are."
+                )
             ),
         )
         view.message = await interaction.original_response()
@@ -413,9 +452,13 @@ class UpdateTimeView(BaseView):
             await self.config.signed_up.set_raw(
                 self.user.id,
                 self.mode.lower(),
-                value=self.event["signed_up"][str(self.user.id)][self.mode.lower()],
+                value=self.event["signed_up"][str(self.user.id)][
+                    self.mode.lower()
+                ],
             )
-            await interaction.followup.send("Timeframes removed.", ephemeral=True)
+            await interaction.followup.send(
+                "Timeframes removed.", ephemeral=True
+            )
 
     def update_select(self, times: List[Timeframe], edit: bool = False):
         self.times = dict(enumerate(times, start=1))
@@ -491,13 +534,17 @@ class ModeButtonView(BaseView):
         await self.send_new_view(interaction, "SUBOPTIMAL")
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
-    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def cancel(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         self.stop()
         self.disable_items()
         await interaction.response.edit_message(view=self)
 
     async def send_new_view(
-        self, interaction: discord.Interaction, mode: Literal["OPTIMAL", "SUBOPTIMAL"]
+        self,
+        interaction: discord.Interaction,
+        mode: Literal["OPTIMAL", "SUBOPTIMAL"],
     ):
         new_view = UpdateTimeView(
             mode,
@@ -514,7 +561,9 @@ class ModeButtonView(BaseView):
 
 
 class EventSelector(BaseView):
-    def __init__(self, config: Config, user: discord.User, events: dict[str, Event]):
+    def __init__(
+        self, config: Config, user: discord.User, events: dict[str, Event]
+    ):
         self.config = config
         self.user = user
         self.events = events
@@ -536,7 +585,9 @@ class EventSelector(BaseView):
         event = self.events[key]
         view = ModeButtonView(
             self.user,
-            self.config.custom("EVENTS", interaction.guild.id, select.values[0]),
+            self.config.custom(
+                "EVENTS", interaction.guild.id, select.values[0]
+            ),
             event,
         )
         await interaction.response.edit_message(
@@ -548,7 +599,9 @@ class EventSelector(BaseView):
         self.stop()
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
-    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def cancel(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         self.stop()
         self.disable_items()
         await interaction.response.edit_message(view=self)
@@ -601,7 +654,9 @@ class TimeframeSelectView(BaseView):
         modal = discord.ui.Modal(title="Finalize event", timeout=180)
         modal.add_item(
             discord.ui.TextInput(
-                label="Event location", required=True, style=discord.TextStyle.long
+                label="Event location",
+                required=True,
+                style=discord.TextStyle.long,
             )
         )
 
@@ -610,7 +665,9 @@ class TimeframeSelectView(BaseView):
                 "Are you sure you want to finalize the event at this time?",
                 ephemeral=True,
                 view=(
-                    view := ConfirmationView(cancel_message="Not ending the event ig.")
+                    view := ConfirmationView(
+                        cancel_message="Not ending the event ig."
+                    )
                 ),
             )
             view.message = await inter.original_response()
@@ -629,9 +686,9 @@ class TimeframeSelectView(BaseView):
                             "start_time": int(dt.timestamp()),
                         }
                     )
-                    async with self.config._config.guild(inter.guild).to_approve(
-                        {}
-                    ) as to_approve:
+                    async with self.config._config.guild(
+                        inter.guild
+                    ).to_approve({}) as to_approve:
                         to_approve[inter.message.id] = ev
                     await inter.followup.send(
                         f"Event sent to admins for approval!", ephemeral=True
@@ -688,8 +745,12 @@ class ConfirmEventView(discord.ui.View):
             ]
         )
 
-    @discord.ui.button(label="Approve", style=discord.ButtonStyle.green, custom_id="a")
-    async def approve(self, inter: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="Approve", style=discord.ButtonStyle.green, custom_id="a"
+    )
+    async def approve(
+        self, inter: discord.Interaction, button: discord.ui.Button
+    ):
         await inter.response.defer()
         data = await self.get_event_data(inter.message)
         if not data:
@@ -702,10 +763,14 @@ class ConfirmEventView(discord.ui.View):
         dt = datetime.fromtimestamp(data["start_time"])
 
         if dt < datetime.now(tz=dt.tzinfo):
-            async with self.config.guild(inter.guild).to_approve() as to_approve:
+            async with self.config.guild(
+                inter.guild
+            ).to_approve() as to_approve:
                 to_approve.pop(inter.message.id)
 
-            await inter.message.edit(content="Event expired!", embed=None, view=None)
+            await inter.message.edit(
+                content="Event expired!", embed=None, view=None
+            )
             return await inter.followup.send(
                 "The time for this event has passed already. Cancelling approval.",
                 ephemeral=True,
@@ -730,7 +795,9 @@ class ConfirmEventView(discord.ui.View):
             view=None,
         )
 
-    @discord.ui.button(label="Deny", style=discord.ButtonStyle.red, custom_id="d")
+    @discord.ui.button(
+        label="Deny", style=discord.ButtonStyle.red, custom_id="d"
+    )
     async def deny(self, inter: discord.Interaction, button: discord.ui.Button):
         await inter.response.defer()
         data = await self.get_event_data(inter.message)

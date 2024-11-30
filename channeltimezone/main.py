@@ -39,7 +39,7 @@ def all_min(
     if sortkey:
         iterable = sorted(iterable, key=sortkey)
     return min(
-        map(lambda x: (x[0], list(x[1])), itertools.groupby(iterable, key=key)),
+        ((x[0], list(x[1])) for x in itertools.groupby(iterable, key=key)),
         key=lambda x: x[0],
     )[1]
 

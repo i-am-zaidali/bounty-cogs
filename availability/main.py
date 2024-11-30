@@ -1,29 +1,37 @@
 import collections
+import functools
 import itertools
-import pytz
-from redbot.core import commands, Config, app_commands
-from redbot.core.bot import Red
-from redbot.core.utils import chat_formatting as cf, menus
-import discord
-from datetime import time, datetime, timedelta, date
-from typing import Optional, Literal
-from tabulate import tabulate, SEPARATING_LINE
 import random
 import string
+from datetime import date, datetime, time, timedelta
 from operator import attrgetter
-import pytimeparse2 as pytimeparse
-import functools
+from typing import Literal, Optional
 
+import discord
+import pytimeparse2 as pytimeparse
+import pytz
+from redbot.core import Config, app_commands, commands
+from redbot.core.bot import Red
+from redbot.core.utils import chat_formatting as cf
+from redbot.core.utils import menus
+from tabulate import SEPARATING_LINE, tabulate
+
+from .paginator import PaginationView
+from .utils import (
+    Attendee,
+    Event,
+    Timeframe,
+    cross_merge_lists,
+    generate_unique_key,
+)
 from .views import (
+    BaseView,
+    ConfirmationView,
+    ConfirmEventView,
     EventSelector,
     ModeButtonView,
-    ConfirmationView,
     TimeframeSelectView,
-    BaseView,
-    ConfirmEventView,
 )
-from .utils import Attendee, Event, Timeframe, generate_unique_key, cross_merge_lists
-from .paginator import PaginationView
 
 pytimeparse.disable_dateutil()  # we dont want relativedelta objects
 
@@ -71,7 +79,9 @@ class Availability(commands.Cog):
         self.cev.stop()
 
     @commands.hybrid_group(
-        name="availability", aliases=["avail", "avb"], invoke_without_command=True
+        name="availability",
+        aliases=["avail", "avb"],
+        invoke_without_command=True,
     )
     async def avb(self, ctx: commands.Context):
         """Manage your times of availability"""
@@ -95,7 +105,8 @@ class Availability(commands.Cog):
         ) or not (
             events := dict(
                 filter(
-                    lambda x: x[1]["signed_up"].get(str(x[1]["host"])) is not None
+                    lambda x: x[1]["signed_up"].get(str(x[1]["host"]))
+                    is not None
                     or x[1]["host"] == ctx.author.id,
                     events.items(),
                 )
@@ -103,7 +114,9 @@ class Availability(commands.Cog):
         ):
             return await ctx.send("No events have been started yet!")
 
-        await EventSelector(self.config, ctx.author, events).send_initial_message(
+        await EventSelector(
+            self.config, ctx.author, events
+        ).send_initial_message(
             ctx,
             content="Select an event to update your availability for:",
             ephemeral=True,
@@ -134,7 +147,9 @@ class Availability(commands.Cog):
             )
             from_date = from_time.date()
 
-            to_time = datetime.fromisoformat(timeframe["to"]).astimezone(to_timezone)
+            to_time = datetime.fromisoformat(timeframe["to"]).astimezone(
+                to_timezone
+            )
             to_date = to_time.date()
 
             if from_date != to_date:
@@ -146,9 +161,13 @@ class Availability(commands.Cog):
                 for i in range(from_time.hour, to_time.hour):
                     availability[from_date][i] = "\u001b[1;32m■\u001b[0m"
             if from_time.minute != 0:
-                availability[from_date][from_time.hour] = "\u001b[1;47;32m■\u001b[0m"
+                availability[from_date][from_time.hour] = (
+                    "\u001b[1;47;32m■\u001b[0m"
+                )
             if to_time.minute != 0:
-                availability[to_date][to_time.hour] = "\u001b[1;47;32m■\u001b[0m"
+                availability[to_date][to_time.hour] = (
+                    "\u001b[1;47;32m■\u001b[0m"
+                )
 
             pairs.setdefault("optimal", []).append((from_time, to_time))
         for timeframe in suboptimal:
@@ -157,7 +176,9 @@ class Availability(commands.Cog):
             )
             from_date = from_time.date()
 
-            to_time = datetime.fromisoformat(timeframe["to"]).astimezone(to_timezone)
+            to_time = datetime.fromisoformat(timeframe["to"]).astimezone(
+                to_timezone
+            )
             to_date = to_time.date()
 
             if from_date != to_date:
@@ -169,14 +190,21 @@ class Availability(commands.Cog):
                 for i in range(from_time.hour, to_time.hour):
                     availability[from_date][i] = "\u001b[1;33m■\u001b[0m"
             if from_time.minute != 0:
-                availability[from_date][from_time.hour] = "\u001b[1;47;33m■\u001b[0m"
+                availability[from_date][from_time.hour] = (
+                    "\u001b[1;47;33m■\u001b[0m"
+                )
             if to_time.minute != 0:
-                availability[to_date][to_time.hour] = "\u001b[1;47;33m■\u001b[0m"
+                availability[to_date][to_time.hour] = (
+                    "\u001b[1;47;33m■\u001b[0m"
+                )
 
             pairs.setdefault("suboptimal", []).append((from_time, to_time))
         return (
             dict(
-                map(lambda x: (x[0].strftime("%b %d\n%a"), x[1]), availability.items())
+                map(
+                    lambda x: (x[0].strftime("%b %d\n%a"), x[1]),
+                    availability.items(),
+                )
             ),
             pairs,
         )
@@ -195,7 +223,8 @@ class Availability(commands.Cog):
             return [
                 app_commands.Choice(name=events[key]["name"], value=key)
                 for key in events
-                if events[key]["name"].startswith(argument) or key.startswith(argument)
+                if events[key]["name"].startswith(argument)
+                or key.startswith(argument)
             ]
 
     @avb.command(name="chart", aliases=["show", "check"])
@@ -215,31 +244,38 @@ class Availability(commands.Cog):
             "EVENTS", ctx.guild.id
         ).get_raw(eventkey, default=None)
         if not event:
-            return await ctx.send("No event with that key exists!", ephemeral=True)
+            return await ctx.send(
+                "No event with that key exists!", ephemeral=True
+            )
         userdata = event["signed_up"].get(str(user.id))
         if not userdata:
             return await ctx.send(
-                f"{user.name} has not signed up for this event yet!", ephemeral=True
+                f"{user.name} has not signed up for this event yet!",
+                ephemeral=True,
             )
         optimal = userdata.setdefault("optimal", [])
         suboptimal = userdata.setdefault("suboptimal", [])
         if not optimal and not suboptimal:
             return await ctx.send(
-                f"{user.name} has not set up their availability yet.", ephemeral=True
+                f"{user.name} has not set up their availability yet.",
+                ephemeral=True,
             )
         error = ""
         if self.bot.get_cog("Timezone"):
-            _, timezone = await self.bot.get_cog("Timezone").get_usertime(ctx.author)
+            _, timezone = await self.bot.get_cog("Timezone").get_usertime(
+                ctx.author
+            )
             if not timezone:
                 error = f"You don't have a timezone set. Please set up your timezone with `{ctx.clean_prefix}time me`\nUsing default timezone: UTC"
                 timezone = pytz.UTC
         else:
-            error = f"Timezone cog not loaded. Using default timezone: UTC"
+            error = "Timezone cog not loaded. Using default timezone: UTC"
             timezone = pytz.UTC
 
         days_boxes, times = await self.generate_user_chart(
             optimal, suboptimal, timezone
         )
+        print(days_boxes)
 
         tabulated_days = tabulate(
             days_boxes,
@@ -251,8 +287,8 @@ class Availability(commands.Cog):
             ],
             headersglobalalign="center",
             colglobalalign="center",
-            maxcolwidths=[5] + [3 for _ in all_timestamps[1:]],
-            maxheadercolwidths=6,
+            # maxcolwidths=[5] + [None for _ in all_timestamps[1:]],
+            # maxheadercolwidths=6,
         )
 
         embed2 = discord.Embed(
@@ -277,7 +313,8 @@ class Availability(commands.Cog):
         )
 
         await PaginationView(
-            [{"embeds": [embed], "content": error}, {"embeds": [embed2]}], timeout=60
+            [{"embeds": [embed], "content": error}, {"embeds": [embed2]}],
+            timeout=60,
         ).start(ctx)
 
     @avb.group(name="event", aliases=["events"], invoke_without_command=True)
@@ -288,7 +325,9 @@ class Availability(commands.Cog):
     async def find_event(
         self, guild: discord.Guild, key: Optional[str] = None
     ) -> Optional[tuple[str, Event]]:
-        event = await self.config.custom("EVENTS", guild.id).get_raw(key, default=None)
+        event = await self.config.custom("EVENTS", guild.id).get_raw(
+            key, default=None
+        )
         if event is None:
             events = await self.config.custom("EVENTS", guild.id).all()
             for k, event in events.items():
@@ -332,7 +371,9 @@ class Availability(commands.Cog):
             signed_up={},
             host=ctx.author.id,
         )
-        await self.config.custom("EVENTS", ctx.guild.id).set_raw(key, value=event)
+        await self.config.custom("EVENTS", ctx.guild.id).set_raw(
+            key, value=event
+        )
 
         view.message = await ctx.send(
             f"Event {name} started! Users can now sign up for it by setting their availability for it with `{ctx.clean_prefix}availability update`\n"
@@ -341,7 +382,9 @@ class Availability(commands.Cog):
             "Use the below buttons to set your own availability for this event. Others can't sign up for this event until you do so.",
             view=(
                 view := ModeButtonView(
-                    ctx.author, self.config.custom("EVENTS", ctx.guild.id, key), event
+                    ctx.author,
+                    self.config.custom("EVENTS", ctx.guild.id, key),
+                    event,
                 )
             ),
             ephemeral=True,
@@ -365,7 +408,9 @@ class Availability(commands.Cog):
         """List all events"""
         events = await self.config.custom("EVENTS", ctx.guild.id).all()
         if not events:
-            return await ctx.send("No events have been started yet!", ephemeral=True)
+            return await ctx.send(
+                "No events have been started yet!", ephemeral=True
+            )
         await ctx.send(
             embed=discord.Embed(
                 title="Events",
@@ -390,7 +435,8 @@ class Availability(commands.Cog):
             return {}, []
         dt_boxes: dict[datetime, list[str]] = {
             datetime.combine(date, _time): cross_merge_lists(
-                ["\u001b[0;30m■\u001b[0m"] * len(attendees), fillvalue=SEPARATING_LINE
+                ["\u001b[0;30m■\u001b[0m"] * len(attendees),
+                fillvalue=SEPARATING_LINE,
             )[:-1]
             for date, data in common.items()
             for _time in sorted(
@@ -401,7 +447,9 @@ class Availability(commands.Cog):
             )
         }
         keys = list(parsed.keys())
-        indices = {int(user_id): keys.index(int(user_id)) * 2 for user_id in attendees}
+        indices = {
+            int(user_id): keys.index(int(user_id)) * 2 for user_id in attendees
+        }
 
         for dt, boxes in dt_boxes.items():
             for user_id, data in parsed.items():
@@ -412,7 +460,10 @@ class Availability(commands.Cog):
                         boxes[indices[user_id]] = "\u001b[1;33m■\u001b[0m"
 
         return dict(
-            map(lambda x: (x[0].strftime("%b %d\n%a\n%H:%M"), x[1]), dt_boxes.items())
+            map(
+                lambda x: (x[0].strftime("%b %d\n%a\n%H:%M"), x[1]),
+                dt_boxes.items(),
+            )
         ), list(dt_boxes.keys())
 
     @avb_event.command(name="attendees")
@@ -420,7 +471,9 @@ class Availability(commands.Cog):
     async def avb_event_attendees(self, ctx: commands.Context, eventkey: str):
         """List all attendees of an event"""
         if not (event := await self.find_event(guild=ctx.guild, key=eventkey)):
-            return await ctx.send("No event with that key exists!", ephemeral=True)
+            return await ctx.send(
+                "No event with that key exists!", ephemeral=True
+            )
         key, event = event
         signed_up = event["signed_up"]
         if not signed_up:
@@ -436,7 +489,9 @@ class Availability(commands.Cog):
 
         error = ""
         if self.bot.get_cog("Timezone"):
-            _, timezone = await self.bot.get_cog("Timezone").get_usertime(ctx.author)
+            _, timezone = await self.bot.get_cog("Timezone").get_usertime(
+                ctx.author
+            )
             if not timezone:
                 error = f"You don't have a timezone set. Please set up your timezone with `{ctx.clean_prefix}time me`\nUsing default timezone: UTC"
                 timezone = pytz.UTC
@@ -453,7 +508,9 @@ class Availability(commands.Cog):
             )
 
         indices = [
-            getattr(ctx.guild.get_member(int(i)), "display_name", "User not found")
+            getattr(
+                ctx.guild.get_member(int(i)), "display_name", "User not found"
+            )
             for i in signed_up
         ] + [None] * len(boxes)
         tabulated_days = tabulate(
@@ -489,7 +546,9 @@ class Availability(commands.Cog):
             ephemeral=True,
         )
 
-    def get_ranges(self, attendees: dict[str, Attendee], as_timezone: pytz.BaseTzInfo):
+    def get_ranges(
+        self, attendees: dict[str, Attendee], as_timezone: pytz.BaseTzInfo
+    ):
         temp: dict[
             int, dict[date, dict[Literal["optimal", "suboptimal"], set[time]]]
         ] = {}
@@ -528,7 +587,9 @@ class Availability(commands.Cog):
                     from_time = datetime.fromisoformat(tf2["from"])
                     org_tz = from_time.tzinfo
                     from_time = from_time.astimezone(as_timezone)
-                    to_time = datetime.fromisoformat(tf2["to"]).astimezone(as_timezone)
+                    to_time = datetime.fromisoformat(tf2["to"]).astimezone(
+                        as_timezone
+                    )
                     day_data = data.setdefault(
                         to_time.date(), {"optimal": set(), "suboptimal": set()}
                     )
@@ -546,7 +607,9 @@ class Availability(commands.Cog):
                     all_dates.add(to_time.date())
         return temp, all_dates
 
-    def find_common(self, attendees: dict[str, Attendee], as_timezone: pytz.BaseTzInfo):
+    def find_common(
+        self, attendees: dict[str, Attendee], as_timezone: pytz.BaseTzInfo
+    ):
         temp, dates = self.get_ranges(attendees, as_timezone)
         return temp, {
             date: {
