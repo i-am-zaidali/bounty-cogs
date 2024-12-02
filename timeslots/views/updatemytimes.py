@@ -66,7 +66,7 @@ class UpdateMyTimes(
                     label=date.strftime("%A %m/%d/%Y"), value=str(date.weekday())
                 )
                 for i, date in enumerate(
-                    dates_iter(datetime.date.today(), conf.next_chart_reset)
+                    dates_iter(datetime.datetime.now(tz=datetime.timezone(conf.utcoffset)).date(), conf.next_chart_reset)
                 )
             ],
             deselect_placeholder="",  # won't be used
