@@ -1,0 +1,20 @@
+{
+    "name": "ImageUtils",
+    "short": "A cog that allows you to edit images",
+    "description": "This cog allows users to edit images using various commands within discord. This is currently a WIP and only supports upscaling and downscaling",
+    "end_user_data_statement": "This cog does not store any user data persistently.",
+    "install_msg": "Thanks for installing ImageUtils!\nPlease report any bugs/log output in *#support_other-cogs* on the cog support server (https://discord.gg/GET4DVk).",
+    "author": [
+        "crayyy_zee"
+    ],
+    "required_cogs": {},
+    "requirements": [
+        "pillow==11.0.0"
+    ],
+    "tags": [
+        "image",
+        "editing",
+        "upscaling"
+    ],
+    "type": "COG"
+}
