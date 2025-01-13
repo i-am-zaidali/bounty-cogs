@@ -63,24 +63,23 @@ class Listeners(MixinMeta, metaclass=CompositeMetaClass):
             conf.get_member(member).leave_date = discord.utils.utcnow()
 
     @commands.Cog.listener()
-    async def on_member_update(
-        self, before: discord.Member, after: discord.Member
-    ):
+    async def on_member_update(self, before: discord.Member, after: discord.Member):
         conf = self.db.get_conf(after.guild)
         memdata = conf.get_member(before.id)
         if before.nick != after.nick and memdata.username:
+            before_nick = before.nick or ""
+            after_nick = after.nick or ""
             new_username: str = ""
-            if (
-                memdata.username in before.nick
-                and memdata.username not in after.nick
-            ):
-                new_username = before.nick
+            if memdata.username in before_nick and (memdata.username not in after_nick):
+                new_username = before_nick
 
-            if memdata.username not in after.nick or (
-                not after.nick.endswith(memdata.username)
-                or not after.nick.startswith(memdata.username)
+            elif memdata.username not in after_nick or (
+                not after_nick.endswith(memdata.username)
+                or not after_nick.startswith(memdata.username)
             ):
-                new_username = f"{after.nick.replace(memdata.username, '')} | {memdata.username}"
+                new_username = (
+                    f"{after_nick.replace(memdata.username, '')} | {memdata.username}"
+                )
 
             if new_username and new_username != after.nick:
                 if len(new_username) > 32:
@@ -142,9 +141,7 @@ class Listeners(MixinMeta, metaclass=CompositeMetaClass):
 
         if state is None:
             # if no state is found, query the https://digitalapi.auspost.com.au/postcode/search.json API with the content, split by a ','
-            api_key = (await self.bot.get_shared_api_tokens("auspost")).get(
-                "key"
-            )
+            api_key = (await self.bot.get_shared_api_tokens("auspost")).get("key")
             if api_key:
                 queries = content.strip().split(",")
                 results = list[str]()
@@ -166,9 +163,7 @@ class Listeners(MixinMeta, metaclass=CompositeMetaClass):
                                                 json["localities"]["locality"],
                                                 list,
                                             )
-                                            else [
-                                                json["localities"]["locality"]
-                                            ]
+                                            else [json["localities"]["locality"]]
                                         )
                                     )
                 if results:
@@ -240,9 +235,7 @@ class Listeners(MixinMeta, metaclass=CompositeMetaClass):
             memdata.message_id = message.id
 
         vehicles = conf.vehicles
-        unknown = [
-            vehicle for vehicle in vehicle_amount if vehicle not in vehicles
-        ]
+        unknown = [vehicle for vehicle in vehicle_amount if vehicle not in vehicles]
         view = InvalidStats(message, vehicle_amount, unknown)
         if unknown:
             await message.add_reaction("🕒")
@@ -295,9 +288,7 @@ class Listeners(MixinMeta, metaclass=CompositeMetaClass):
             view=new_view,
         )
 
-    async def check_reminder_enabled(
-        self, cog: commands.Cog, user: discord.Member
-    ):
+    async def check_reminder_enabled(self, cog: commands.Cog, user: discord.Member):
         reminders = cog.cache.get(user.id)
         if (
             not reminders
@@ -313,9 +304,7 @@ class Listeners(MixinMeta, metaclass=CompositeMetaClass):
             )
             is None
         ):
-            async with self.db.get_conf(user.guild.id).get_member(
-                user.id
-            ) as memdata:
+            async with self.db.get_conf(user.guild.id).get_member(user.id) as memdata:
                 memdata.reminder_enabled = False
             return False
 

@@ -38,7 +38,7 @@ class MissionChiefMetrics(
     A cog that helps with managing statistics for the game MissionChief"""
 
     __author__ = "crayyy_zee"
-    __version__ = "2.2.0"
+    __version__ = "2.2.1"
 
     def __init__(self, bot: Red):
         super().__init__()
@@ -64,9 +64,7 @@ class MissionChiefMetrics(
 
     def format_help_for_context(self, ctx: commands.Context):
         helpcmd = super().format_help_for_context(ctx)
-        txt = "Version: {}\nAuthor: {}".format(
-            self.__version__, self.__author__
-        )
+        txt = "Version: {}\nAuthor: {}".format(self.__version__, self.__author__)
         return f"{helpcmd}\n\n{txt}"
 
     async def cog_unload(self):
@@ -149,9 +147,7 @@ class MissionChiefMetrics(
         vehicles = conf.vehicles
         tab_data: list[tuple[str, int, int, str]] = [
             (
-                f"{f'{diff:+}'[0]} {name}"
-                if (diff := new - old) != 0
-                else name,
+                f"{f'{diff:+}'[0]} {name}" if (diff := new - old) != 0 else name,
                 old,
                 new,
                 f"{diff:+}",
