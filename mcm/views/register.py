@@ -6,6 +6,11 @@ import discord
 import redbot.core.utils.chat_formatting as cf
 from redbot.core.utils.views import ConfirmView
 
+from ..common.utils import (
+    compress_string_if_long,
+    decompress_if_compressed,
+    shorten_string,
+)
 from .utilviews import AskOneQuestion, SelectView
 from .viewdisableontimeout import (
     ViewDisableOnTimeout,
@@ -96,9 +101,7 @@ class RegistrationModal(discord.ui.Modal):
             timestamp=discord.utils.utcnow(),
         ).set_author(name=user.name, icon_url=user.display_avatar.url)
         for question in self.question_inputs:
-            embed.add_field(
-                name=question.label, value=question.value, inline=False
-            )
+            embed.add_field(name=question.label, value=question.value, inline=False)
 
         return embed
 
@@ -140,9 +143,7 @@ class AcceptRegistration(
         )
 
     async def callback(self, interaction: discord.Interaction["Red"]):
-        cog = typing.cast(
-            "MCM", interaction.client.get_cog("MissionChiefMetrics")
-        )
+        cog = typing.cast("MCM", interaction.client.get_cog("MissionChiefMetrics"))
         db = cog.db.get_conf(interaction.guild)
         member = db.get_member(self.userid)
         user = interaction.guild.get_member(self.userid)
@@ -159,9 +160,7 @@ class AcceptRegistration(
                 f"<@{self.userid}> ({self.userid}) is already registered as {member.username}. Are you sure you want to re-register them as {self.username}?",
                 ephemeral=True,
                 wait=True,
-                view=(
-                    view := ConfirmView(interaction.user, disable_buttons=True)
-                ),
+                view=(view := ConfirmView(interaction.user, disable_buttons=True)),
             )
             res = await view.wait()
             if res:
@@ -226,9 +225,7 @@ class RejectRegistration(
         )
 
     async def callback(self, interaction: discord.Interaction["Red"]):
-        cog = typing.cast(
-            "MCM", interaction.client.get_cog("MissionChiefMetrics")
-        )
+        cog = typing.cast("MCM", interaction.client.get_cog("MissionChiefMetrics"))
         conf = cog.db.get_conf(interaction.guild)
         member = conf.get_member(self.userid)
         user = interaction.guild.get_member(self.userid)
@@ -252,9 +249,13 @@ class RejectRegistration(
             select_reasons_view = SelectView(
                 "Select a reason for rejection",
                 [
-                    discord.SelectOption(label=reason, value=reason)
+                    discord.SelectOption(
+                        label=shorten_string(100, reason),
+                        value=compress_string_if_long(100, reason),
+                    )
                     for reason in conf.registration.rejection_reasons
                 ],
+                max_selected=1,
             )
             select_reasons_view.message = await interaction.followup.send(
                 "Please select a reason for your rejection from the below select menu.",
@@ -268,7 +269,9 @@ class RejectRegistration(
                 await interaction.message.edit(view=select_reasons_view)
                 return
 
-            reason = select_reasons_view.selected[0]
+            reason = decompress_if_compressed(
+                list(select_reasons_view.selected)[0].value
+            )
 
         async with member:
             member.username = None
@@ -320,9 +323,7 @@ class RejectWithBanRegistration(
         )
 
     async def callback(self, interaction: discord.Interaction["Red"]):
-        cog = typing.cast(
-            "MCM", interaction.client.get_cog("MissionChiefMetrics")
-        )
+        cog = typing.cast("MCM", interaction.client.get_cog("MissionChiefMetrics"))
         conf = cog.db.get_conf(interaction.guild)
         member = conf.get_member(self.userid)
         user = interaction.guild.get_member(self.userid)

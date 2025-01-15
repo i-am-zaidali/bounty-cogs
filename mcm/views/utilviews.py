@@ -16,21 +16,32 @@ class SelectView(ViewDisableOnTimeout):
         select_placeholder: str,
         options: list[discord.SelectOption],
         deselect_placeholder: str = "Select items to deselect",
+        *,
+        max_selected: typing.Optional[int] = None,
     ):
         super().__init__(timeout=300)
         self.options = set(options)
         self.selected = set[discord.SelectOption]()
+        if max_selected is not None and max_selected < 1:
+            raise ValueError("max_selected must be greater than 0")
+        self.max_selected = max_selected
 
     def generate_selects(self, inter: discord.Interaction["Red"] | None = None):
         self.clear_items()
         for ind, chunk in enumerate(chunks(self.options, 25)):
+            max_selected = (
+                self.max_selected is not None
+                and len(self.selected) >= self.max_selected
+            )
             select = discord.ui.Select(
-                placeholder="Select vehicles to add to the category",
+                placeholder=(" (Disabled: Max selected)" if max_selected else "")
+                + "Select vehicles to add to the category",
                 custom_id=f"select_{ind}",
                 options=[
                     discord.SelectOption(label=vehicle, value=vehicle)
                     for vehicle in chunk
                 ],
+                disabled=max_selected,
             )
             select.callback = functools.partial(self.select_cb, select)
             self.add_item(select)
@@ -85,9 +96,7 @@ class AskOneQuestion(discord.ui.Modal):
     ):
         super().__init__(title=title, timeout=timeout)
         self.question = question
-        self.question_input = discord.ui.TextInput(
-            label=question, required=True
-        )
+        self.question_input = discord.ui.TextInput(label=question, required=True)
         self.add_item(self.question_input)
 
     async def on_submit(self, interaction: discord.Interaction["Red"]):

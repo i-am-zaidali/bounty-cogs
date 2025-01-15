@@ -22,9 +22,7 @@ MaybeAwaitableFunc = typing.Callable[P, MaybeAwaitable[T]]
 lower_str_param = commands.param(converter=str.lower)
 
 # the format of the stats in a message would be <vehicle name with spaces and/or hyphens> <four spaces> <number>
-base_regex = re.compile(
-    r"(?P<vehicle_name>[a-z0-9A-Z \t\-\/]+)\s{4}(?P<amount>\d+)"
-)
+base_regex = re.compile(r"(?P<vehicle_name>[a-z0-9A-Z \t\-\/]+)\s{4}(?P<amount>\d+)")
 
 
 def extract_metadata_from_url(url: str) -> dict[str, typing.Any]:
@@ -40,9 +38,7 @@ def extract_metadata_from_url(url: str) -> dict[str, typing.Any]:
 def embed_metadata_into_url(metadata: dict[str, typing.Any]):
     return (
         "https://www.notavalidsite.com/"
-        + zlib.compress(
-            urllib.parse.quote_plus(json.dumps(metadata)).encode()
-        ).hex()
+        + zlib.compress(urllib.parse.quote_plus(json.dumps(metadata)).encode()).hex()
     )
 
 
@@ -163,21 +159,15 @@ class MCMUsernameToDiscordUser(commands.UserConverter):
                 ),
                 None,
             )
-            member = ctx.guild.get_member(memberid) or ctx.bot.get_user(
-                memberid
-            )
+            member = ctx.guild.get_member(memberid) or ctx.bot.get_user(memberid)
             if not member:
-                raise commands.BadArgument(
-                    "No member found with that username."
-                )
+                raise commands.BadArgument("No member found with that username.")
 
             return member
 
 
 class DateInPast(commands.Converter[datetime.datetime]):
-    async def convert(
-        self, ctx: commands.Context, argument: str
-    ) -> datetime.datetime:
+    async def convert(self, ctx: commands.Context, argument: str) -> datetime.datetime:
         try:
             date = dateparser.parse(
                 argument,
@@ -195,3 +185,24 @@ class DateInPast(commands.Converter[datetime.datetime]):
             raise commands.BadArgument("Date must be in the past.")
 
         return date
+
+
+def shorten_string(max_len: int, string: str):
+    if len(string) <= max_len:
+        return string
+
+    return string[: max_len - 3] + "..."
+
+
+def compress_string_if_long(max_len: int, string: str):
+    if len(string) <= max_len:
+        return string
+
+    return zlib.compress(string.encode()).hex()
+
+
+def decompress_if_compressed(string: str):
+    try:
+        return zlib.decompress(bytes.fromhex(string)).decode()
+    except (zlib.error, UnicodeDecodeError):
+        return string

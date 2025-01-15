@@ -101,7 +101,7 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
         if not memdata.username:
             return await ctx.send("This member is not registered.")
         await ctx.send(
-            f"{member.mention} ({member.id}) was registered as ***{memdata.username}*** {f'by <@{mid}> ({mid})' if (mid:=memdata.registered_by) else ''}on <t:{int(memdata.registration_date.timestamp())}:F>"
+            f"{member.mention} ({member.id}) was registered as ***{memdata.username}*** {f'by <@{mid}> ({mid})' if (mid := memdata.registered_by) else ''}on <t:{int(memdata.registration_date.timestamp())}:F>"
         )
 
     @mcm.command(name="autodebind")
@@ -175,7 +175,7 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
             title="Search Results",
             description=f"Search pattern: `{searchpattern}`\n\n"
             + "\n".join(
-                f"- {getattr(member,'mention', 'User not found in server')} ({getattr(member, 'id', member)})\n"
+                f"- {getattr(member, 'mention', 'User not found in server')} ({getattr(member, 'id', member)})\n"
                 f"  - {data.username}\n  - Registered: <t:{int(data.registration_date.timestamp())}:F>"
                 for member, data in all_usernames
             ),
@@ -235,9 +235,7 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
         await ctx.send(f"Removed question: {question}")
         await ctx.tick()
 
-    @mcm_registration_questions.command(
-        name="toggle", aliases=["enable", "disable"]
-    )
+    @mcm_registration_questions.command(name="toggle", aliases=["enable", "disable"])
     async def mcm_registration_questions_toggle(
         self, ctx: commands.Context, index: commands.Range[int, 0, 5]
     ):
@@ -257,9 +255,7 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
         async with conf:
             question = list(conf.registration.questions.keys())[index - 1]
             conf.registration.questions[question] = val = (
-                val
-                if val is not None
-                else not conf.registration.questions[question]
+                val if val is not None else not conf.registration.questions[question]
             )
 
         await ctx.send(
@@ -278,22 +274,20 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
             title="Registration Questions", color=await ctx.embed_color()
         )
         embed.description = "\n".join(
-            f"{i+1}. {q}\n"
+            f"{i + 1}. {q}\n"
             f"  - {'enabled' if toggle else 'disabled' if i != 1 else 'Always enabled'}"
             for i, (q, toggle) in enumerate(questions.items())
         )
         await ctx.send(embed=embed)
 
-    @mcm_registration.group(
-        name="rejectionreasons", aliases=["rejectionreason", "rr"]
-    )
+    @mcm_registration.group(name="rejectionreasons", aliases=["rejectionreason", "rr"])
     @commands.admin()
     async def mcm_registration_reasons(self, ctx: commands.Context):
         """Registration rejection reasons"""
 
     @mcm_registration_reasons.command(name="add")
     async def mcm_registration_reasons_add(
-        self, ctx: commands.Context, *, reason: str
+        self, ctx: commands.Context, *, reason: commands.Range[str, 1, 100]
     ):
         """Add a registration rejection reason"""
         conf = self.db.get_conf(ctx.guild)
@@ -329,6 +323,6 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
             color=await ctx.embed_color(),
         )
         embed.description = "\n".join(
-            f"{i+1}. {reason}" for i, reason in enumerate(reasons)
+            f"{i + 1}. {reason}" for i, reason in enumerate(reasons)
         )
         await ctx.send(embed=embed)
