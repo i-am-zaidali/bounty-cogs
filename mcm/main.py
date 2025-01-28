@@ -38,7 +38,7 @@ class MissionChiefMetrics(
     A cog that helps with managing statistics for the game MissionChief"""
 
     __author__ = "crayyy_zee"
-    __version__ = "2.2.1"
+    __version__ = "2.2.3"
 
     def __init__(self, bot: Red):
         super().__init__()

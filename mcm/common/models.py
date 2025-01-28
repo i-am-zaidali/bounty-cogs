@@ -35,16 +35,13 @@ class RegistrationConfig(Base):
     bans: dict[int, typing.Optional[datetime.datetime]] = pydantic.Field(
         default_factory=dict
     )
-    rejection_reasons: list[str] = pydantic.Field(
-        default_factory=list, max_length=5
-    )
+    rejection_reasons: list[str] = pydantic.Field(default_factory=list, max_length=5)
     questions: dict[str, bool] = pydantic.Field(
-        default_factory=lambda: {
-            "Enter your Mission Chief username below:": True
-        },
+        default_factory=lambda: {"Enter your Mission Chief username below:": True},
         min_length=1,
         max_length=5,
     )
+    registered_role: typing.Optional[int] = None
 
 
 class MemberData(Base):
@@ -64,17 +61,13 @@ class GuildSettings(Base):
     coursechannel: typing.Optional[int] = None
     modalertchannel: typing.Optional[int] = None
     vehicles: list[str] = pydantic.Field(default_factory=list)
-    vehicle_categories: dict[str, list[str]] = pydantic.Field(
-        default_factory=dict
-    )
+    vehicle_categories: dict[str, list[str]] = pydantic.Field(default_factory=dict)
     course_shorthands: dict[str, str] = pydantic.Field(default_factory=dict)
     course_role: typing.Optional[int] = None
     course_teacher_role: typing.Optional[int] = None
     course_count: dict[str, int] = pydantic.Field(default_factory=dict)
     state_roles: dict[str, typing.Optional[int]] = pydantic.Field(
-        default_factory=lambda: dict.fromkeys(
-            StateShorthands.__members__.keys(), None
-        )
+        default_factory=lambda: dict.fromkeys(StateShorthands.__members__.keys(), None)
     )
     members: dict[int, MemberData] = pydantic.Field(default_factory=dict)
     registration: RegistrationConfig = pydantic.Field(

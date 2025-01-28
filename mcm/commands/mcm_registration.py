@@ -36,8 +36,18 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
             memdata.username = username
             memdata.registration_date = ctx.message.created_at
             memdata.registered_by = ctx.author.id
+
+        roles = member.roles
+
+        if (
+            conf.registration.registered_role
+            and (role := ctx.guild.get_role(conf.registration.registered_role))
+            and not member.get_role(role.id)
+        ):
+            roles.append(role)
+
         try:
-            await member.edit(nick=username)
+            await member.edit(nick=username, roles=roles)
 
         except discord.HTTPException:
             await ctx.send(
@@ -74,8 +84,19 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
             memdata.username = None
             memdata.registration_date = None
 
+        roles = member.roles
+
+        if (
+            conf.registration.registered_role
+            and (role := ctx.guild.get_role(conf.registration.registered_role))
+            and member.get_role(role.id)
+        ):
+            roles.remove(role)
+
         try:
-            await member.edit(nick=(member.nick or "").replace(username, ""))
+            await member.edit(
+                nick=(member.nick or "").replace(username, ""), roles=roles
+            )
         except discord.HTTPException:
             await ctx.send(
                 "I was unable to change this user's nickname in the server. Please do so manually."
@@ -100,6 +121,7 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
         memdata = conf.get_member(member.id)
         if not memdata.username:
             return await ctx.send("This member is not registered.")
+
         await ctx.send(
             f"{member.mention} ({member.id}) was registered as ***{memdata.username}*** {f'by <@{mid}> ({mid})' if (mid := memdata.registered_by) else ''}on <t:{int(memdata.registration_date.timestamp())}:F>"
         )
@@ -203,6 +225,15 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
             RegisteredUsersSource([*registered.items()], per_page=6),
             use_select=True,
         ).start(ctx)
+
+    @commands.admin()
+    @mcm_registration.command(name="role")
+    async def mcm_registration_role(self, ctx: commands.Context, role: discord.Role):
+        """Set the role to be given to registered members"""
+        conf = self.db.get_conf(ctx.guild)
+        async with conf:
+            conf.registration.registered_role = role.id
+        await ctx.tick()
 
     @commands.admin()
     @mcm_registration.group(name="questions", aliases=["question", "q"])

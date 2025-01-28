@@ -183,8 +183,17 @@ class AcceptRegistration(
         async with member:
             member.username = self.username
             member.registration_date = discord.utils.utcnow()
+
+        roles = user.roles
+
+        if (
+            db.registration.registered_role
+            and (role := interaction.guild.get_role(db.registration.registered_role))
+            and not user.get_role(role.id)
+        ):
+            roles.append(role)
         try:
-            await user.edit(nick=self.username)
+            await user.edit(nick=self.username, roles=roles)
         except discord.HTTPException:
             await interaction.followup.send(
                 "Failed to set nickname. Please set it manually.",
