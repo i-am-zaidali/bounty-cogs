@@ -1,0 +1,31 @@
+{
+    "author": [
+        "crayyy_zee"
+    ],
+    "description": "A cog that tracks when new users send messages in a server.",
+    "disabled": false,
+    "end_user_data_statement": "This cog stores the user ids of new joiners in a server.",
+    "hidden": false,
+    "install_msg": "Thank you for installing `FirstWords`! Run `[p]help FirstWords` for more information.",
+    "min_bot_version": "3.5.3",
+    "min_python_version": [
+        3,
+        10,
+        0
+    ],
+    "permissions": [
+        "administrator"
+    ],
+    "required_cogs": {},
+    "requirements": [
+        "pydantic"
+    ],
+    "short": "",
+    "tags": [
+        "server",
+        "welcome",
+        "join",
+        "alert"
+    ],
+    "type": "COG"
+}
