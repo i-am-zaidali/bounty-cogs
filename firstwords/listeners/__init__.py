@@ -54,6 +54,7 @@ class Listeners(MixinMeta, metaclass=CompositeMetaClass):
             return
 
         conf = self.db.get_conf(message.guild.id)
+        conf.recently_joined_msgs.setdefault(message.author.id, 0)
         conf.recently_joined_msgs[message.author.id] += 1
         amount = conf.recently_joined_msgs[message.author.id]
 
