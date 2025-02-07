@@ -1,88 +1,155 @@
-import asyncio
-import logging
-import typing as t
-
 import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
+from redbot.vendored.discord.ext import menus
 
-from .abc import CompositeMetaClass
-from .commands import Commands
-from .common.models import DB
-from .listeners import Listeners
-
-log = logging.getLogger("red.cookiecutter")
-RequestType = t.Literal["discord_deleted_user", "owner", "user", "user_strict"]
+from .views import Paginator
 
 
-class FirstWords(
-    Commands,
-    Listeners,
-    commands.Cog,
-    metaclass=CompositeMetaClass,
-):
-    """
-    A cog that tracks the first words of users in a server."""
-
+class FirstWords(commands.Cog):
     __author__ = "crayyy_zee"
     __version__ = "0.0.1"
 
     def __init__(self, bot: Red):
-        super().__init__()
-        self.bot: Red = bot
-        self.config = Config.get_conf(self, 117, force_registration=True)
-        self.config.register_global(db={})
-        self.db: DB = DB()
-        self.saving = False
+        self.bot = bot
+        self.config = Config.get_conf(self, identifier=1234567890)
+        self.config.register_guild(
+            alert_channel=None,
+            alert_x_messages=1,
+            recently_joined_msgs={},
+        )
 
     def format_help_for_context(self, ctx: commands.Context):
         helpcmd = super().format_help_for_context(ctx)
         txt = "Version: {}\nAuthor: {}".format(self.__version__, self.__author__)
         return f"{helpcmd}\n\n{txt}"
 
-    async def red_delete_data_for_user(self, *args, **kwargs):
-        return
+    @staticmethod
+    def trim_string(string: str, *, max_length: int):
+        return string[:max_length] + "..." if len(string) > max_length else string
 
-    async def red_get_data_for_user(self, *args, **kwargs):
-        return
+    @staticmethod
+    def get_ordinal(number: int) -> str:
+        if 10 <= number % 100 <= 20:
+            suffix = "th"
+        else:
+            suffix = {1: "st", 2: "nd", 3: "rd"}.get(number % 10, "th")
+        return f"{number}{suffix}"
 
-    async def cog_load(self) -> None:
-        asyncio.create_task(self.initialize())
+    @commands.Cog.listener()
+    async def on_member_join(self, member: discord.Member):
+        if member.bot:
+            return
 
-    async def initialize(self) -> None:
-        await self.bot.wait_until_red_ready()
-        data = await self.config.db()
-        self.db = await asyncio.to_thread(DB.model_validate, data)
-        if self.db.cog_first_load_date is None:
-            self.db.cog_first_load_date = discord.utils.utcnow()
-        log.info("Config loaded")
+        async with self.config.guild(
+            member.guild
+        ).recently_joined_msgs() as recently_joined_msgs:
+            recently_joined_msgs[member.id] = 0
 
-    async def save(self) -> None:
-        if self.saving:
-            log.debug("%s", self.saving)
-            if self.saving.done() and (exc := self.saving.exception()):
-                log.exception(
-                    "Failed to save config before so not saving again to avoid data corruption",
-                    exc_info=exc,
+    @commands.Cog.listener()
+    async def on_member_remove(self, member: discord.Member):
+        conf: dict[int, int] = await self.config.guild(
+            member.guild
+        ).recently_joined_msgs()
+        if not conf.get(member.id):
+            return
+        async with self.config.guild(
+            member.guild
+        ).recently_joined_msgs() as recently_joined_msgs:
+            recently_joined_msgs.pop(member.id, None)
+
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        if message.author.bot or not message.guild:
+            return
+
+        conf = await self.config.guild(message.guild).all()
+        id = str(message.author.id)
+        if conf["recently_joined_msgs"].get(id) is None:
+            return
+        conf["recently_joined_msgs"][id] += 1
+        amount = conf["recently_joined_msgs"][id]
+
+        if (
+            conf["alert_channel"]
+            and (channel := message.guild.get_channel(conf["alert_channel"]))
+            and conf["recently_joined_msgs"].get(id) is not None
+        ):
+            embed = discord.Embed(
+                title=f"{message.author.display_name} ({id})'s first words!",
+                description=f"""
+                {message.author.mention} just {"said their first words in the server!" if amount == 1 else f"sent their {self.get_ordinal(amount)} message in the server!"}
+                Here's a preview:
+                > [{self.trim_string(message.content, max_length=100)}]({message.jump_url})
+                > Sent at: {discord.utils.format_dt(message.created_at, "F")}
+                > Channel: {message.channel.mention}""",
+                color=discord.Color.green(),
+            )
+            await channel.send(embed=embed)
+
+        async with self.config.guild(
+            message.guild
+        ).recently_joined_msgs() as recently_joined_msgs:
+            if amount > conf["alert_x_messages"]:
+                recently_joined_msgs.pop(id, None)
+
+            else:
+                recently_joined_msgs[id] = amount
+
+    @commands.group(name="firstwords")
+    @commands.admin()
+    async def firstwords(self, ctx: commands.Context):
+        """First Words cog settings"""
+
+    @firstwords.command(name="alertchannel")
+    async def alertchannel(
+        self, ctx: commands.Context, channel: discord.TextChannel | None = None
+    ):
+        """Set the channel for first words alerts"""
+        await self.config.guild(ctx.guild).alert_channel.set(
+            channel.id if channel else None
+        )
+        await ctx.send(
+            f"Alert channel set to {channel.mention}"
+            if channel
+            else "Alert channel removed"
+        )
+
+    @firstwords.command(name="alertmessages")
+    async def alertmessages(self, ctx: commands.Context, amount: int):
+        """Set the amount of messages sent to alert on"""
+        await self.config.guild(ctx.guild).alert_x_messages.set(amount)
+        await ctx.send(f"Alerting on {amount} messages")
+
+    @firstwords.command(name="stillsilent")
+    async def stillsilent(self, ctx: commands.Context):
+        """Shows a paginated list of users that have been silent since they joined the server."""
+
+        conf = await self.config.guild(ctx.guild).all()
+
+        class StillSilentSource(menus.ListPageSource):
+            async def format_page(self, menu: Paginator, items: list[discord.Member]):
+                return discord.Embed(
+                    title="Silent Users",
+                    description="\n".join(
+                        [
+                            f"{ind}. {m.mention} ({m.id})\n"
+                            f"  - Joined at: {discord.utils.format_dt(m.joined_at, 'F')}\n"
+                            f"  - Messages sent: {conf['recently_joined_msgs'].get(str(m.id)):,}\n"
+                            for ind, m in enumerate(items)
+                        ]
+                    ),
+                    timestamp=menu.ctx.message.created_at,
                 )
-                return
 
-            elif not self.saving.done():
-                try:
-                    log.debug("Awaiting saving previous instance")
-                    await self.saving
+        silent_members = [
+            member
+            for m in conf["recently_joined_msgs"]
+            if (member := ctx.guild.get_member(int(m))) is not None
+        ]
+        if not silent_members:
+            await ctx.send("No silent users yet.")
+            return
 
-                except Exception as e:
-                    log.exception("Failed to save config", exc_info=e)
-        try:
-            log.debug("Creating new future")
-            self.saving = self.bot.loop.create_future()
-            log.debug("Future: %s", self.saving)
-            dump = await asyncio.to_thread(self.db.model_dump, mode="json")
-            await self.config.db.set(dump)
-            log.debug("Saved config")
-            self.saving.set_result(True)
-            log.debug("Set result to True")
-        except Exception as e:
-            log.exception("Failed to save config", exc_info=e)
-            self.saving.set_exception(e)
+        paginator = Paginator(StillSilentSource(silent_members, per_page=6))
+        await paginator.start(ctx)
