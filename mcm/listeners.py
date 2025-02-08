@@ -277,7 +277,7 @@ class Listeners(MixinMeta, metaclass=CompositeMetaClass):
             return
 
         new_view = ReminderDuration(
-            message.channel, allwoed_to_interact=[message.author.id], timeout=30
+            message.channel, allowed_to_interact=[message.author.id], timeout=30
         )
         new_view.message = await view.message.reply(
             embed=discord.Embed(
