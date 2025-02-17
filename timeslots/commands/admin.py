@@ -61,7 +61,7 @@ class Admin(MixinMeta):
             try:
                 await confmessage.delete()
 
-            except discord.NotFound:
+            except (TypeError, discord.NotFound):
                 conf.started_on = discord.utils.utcnow().date()
 
             except discord.Forbidden:
