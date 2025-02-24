@@ -1,0 +1,28 @@
+{
+    "author": [
+        "crayyy_zee"
+    ],
+    "description": "A cog that allows you to spy in on channels based on trigger words",
+    "disabled": false,
+    "end_user_data_statement": "",
+    "hidden": false,
+    "install_msg": "Thank you for installing!",
+    "min_bot_version": "3.5.3",
+    "min_python_version": [
+        3,
+        10,
+        0
+    ],
+    "permissions": [
+        "administrator"
+    ],
+    "required_cogs": {},
+    "requirements": [],
+    "short": "",
+    "tags": [
+        "spy",
+        "alert",
+        "webhook"
+    ],
+    "type": "COG"
+}
