@@ -1,5 +1,6 @@
 import datetime
 import typing
+import functools
 
 import discord
 from redbot.core.bot import Red
@@ -32,7 +33,7 @@ class ReminderDuration(ViewDisableOnTimeout):
                     custom_id=duration.replace(" ", "_"),
                 )
             )
-            butt.callback = self.callback
+            butt.callback = functools.partial(self.callback, butt)
 
     async def callback(
         self,
