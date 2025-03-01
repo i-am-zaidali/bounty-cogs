@@ -84,6 +84,10 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
             memdata.username = None
             memdata.registration_date = None
 
+        if isinstance(member, discord.User):
+            await ctx.tick()
+            return
+
         roles = member.roles
 
         if (
