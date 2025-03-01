@@ -56,7 +56,7 @@ class MCMRegistration(MixinMeta, metaclass=CompositeMetaClass):
 
         await ctx.tick()
 
-    @mcm.command(name="unbind")
+    @mcm.command(name="unbind", aliases=["debind"])
     @commands.bot_has_guild_permissions(manage_nicknames=True)
     @commands.mod()
     @commands.guild_only()
