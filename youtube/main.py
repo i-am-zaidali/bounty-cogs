@@ -300,7 +300,7 @@ class Youtube(commands.Cog):
 
     @post.command(name="shorts")
     async def post_shorts(
-        self, ctx: commands.Context, channel: Optional[discord.TextChannel] = None
+        self, ctx: commands.Context, channel: Optional[Union[discord.TextChannel, discord.Thread]] = None
     ):
         """
         Set the channel to post shorts to."""
@@ -311,7 +311,7 @@ class Youtube(commands.Cog):
 
     @post.command(name="videos")
     async def post_videos(
-        self, ctx: commands.Context, channel: Optional[discord.TextChannel] = None
+        self, ctx: commands.Context, channel: Optional[Union[discord.TextChannel, discord.Thread]] = None
     ):
         """
         Set the channel to post videos to."""
@@ -322,7 +322,7 @@ class Youtube(commands.Cog):
 
     @post.command(name="live")
     async def post_live(
-        self, ctx: commands.Context, channel: Optional[discord.TextChannel] = None
+        self, ctx: commands.Context, channel: Optional[Union[discord.TextChannel, discord.Thread]] = None
     ):
         """
         Set the channel to post live streams to."""
