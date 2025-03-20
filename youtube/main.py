@@ -1,17 +1,19 @@
-import dateparser
-from datetime import datetime, timezone
 import functools
 import logging
 import re
+from datetime import datetime, timezone
+from pprint import pformat
 from typing import Optional, Union
 
 import aiohttp
+import dateparser
 import discord
 import feedparser
 from discord.ext import tasks
 from redbot.core import Config, commands
 from redbot.core.bot import Red
-from redbot.core.utils import chat_formatting as cf, bounded_gather
+from redbot.core.utils import bounded_gather
+from redbot.core.utils import chat_formatting as cf
 
 from .errors import APIError, InvalidYoutubeCredentials, YoutubeQuotaExceeded
 
@@ -61,7 +63,9 @@ class Youtube(commands.Cog):
             if len(subscribed_channels) == 0 or all(
                 (val is None for val in post_channels.values())
             ):
-                log.info(f"Skipping checking subscribed channels for {guild_id} because there are either 0 subbed channel or No post channels set")
+                log.info(
+                    f"Skipping checking subscribed channels for {guild_id} because there are either 0 subbed channel or No post channels set"
+                )
                 continue
 
             ids = set()
@@ -81,14 +85,14 @@ class Youtube(commands.Cog):
                     videos = feed["entries"]
                     log.debug(f"Got {len(videos)} videos from channel {channel_id}")
                     latest_videos_cc = set(
-                        sorted(
-                            filter(
-                                lambda x: dateparser.parse(x["published"])
-                                >= last_checked
-                                and x["yt_videoid"] not in posted_vids,
-                                videos,
-                            ),
-                            key=lambda x: dateparser.parse(x["published"]),
+                        filter(
+                            lambda x:
+                            # datetime.strptime(
+                            #     x["published"], "%Y-%m-%dT%H:%M:%S%z"
+                            # )
+                            # >= last_checked and
+                            x["yt_videoid"] not in posted_vids,
+                            videos,
                         )
                     )
                     latest_videos |= latest_videos_cc
@@ -97,7 +101,7 @@ class Youtube(commands.Cog):
                         log.info(f"No new videos found from channel {channel_id}")
                         continue
 
-                    ids |= set([vid.yt_videoid for vid in latest_videos_cc])
+                    ids |= {vid.yt_videoid for vid in latest_videos_cc}
 
                     log.info(
                         f"Found {len(latest_videos_cc)} new videos from channel {channel_id}"
@@ -115,8 +119,8 @@ class Youtube(commands.Cog):
                     vid for vid in latest_videos if vid.yt_videoid == ytvid["id"]
                 )
                 # reelvid would always be present since we requested based on it
-                log.debug(ytvid)
-                log.debug(reelvid)
+                log.debug(pformat(ytvid))
+                log.debug(pformat(reelvid))
                 published = dateparser.parse(ytvid["snippet"]["publishedAt"])
 
                 message_to_send = f"<t:{int(published.timestamp())}:F> :\n**{ytvid['snippet']['title']}**\n\n{reelvid.link}"
@@ -133,24 +137,14 @@ class Youtube(commands.Cog):
                     if channel is None:
                         log.info("No channel for live streams found.")
                         continue
-                    msgs.append(channel.send(f"New live started at {message_to_send}"))
-
-                elif (
-                    duration := self.parse_duration(ytvid["contentDetails"]["duration"])
-                ) > 600:
-                    chan = post_channels.get("videos")
-                    if chan is None:
-                        continue
-                    channel = guild.get_channel_or_thread(chan)
-                    if channel is None:
-                        log.info("No channel for main videos found.")
-                        continue
                     msgs.append(
-                        channel.send(f"New video uploaded at {message_to_send}")
+                        channel.send(
+                            f"New live started on channel: {ytvid['snippet']['channelTitle']} ({ytvid['snippet']['channelId']})\n{message_to_send}"
+                        )
                     )
 
                 # check if it's a short
-                elif duration <= 60:
+                elif self.parse_duration(ytvid["contentDetails"]["duration"]) <= 60:
                     chan = post_channels.get("shorts")
                     if chan is None:
                         continue
@@ -159,9 +153,24 @@ class Youtube(commands.Cog):
                         log.info("No channel for shorts found.")
                         continue
                     msgs.append(
-                        channel.send(f"New short uploaded at {message_to_send}")
+                        channel.send(
+                            f"New short uploaded on channel: {ytvid['snippet']['channelTitle']} ({ytvid['snippet']['channelId']})\n{message_to_send}"
+                        )
                     )
 
+                else:
+                    chan = post_channels.get("videos")
+                    if chan is None:
+                        continue
+                    channel = guild.get_channel_or_thread(chan)
+                    if channel is None:
+                        log.info("No channel for main videos found.")
+                        continue
+                    msgs.append(
+                        channel.send(
+                            f"New video uploaded on channel: {ytvid['snippet']['channelTitle']} ({ytvid['snippet']['channelId']})\n{message_to_send}"
+                        )
+                    )
             await bounded_gather(*msgs)
 
             now = datetime.now(timezone.utc)
@@ -171,8 +180,8 @@ class Youtube(commands.Cog):
             await self.config.guild(guild).last_checked.set(
                 datetime.now(timezone.utc).isoformat()
             )
-            async with self.config.guild(guild).posted_vids() as posted_vids:
-                posted_vids.extend(ids)
+            async with self.config.guild(guild).posted_vids() as posted_vids_conf:
+                posted_vids_conf.extend(ids)
 
     @checking.before_loop
     async def before_checking(self):
@@ -300,7 +309,9 @@ class Youtube(commands.Cog):
 
     @post.command(name="shorts")
     async def post_shorts(
-        self, ctx: commands.Context, channel: Optional[Union[discord.TextChannel, discord.Thread]] = None
+        self,
+        ctx: commands.Context,
+        channel: Optional[Union[discord.TextChannel, discord.Thread]] = None,
     ):
         """
         Set the channel to post shorts to."""
@@ -311,7 +322,9 @@ class Youtube(commands.Cog):
 
     @post.command(name="videos")
     async def post_videos(
-        self, ctx: commands.Context, channel: Optional[Union[discord.TextChannel, discord.Thread]] = None
+        self,
+        ctx: commands.Context,
+        channel: Optional[Union[discord.TextChannel, discord.Thread]] = None,
     ):
         """
         Set the channel to post videos to."""
@@ -322,7 +335,9 @@ class Youtube(commands.Cog):
 
     @post.command(name="live")
     async def post_live(
-        self, ctx: commands.Context, channel: Optional[Union[discord.TextChannel, discord.Thread]] = None
+        self,
+        ctx: commands.Context,
+        channel: Optional[Union[discord.TextChannel, discord.Thread]] = None,
     ):
         """
         Set the channel to post live streams to."""
@@ -360,13 +375,15 @@ class Youtube(commands.Cog):
         self,
         ctx: commands.Context,
         *,
-        date: functools.partial(
-            dateparser.parse,
-            settings={"TIMEZONE": "UTC", "RETURN_AS_TIMEZONE_AWARE": True},
+        date: datetime = commands.parameter(
+            converter=functools.partial(
+                dateparser.parse,
+                settings={"TIMEZONE": "UTC", "RETURN_AS_TIMEZONE_AWARE": True},
+            )
         ),
     ):
         if date >= discord.utils.utcnow():
-            return await ctx.send("Cant have laSt checked date in the future")
+            return await ctx.send("Cant have last checked date in the future")
         await self.config.guild(ctx.guild).last_checked.set(date.isoformat())
         await ctx.send(
             f"Last checked date has been set to <t:{int(date.timestamp())}:F>"
