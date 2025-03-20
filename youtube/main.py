@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import functools
 import logging
 import re
-from typing import Optional
+from typing import Optional, Union
 
 import aiohttp
 import discord
