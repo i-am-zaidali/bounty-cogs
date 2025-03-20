@@ -61,6 +61,7 @@ class Youtube(commands.Cog):
             if len(subscribed_channels) == 0 or all(
                 (val is None for val in post_channels.values())
             ):
+                log.info(f"Skipping checking subscribed channels for {guild_id} because there are either 0 subbed channel or No post channels set")
                 continue
 
             ids = set()
@@ -128,7 +129,7 @@ class Youtube(commands.Cog):
                     chan = post_channels.get("live")
                     if chan is None:
                         continue
-                    channel = guild.get_channel(chan)
+                    channel = guild.get_channel_or_thread(chan)
                     if channel is None:
                         log.info("No channel for live streams found.")
                         continue
@@ -140,7 +141,7 @@ class Youtube(commands.Cog):
                     chan = post_channels.get("videos")
                     if chan is None:
                         continue
-                    channel = guild.get_channel(chan)
+                    channel = guild.get_channel_or_thread(chan)
                     if channel is None:
                         log.info("No channel for main videos found.")
                         continue
@@ -153,7 +154,7 @@ class Youtube(commands.Cog):
                     chan = post_channels.get("shorts")
                     if chan is None:
                         continue
-                    channel = guild.get_channel(chan)
+                    channel = guild.get_channel_or_thread(chan)
                     if channel is None:
                         log.info("No channel for shorts found.")
                         continue
