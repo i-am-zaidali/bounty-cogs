@@ -25,7 +25,7 @@ class Risk(
     """A rendition of RISK, the board game, on discord in Red-DiscordBot"""
 
     __author__ = "crayyy_zee"
-    __version__ = "0.0.1"
+    __version__ = "0.0.2"
 
     def __init__(self, bot: Red):
         super().__init__()

@@ -39,9 +39,9 @@ class GameView(discord.ui.View):
         self.end_game.disabled = False
         self.show_raw_map.disabled = False
         if self.state.turn_phase is TurnPhase.INITIAL_ARMY_PLACEMENT:
-            print("Initial Army Placement")
             self.toggle_buttons(True)
-            self.place_armies.disabled = False
+            if not self.state.turn_phase_completed:
+                self.place_armies.disabled = False
 
         else:
             print(self.state.turn_phase)
@@ -151,6 +151,16 @@ class GameView(discord.ui.View):
             return await interaction.followup.send(
                 "You have no armies to place", ephemeral=True
             )
+
+        if (
+            self.state.turn_phase is TurnPhase.INITIAL_ARMY_PLACEMENT
+            and self.state.turn_phase_completed
+        ):
+            asyncio.create_task(self.show_updated_board(interaction))
+            return await interaction.followup.send(
+                "You have already placed your armies for this turn.", ephemeral=True
+            )
+
         options: list[discord.SelectOption] = []
         for t, turn in self.state.territories.items():
             #     filter(
@@ -196,31 +206,37 @@ class GameView(discord.ui.View):
 
         self.state.territories[territory] = self.state.turn
 
-        aview = NumberedButtonsView(
-            range(1, min(26, self.state.turn_player.armies + 1))
-        )
-        await interaction.followup.send(
-            f"Select the amount of armies to place on {territory.name}",
-            view=aview,
-            ephemeral=True,
-        )
-        if await aview.wait():
-            if self.state.turn_player.captured_territories.get(territory) is None:
-                self.state.territories[territory] = None
-            await interaction.followup.send(
-                "Why you take so long to respond bro?", ephemeral=True
-            )
+        if self.state.turn_phase is TurnPhase.INITIAL_ARMY_PLACEMENT:
+            armies = 1
 
         else:
-            self.state.turn_player.armies -= aview.result
-            self.state.turn_player.captured_territories.setdefault(territory, 0)
-            self.state.turn_player.captured_territories[territory] += aview.result
-
-            msg = await interaction.followup.send(
-                f"Successfully placed {aview.result} armies on {territory.name.replace('_', ' ').title()} by {interaction.user.mention}.",
-                wait=True,
+            aview = NumberedButtonsView(
+                range(1, min(26, self.state.turn_player.armies + 1))
             )
-            await msg.delete(delay=ALERT_MESSAGE_DELETE_DELAY)
+            await interaction.followup.send(
+                f"Select the amount of armies to place on {territory.name}",
+                view=aview,
+                ephemeral=True,
+            )
+            if await aview.wait():
+                if self.state.turn_player.captured_territories.get(territory) is None:
+                    self.state.territories[territory] = None
+                await interaction.followup.send(
+                    "Why you take so long to respond bro?", ephemeral=True
+                )
+                return asyncio.create_task(self.show_updated_board(interaction))
+
+            armies = aview.result
+
+        self.state.turn_player.armies -= armies
+        self.state.turn_player.captured_territories.setdefault(territory, 0)
+        self.state.turn_player.captured_territories[territory] += armies
+
+        msg = await interaction.followup.send(
+            f"Successfully placed {armies} armies on {territory.name.replace('_', ' ').title()} by {interaction.user.mention}.",
+            wait=True,
+        )
+        await msg.delete(delay=ALERT_MESSAGE_DELETE_DELAY)
         self.state.turn_phase_completed = True
         asyncio.create_task(self.show_updated_board(interaction))
 
