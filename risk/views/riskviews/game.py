@@ -147,6 +147,7 @@ class GameView(discord.ui.View):
         await interaction.response.edit_message(view=self)
         if self.state.turn_player.armies == 0:
             self.state.turn_phase_completed = True
+            asyncio.create_task(self.show_updated_board(interaction))
             return await interaction.followup.send(
                 "You have no armies to place", ephemeral=True
             )
