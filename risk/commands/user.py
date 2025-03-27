@@ -48,10 +48,9 @@ class User(MixinMeta):
                 file=file,
                 view=view,
             )
-            self.cache[ctx.channel.id] = state
+            self.cache[ctx.channel.id] = view
             return
 
-        self.cache[ctx.channel.id] = state
         view = JoinGame(ctx.author, ctx)
         await ctx.send(embed=view.format_embed(), view=view)
 
@@ -62,7 +61,7 @@ class User(MixinMeta):
             await ctx.send("No game in progress.")
             return
 
-        if self.cache[ctx.channel.id].host != ctx.author.id:
+        if (gameview := self.cache[ctx.channel.id]).state.host != ctx.author.id:
             await ctx.send("Only the host can end the game.")
             return
 
@@ -74,12 +73,13 @@ class User(MixinMeta):
         if not view.result:
             return await ctx.send("Game not ended.")
 
+        gameview.stop()
+
         view = ConfirmView(ctx.author)
         view.message = await ctx.send(
             "DO you want to save this game to continue later? This save will be linked to this channel",
             ephemeral=True,
             view=view,
-            wait=True,
         )
         if await view.wait():
             await ctx.send(
@@ -95,7 +95,6 @@ class User(MixinMeta):
                         "There is already a saved game in this channel, do you want to overwrite it?",
                         ephemeral=True,
                         view=view,
-                        wait=True,
                     )
                     if await view.wait():
                         await ctx.followup.send(

@@ -149,6 +149,10 @@ class JoinGame(discord.ui.View):
             players[ind].turn = ind
             players[ind].armies = armies_per_player
 
+        message = await interaction.followup.send(
+            f"{players[0].mention} has the first turn. Each user has {armies_per_player} armies to place on the board."
+        )
+
         if randomize_territories:
             territories = list(Territory)
             random.shuffle(territories)
@@ -182,6 +186,8 @@ class JoinGame(discord.ui.View):
 
         view = GameView(self.state, self.ctx)
 
+        self.cog.cache[self.ctx.channel.id] = view
+
         if self.state.turn_phase is TurnPhase.ARMY_CALCULATION:
             await view.army_calculation_phase(interaction)
 
@@ -190,7 +196,10 @@ class JoinGame(discord.ui.View):
         file = await self.state.format_embed(interaction)
 
         view.message = await interaction.followup.send(
-            f"{players[0].mention} has the first turn.", file=file, view=view, wait=True
+            f"{players[0].mention} has the first turn.\n\nThey have {players[0].armies} armies remaining.",
+            file=file,
+            view=view,
+            wait=True,
         )
 
     @discord.ui.button(

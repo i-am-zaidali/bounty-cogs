@@ -34,17 +34,21 @@ class GameView(discord.ui.View):
         super().__init__(timeout=None)
         self.update_acc_to_state()
         self.current_sip_votes = 0
+        self.edit_task: asyncio.Task[None] | None = None
 
-    def update_acc_to_state(self):
+    def disable_except_essentials(self):
+        disable_items(self)
+        self.force_skip.disabled = False
         self.end_game.disabled = False
         self.show_raw_map.disabled = False
+
+    def update_acc_to_state(self):
+        self.disable_except_essentials()
         if self.state.turn_phase is TurnPhase.INITIAL_ARMY_PLACEMENT:
-            self.toggle_buttons(True)
             if not self.state.turn_phase_completed:
                 self.place_armies.disabled = False
 
         else:
-            print(self.state.turn_phase)
             phase_button: discord.ui.Button = None
             match self.state.turn_phase:
                 case TurnPhase.CARD_TRADE | TurnPhase.FORCED_CARD_TRADE:
@@ -62,8 +66,6 @@ class GameView(discord.ui.View):
                 case _:
                     phase_button = self.end_game
 
-            self.toggle_buttons(True)
-            print(phase_button.label)
             phase_button.disabled = False
 
         if not self.state.turn_phase.required or self.state.turn_phase_completed:
@@ -82,10 +84,8 @@ class GameView(discord.ui.View):
                 self.skip_phase.label = "Skip Phase"
                 self.skip_phase.custom_id = "skip_phase"
 
-        print(f"{self.skip_phase.label = }")
-
     async def interaction_check(self, interaction: discord.Interaction):
-        if interaction.data["custom_id"] == "show_raw_map":
+        if interaction.data["custom_id"] in ["show_raw_map", "force_skip"]:
             return True
 
         if interaction.data["custom_id"] == "end_game":
@@ -106,24 +106,19 @@ class GameView(discord.ui.View):
             )
             return False
 
-    def toggle_buttons(self, disabled: bool):
-        self.attack.disabled = disabled
-        self.trade_cards.disabled = disabled
-        self.place_armies.disabled = disabled
-        self.fortify.disabled = disabled
-        self.skip_phase.disabled = disabled
-
     @discord.ui.button(label="Trade cards", style=discord.ButtonStyle.primary, row=1)
     async def trade_cards(
         self,
         interaction: discord.Interaction,
         button: discord.ui.Button,
     ):
-        disable_items(self)
+        self.disable_except_essentials()
         await interaction.response.edit_message(view=self)
         if len(self.state.turn_player.cards) < 3:
             self.state.turn_phase_completed = True
-            asyncio.create_task(self.show_updated_board(interaction))
+            if self.edit_task is not None and self.edit_task.done() is False:
+                self.edit_task.cancel()
+            self.edit_task = asyncio.create_task(self.show_updated_board(interaction))
             return await interaction.followup.send(
                 "You do not have enough cards to form a set to trade", ephemeral=True
             )
@@ -135,7 +130,9 @@ class GameView(discord.ui.View):
             "Select 3 cards to trade", view=view, epehemral=True
         )
         await view.wait()
-        asyncio.create_task(self.show_updated_board(interaction))
+        if self.edit_task is not None and self.edit_task.done() is False:
+            self.edit_task.cancel()
+        self.edit_task = asyncio.create_task(self.show_updated_board(interaction))
 
     @discord.ui.button(label="Place armies", style=discord.ButtonStyle.primary, row=1)
     async def place_armies(
@@ -143,11 +140,13 @@ class GameView(discord.ui.View):
         interaction: discord.Interaction,
         button: discord.ui.Button,
     ):
-        disable_items(self)
+        self.disable_except_essentials()
         await interaction.response.edit_message(view=self)
         if self.state.turn_player.armies == 0:
             self.state.turn_phase_completed = True
-            asyncio.create_task(self.show_updated_board(interaction))
+            if self.edit_task is not None and self.edit_task.done() is False:
+                self.edit_task.cancel()
+            self.edit_task = asyncio.create_task(self.show_updated_board(interaction))
             return await interaction.followup.send(
                 "You have no armies to place", ephemeral=True
             )
@@ -156,7 +155,9 @@ class GameView(discord.ui.View):
             self.state.turn_phase is TurnPhase.INITIAL_ARMY_PLACEMENT
             and self.state.turn_phase_completed
         ):
-            asyncio.create_task(self.show_updated_board(interaction))
+            if self.edit_task is not None and self.edit_task.done() is False:
+                self.edit_task.cancel()
+            self.edit_task = asyncio.create_task(self.show_updated_board(interaction))
             return await interaction.followup.send(
                 "You have already placed your armies for this turn.", ephemeral=True
             )
@@ -224,7 +225,12 @@ class GameView(discord.ui.View):
                 await interaction.followup.send(
                     "Why you take so long to respond bro?", ephemeral=True
                 )
-                return asyncio.create_task(self.show_updated_board(interaction))
+                if self.edit_task is not None and self.edit_task.done() is False:
+                    self.edit_task.cancel()
+                self.edit_task = asyncio.create_task(
+                    self.show_updated_board(interaction)
+                )
+                return
 
             armies = aview.result
 
@@ -238,7 +244,10 @@ class GameView(discord.ui.View):
         )
         await msg.delete(delay=ALERT_MESSAGE_DELETE_DELAY)
         self.state.turn_phase_completed = True
-        asyncio.create_task(self.show_updated_board(interaction))
+        print(f"Updating board for {interaction.user.display_name}")
+        if self.edit_task is not None and self.edit_task.done() is False:
+            self.edit_task.cancel()
+        self.edit_task = asyncio.create_task(self.show_updated_board(interaction))
 
     @discord.ui.button(label="Attack", style=discord.ButtonStyle.primary, row=1)
     async def attack(
@@ -246,12 +255,14 @@ class GameView(discord.ui.View):
         interaction: discord.Interaction,
         button: discord.ui.Button,
     ):
-        disable_items(self)
+        self.disable_except_essentials()
         await interaction.response.edit_message(view=self)
 
         await self.attack_logic(interaction)
 
-        asyncio.create_task(self.show_updated_board(interaction))
+        if self.edit_task is not None and self.edit_task.done() is False:
+            self.edit_task.cancel()
+        self.edit_task = asyncio.create_task(self.show_updated_board(interaction))
 
     @discord.ui.button(
         label="Fortify (Move armies)", style=discord.ButtonStyle.blurple, row=1
@@ -261,7 +272,7 @@ class GameView(discord.ui.View):
         interaction: discord.Interaction,
         button: discord.ui.Button,
     ):
-        disable_items(self)
+        self.disable_except_essentials()
         await interaction.response.edit_message(view=self)
         if len(self.state.turn_player.captured_territories) < 2:
             return await interaction.followup.send(
@@ -330,12 +341,14 @@ class GameView(discord.ui.View):
             range(1, self.state.turn_player.captured_territories[_from])
         )
         await interaction.followup.send(
-            f"Select the amount of armies to move from {_from.name} to {to.name}",
+            f"Select the amount of armies to move from {_from.name.replace('_', ' ').title()} to {to.name.replace('_', ' ').title()}",
             view=view,
             ephemeral=True,
         )
         if await view.wait():
-            asyncio.create_task(self.show_updated_board(interaction))
+            if self.edit_task is not None and self.edit_task.done() is False:
+                self.edit_task.cancel()
+            self.edit_task = asyncio.create_task(self.show_updated_board(interaction))
             await interaction.followup.send(
                 "Why you take so long to respond bro?", ephemeral=True
             )
@@ -350,7 +363,9 @@ class GameView(discord.ui.View):
         )
         await msg.delete(delay=ALERT_MESSAGE_DELETE_DELAY)
 
-        asyncio.create_task(self.show_updated_board(interaction))
+        if self.edit_task is not None and self.edit_task.done() is False:
+            self.edit_task.cancel()
+        self.edit_task = asyncio.create_task(self.show_updated_board(interaction))
 
     @discord.ui.button(
         label="Skip Phase",
@@ -373,7 +388,9 @@ class GameView(discord.ui.View):
 
         if self.state.turn_phase is TurnPhase.ARMY_CALCULATION:
             await self.army_calculation_phase(interaction)
-        asyncio.create_task(self.show_updated_board(interaction))
+        if self.edit_task is not None and self.edit_task.done() is False:
+            self.edit_task.cancel()
+        self.edit_task = asyncio.create_task(self.show_updated_board(interaction))
 
     async def end_turn_logic(self, interaction: discord.Interaction | None = None):
         if self.state.turn_phase is TurnPhase.INITIAL_ARMY_PLACEMENT:
@@ -471,7 +488,7 @@ class GameView(discord.ui.View):
         interaction: discord.Interaction,
         button: discord.ui.Button,
     ):
-        disable_items(self)
+        self.disable_except_essentials()
         await interaction.response.edit_message(view=self)
         view = ConfirmView(interaction.user)
         view.message = await interaction.followup.send(
@@ -545,7 +562,9 @@ class GameView(discord.ui.View):
             if self.state.turn_phase is TurnPhase.ARMY_CALCULATION:
                 await self.army_calculation_phase(interaction)
             await interaction.response.edit_message(view=self)
-            asyncio.create_task(self.show_updated_board(interaction))
+            if self.edit_task is not None and self.edit_task.done() is False:
+                self.edit_task.cancel()
+            self.edit_task = asyncio.create_task(self.show_updated_board(interaction))
 
     async def send_select(self, view: SelectView, inter: discord.Interaction):
         view.message = await inter.followup.send(
@@ -554,7 +573,9 @@ class GameView(discord.ui.View):
 
         timed_out = await view.wait()
         if timed_out:
-            asyncio.create_task(self.show_updated_board(inter))
+            if self.edit_task is not None and self.edit_task.done() is False:
+                self.edit_task.cancel()
+            self.edit_task = asyncio.create_task(self.show_updated_board(inter))
             await inter.followup.send(
                 "You took too long to respond. Please try again.", ephemeral=True
             )
@@ -562,17 +583,21 @@ class GameView(discord.ui.View):
         return view.selected
 
     async def show_updated_board(self, inter: discord.Interaction | None = None):
-        disable_items(self)
+        self.disable_except_essentials()
         await getattr(inter, "edit_original_response", self.message.edit)(
             content="Please wait while the updated board is being generated...",
             view=self,
             embed=None,
             attachments=[],
         )
-        self.update_acc_to_state()
         file = await self.state.format_embed(inter)
+        self.update_acc_to_state()
+        # for child in self.children:
+        #     child = typing.cast("discord.ui.Button[GameView]", child)
+        #     print(f"{child.label} -> {child.disabled = }")
+
         await getattr(inter, "edit_original_response", self.message.edit)(
-            content=f"{self.state.turn_player.mention} it's your turn",
+            content=f"{self.state.turn_player.mention} it's your turn\n\nThey have {self.state.turn_player.armies} armies remaining.",
             attachments=[file],
             view=self,
         )
@@ -589,7 +614,9 @@ class GameView(discord.ui.View):
         ]
 
         if not options:
-            asyncio.create_task(self.show_updated_board(inter))
+            if self.edit_task is not None and self.edit_task.done() is False:
+                self.edit_task.cancel()
+            self.edit_task = asyncio.create_task(self.show_updated_board(inter))
             return await inter.followup.send(
                 "You need to have at least 2 armies on a territory to attack",
                 ephemeral=True,
@@ -622,7 +649,9 @@ class GameView(discord.ui.View):
         ]
 
         if not options:
-            asyncio.create_task(self.show_updated_board(inter))
+            if self.edit_task is not None and self.edit_task.done() is False:
+                self.edit_task.cancel()
+            self.edit_task = asyncio.create_task(self.show_updated_board(inter))
             return await inter.followup.send(
                 f"There are no attackable territories accessible from {_from.name.replace('_', ' ').title()}",
                 ephemeral=True,
@@ -659,7 +688,7 @@ class GameView(discord.ui.View):
                 ephemeral=True,
             )
             if await view.wait():
-                disable_items(self)
+                self.disable_except_essentials()
                 await inter.edit_original_response(
                     content="Please wait while the updated board is being generated...",
                     view=self,
@@ -687,7 +716,7 @@ class GameView(discord.ui.View):
                 view=view,
             )
             if await view.wait():
-                disable_items(self)
+                self.disable_except_essentials()
                 await inter.edit_original_response(
                     content="Please wait while the updated board is being generated...",
                     view=self,
@@ -759,6 +788,15 @@ class GameView(discord.ui.View):
         msg = await inter.followup.send(message, wait=True)
         await msg.delete(delay=ALERT_MESSAGE_DELETE_DELAY)
 
+        if len(self.state.players) == 1:
+            await inter.followup.send(
+                f"{self.state.players[0].mention} has won the game by eliminating all other players!",
+                wait=True,
+            )
+            self.stop()
+            self.cog.cache.pop(inter.channel.id, None)
+            return
+
         if captured:
             rng = range(1, attacker.captured_territories[_from])
             if len(rng) == 1:
@@ -772,7 +810,9 @@ class GameView(discord.ui.View):
                     ephemeral=True,
                 )
                 if await view.wait():
-                    asyncio.create_task(self.show_updated_board(inter))
+                    if self.edit_task is not None and self.edit_task.done() is False:
+                        self.edit_task.cancel()
+                    self.edit_task = asyncio.create_task(self.show_updated_board(inter))
                     return await inter.followup.send(
                         "Why you take so long to respond bro?", ephemeral=True
                     )
@@ -792,4 +832,6 @@ class GameView(discord.ui.View):
             self.state.turn_territories_captured += 1
 
         self.state.turn_phase_completed = True
-        asyncio.create_task(self.show_updated_board(inter))
+        if self.edit_task is not None and self.edit_task.done() is False:
+            self.edit_task.cancel()
+        self.edit_task = asyncio.create_task(self.show_updated_board(inter))

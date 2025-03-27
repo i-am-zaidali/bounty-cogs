@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from redbot.core.bot import Red
 
     from .common.models import DB
-    from .common.riskmodels import RiskState
+    from .views.riskviews.game import GameView
 
 
 class CompositeMetaClass(CogMeta, ABCMeta):
@@ -20,7 +20,7 @@ class MixinMeta(ABC):
     def __init__(self, *_args):
         self.bot: Red
         self.db: DB
-        self.cache: dict[int, RiskState]
+        self.cache: dict[int, GameView]
 
     @abstractmethod
     def save(self) -> None:
