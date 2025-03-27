@@ -1,5 +1,6 @@
 import asyncio
 import enum
+import functools
 import itertools
 import random
 import typing
@@ -13,9 +14,6 @@ from redbot.core.data_manager import bundled_data_path
 from risk.common.map_generator import RiskMapGenerator
 
 from . import Base
-
-if typing.TYPE_CHECKING:
-    from risk.main import Risk
 
 T = typing.TypeVar("T")
 
@@ -143,6 +141,11 @@ class Territory(enum.IntEnum):
     def __init__(self, id: int):
         self.continent = territory_ranges[self.value]
         self.continent.territories.append(self)
+
+    @classmethod
+    @functools.cache
+    def sorted_names(cls):
+        return sorted(cls.__members__.values(), key=lambda t: t.name)
 
 
 coords = {

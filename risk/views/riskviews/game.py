@@ -171,9 +171,9 @@ class GameView(discord.ui.View):
             #     self.state.territories.items(),
             # ):
             option = discord.SelectOption(
-                label=t.name.replace("_", " ").title(),
+                label=f"{t.name.replace('_', ' ').title()} || {t.continent.name.replace('_', ' ').title()}",
                 value=str(t.value),
-                description=f"Continent: {t.continent.name.replace('_', ' ').title()} || Armies: {self.state.turn_player.captured_territories.get(t, 0)}",
+                description=f"Armies: {self.state.turn_player.captured_territories.get(t, 0)}",
             )
 
             if (
@@ -193,7 +193,7 @@ class GameView(discord.ui.View):
 
         view = SelectView(
             "Select a territory to place armies on",
-            options=sorted(options, key=operator.attrgetter("label")),
+            options=options,
             max_selected=1,
             allowed_to_interact=[self.state.turn_player.id],
         )
@@ -507,6 +507,8 @@ class GameView(discord.ui.View):
                         return
 
                 conf.saves[interaction.channel.id] = self.state
+
+        self.cog.cache.pop(interaction.channel.id, None)
 
         self.stop()
         await interaction.followup.send("Game ended")

@@ -11,7 +11,7 @@ from .common.models import DB, GuildSettings
 from .listeners import Listeners
 from .tasks import TaskLoops
 
-log = logging.getLogger("red.cookiecutter")
+log = logging.getLogger("red.craycogs.risk")
 RequestType = t.Literal["discord_deleted_user", "owner", "user", "user_strict"]
 
 
@@ -25,7 +25,7 @@ class Risk(
     """A rendition of RISK, the board game, on discord in Red-DiscordBot"""
 
     __author__ = "crayyy_zee"
-    __version__ = "0.0.2"
+    __version__ = "0.0.3"
 
     def __init__(self, bot: Red):
         super().__init__()

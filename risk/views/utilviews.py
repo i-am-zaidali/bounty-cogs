@@ -1,5 +1,6 @@
 import functools
 import typing
+from operator import attrgetter
 
 import discord
 
@@ -63,7 +64,9 @@ class SelectView(ViewDisableOnTimeout):
 
     def generate_selects(self, inter: discord.Interaction["Red"] | None = None):
         self.clear_items()
-        for ind, chunk in enumerate(chunks(self.options, 25)):
+        for ind, chunk in enumerate(
+            chunks(sorted(self.options, key=attrgetter("label")), 25)
+        ):
             max_selected = (
                 self.max_selected is not None
                 and len(self.selected) >= self.max_selected
@@ -88,6 +91,7 @@ class SelectView(ViewDisableOnTimeout):
             self.add_item(select)
 
         self.add_item(self.submit)
+        self.submit.disabled = not self.selected
 
         if inter:
             return inter.response.edit_message(view=self)

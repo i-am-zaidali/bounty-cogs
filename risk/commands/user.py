@@ -13,6 +13,11 @@ class User(MixinMeta):
     @commands.group(name="risk", invoke_without_command=True)
     async def risk(self, ctx: commands.Context):
         """Start a game of Risk."""
+        if ctx.channel.id in self.cache:
+            return await ctx.send(
+                f"A game is already in progress in this channel. Please end it through the `End Game` button or the `{ctx.clean_prefix}risk endgame` command before starting another."
+            )
+
         if ctx.channel.id in self.db.get_conf(ctx.guild).saves:
             view = ConfirmView(ctx.author)
             await ctx.send(
@@ -43,9 +48,69 @@ class User(MixinMeta):
                 file=file,
                 view=view,
             )
+            self.cache[ctx.channel.id] = state
             return
+
+        self.cache[ctx.channel.id] = state
         view = JoinGame(ctx.author, ctx)
         await ctx.send(embed=view.format_embed(), view=view)
+
+    @risk.command(name="endgame")
+    async def risk_endgame(self, ctx: commands.Context):
+        """End the game."""
+        if ctx.channel.id not in self.cache:
+            await ctx.send("No game in progress.")
+            return
+
+        if self.cache[ctx.channel.id].host != ctx.author.id:
+            await ctx.send("Only the host can end the game.")
+            return
+
+        view = ConfirmView(ctx.author)
+        await ctx.send("Are you sure you want to end the game?", view=view)
+        if await view.wait():
+            return await ctx.send("You took too long to respond. Please try again.")
+
+        if not view.result:
+            return await ctx.send("Game not ended.")
+
+        view = ConfirmView(ctx.author)
+        view.message = await ctx.send(
+            "DO you want to save this game to continue later? This save will be linked to this channel",
+            ephemeral=True,
+            view=view,
+            wait=True,
+        )
+        if await view.wait():
+            await ctx.send(
+                "Game not saved, you took too long to answer", ephemeral=True
+            )
+            return
+
+        if view.result:
+            async with self.cog.db.get_conf(ctx.guild.id) as conf:
+                if ctx.channel.id in conf.saves:
+                    view = ConfirmView(ctx.author)
+                    view.message = await ctx.send(
+                        "There is already a saved game in this channel, do you want to overwrite it?",
+                        ephemeral=True,
+                        view=view,
+                        wait=True,
+                    )
+                    if await view.wait():
+                        await ctx.followup.send(
+                            "Game not saved, you took too long to answer",
+                            ephemeral=True,
+                        )
+                        return
+
+                    if not view.result:
+                        return
+
+                conf.saves[ctx.channel.id] = self.state
+
+        del self.cache[ctx.channel.id]
+        await ctx.send("Game ended.")
 
     @risk.command(name="saves")
     async def risk_saves(self, ctx: commands.Context):
