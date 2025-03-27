@@ -1,6 +1,5 @@
 import asyncio
 import random
-import re
 from typing import TYPE_CHECKING
 
 import discord
@@ -149,7 +148,7 @@ class JoinGame(discord.ui.View):
             players[ind].turn = ind
             players[ind].armies = armies_per_player
 
-        message = await interaction.followup.send(
+        await interaction.followup.send(
             f"{players[0].mention} has the first turn. Each user has {armies_per_player} armies to place on the board."
         )
 

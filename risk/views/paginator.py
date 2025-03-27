@@ -30,9 +30,7 @@ class PaginatorButton(Button["Paginator"]):
         style=discord.ButtonStyle.green,
         disabled=False,
     ):
-        super().__init__(
-            style=style, label=label, emoji=emoji, disabled=disabled
-        )
+        super().__init__(style=style, label=label, emoji=emoji, disabled=disabled)
 
 
 class CloseButton(Button["Paginator"]):
@@ -108,14 +106,14 @@ class PageButton(PaginatorButton):
         super().__init__(style=discord.ButtonStyle.gray, disabled=True)
 
     def _change_label(self):
-        self.label = f"Page {self.view.current_page+1}/{self.view.source.get_max_pages()}"
+        self.label = (
+            f"Page {self.view.current_page + 1}/{self.view.source.get_max_pages()}"
+        )
 
 
 class PaginatorSelect(Select["Paginator"]):
     @classmethod
-    async def with_pages(
-        cls, view: "Paginator", placeholder: str = "Select a page:"
-    ):
+    async def with_pages(cls, view: "Paginator", placeholder: str = "Select a page:"):
         pages: int
         pages: int = view.source.get_max_pages() or 0
         if getattr(view.source, "custom_indices", None):
@@ -148,13 +146,10 @@ class PaginatorSelect(Select["Paginator"]):
             ]
         else:
             options = [
-                discord.SelectOption(**indices[i], value=str(i))
-                for i in range(pages)
+                discord.SelectOption(**indices[i], value=str(i)) for i in range(pages)
             ]
 
-        return cls(
-            options=options, placeholder=placeholder, min_values=1, max_values=1
-        )
+        return cls(options=options, placeholder=placeholder, min_values=1, max_values=1)
 
     async def callback(self, interaction: discord.Interaction):
         self.view.current_page = int(self.values[0])
@@ -247,8 +242,7 @@ class Paginator(ViewDisableOnTimeout):
                 continue
 
             elif (
-                self.current_page == self._start_from
-                and isinstance(i, FirstItemButton)
+                self.current_page == self._start_from and isinstance(i, FirstItemButton)
             ) or (self.current_page == pages and isinstance(i, LastItemButton)):
                 i.disabled = True
                 continue
@@ -291,9 +285,7 @@ class Paginator(ViewDisableOnTimeout):
 
         if not isinstance(source, menus.PageSource):
             raise TypeError(
-                "Expected {0!r} not {1.__class__!r}.".format(
-                    menus.PageSource, source
-                )
+                "Expected {0!r} not {1.__class__!r}.".format(menus.PageSource, source)
             )
 
         self._source = source
@@ -336,6 +328,9 @@ class Paginator(ViewDisableOnTimeout):
         self.author = ctx.author
         self.ctx = ctx
         kwargs = await self.get_page(self.current_page)
-        self.message: discord.Message = await getattr(
-            self.message, "edit", ctx.send
-        )(**kwargs, ephemeral=ephemeral)
+        self.message: discord.Message = await getattr(self.message, "edit", ctx.send)(
+            **kwargs, ephemeral=ephemeral
+        )
+
+    async def interaction_check(self, interaction):
+        return interaction.user.id == self.author.id
