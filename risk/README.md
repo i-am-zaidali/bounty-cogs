@@ -43,12 +43,12 @@ To install and use this cog with **Red-DiscordBot**, follow these steps:
 Ensure dependencies are met, and you have the required permissions to run custom cogs.
 
 ## 💡 Development & Contribution
-This cog was developed  by **ZaidAli** as a **paid bounty by ClaraCrazy** and is part of the [Bounty Cogs](https://github.com/i-am-zaidali/bounty-cogs) repository. Contributions are welcome! Feel free to submit issues, suggestions, or pull requests.
+This cog was developed  by **crayyy_zee** as a **paid bounty by ClaraCrazy** and is part of the [Bounty Cogs](https://github.com/i-am-zaidali/bounty-cogs) repository. Contributions are welcome! Feel free to submit issues, suggestions, or pull requests.
 
 ## 📜 License
 This project is licensed under the MIT License. See the [LICENSE](../LICENSE) file for details.
 
 ---
-🔹 **Author**: ZaidAli & Contributors  
+🔹 **Author**: crayyy_zee & Contributors  
 🔹 **Commissioned by**: ClaraCrazy  
 🔹 **Repository**: [Bounty Cogs](https://github.com/i-am-zaidali/bounty-cogs/tree/main/risk)
