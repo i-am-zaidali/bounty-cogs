@@ -23,7 +23,6 @@ A fully-featured implementation of the classic strategy game **Risk** for Red-Di
 5. **Win the Game**: Conquer all territories to claim victory!
 
 ## 🛠 Installation
-## Installation
 
 To install and use this cog with **Red-DiscordBot**, follow these steps:
 
