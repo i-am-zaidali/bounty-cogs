@@ -1,5 +1,4 @@
 import asyncio
-import operator
 import random
 import typing
 
