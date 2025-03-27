@@ -1,56 +1,42 @@
-# Risk (Discord Bot Cog)
+# Risk Cog for Red-DiscordBot
 
-This is a custom Discord bot cog for playing **Risk**, a strategy game of world domination. This cog was developed by **ZaidAli** as a **paid bounty** from **ClaraCrazy** and is part of the **bounty-cogs** repository.
+![Risk Game](https://raw.githubusercontent.com/i-am-zaidali/bounty-cogs/refs/heads/main/risk/data/riskmap.png)
 
-## About the Game
+A fully-featured implementation of the classic strategy game **Risk** for Red-DiscordBot. This cog allows users to engage in strategic conquest, managing armies, capturing territories, and achieving dominance over the battlefield.
 
-Risk is a turn-based strategy board game where players deploy armies, conquer territories, and strategize to control the entire map. Players take turns attacking, defending, and fortifying their positions to eliminate opponents and achieve world domination. This Discord implementation automates the game mechanics, allowing users to play within a Discord server.
+## 📌 Features
+- Supports multiplayer games with turn-based mechanics.
+- Fully interactive with maps, attacks, reinforcements, and fortifications.
+- Automated game flow and dice rolls for battles.
+- Engaging text-based interface with Discord embeds.
+- Territory and troop management commands.
+- Save and resume game functionality.
 
-## Features
+## 🎮 How to Play
+1. **Start a Game**: Players can create a new Risk game session.
+2. **Claim Territories**: At the beginning, players take turns claiming territories.
+3. **Deploy Armies**: Distribute armies across owned territories.
+4. **Take Turns**:
+   - **Attack**: Invade neighboring territories with dice-based combat.
+   - **Reinforce**: Strengthen controlled territories.
+   - **Fortify**: Move troops strategically.
+5. **Win the Game**: Conquer all territories to claim victory!
 
-- Turn-based gameplay with attack and defense mechanics.
-- Reinforcement and fortification phases.
-- Randomized dice-based combat resolution.
-- Territory and army tracking.
+## 🛠 Installation
+To install this cog, add it to your Red-DiscordBot instance:
+```sh
+[m!]
+load risk
+```
+Ensure dependencies are met, and you have the required permissions to run custom cogs.
 
-## Installation
+## 💡 Development & Contribution
+This cog was developed  by **ZaidAli** as a **paid bounty by ClaraCrazy** and is part of the [Bounty Cogs](https://github.com/i-am-zaidali/bounty-cogs) repository. Contributions are welcome! Feel free to submit issues, suggestions, or pull requests.
 
-To install and use this cog with **Red-DiscordBot**, follow these steps:
-
-1. Ensure you have Red-DiscordBot set up.
-2. Add the bounty cogs repository:
-   ```sh
-   [p]repo add bounty-cogs https://github.com/i-am-zaidali/bounty-cogs
-   ```
-3. Install the Risk cog:
-   ```sh
-   [p]cog install bounty-cogs risk
-   ```
-4. Load the cog:
-   ```sh
-   [p]load risk
-   ```
-
-## Usage
-
-Once installed and loaded, players can start a game with `[p]risk`, join, and take turns through Discord embeds. The bot handles turn order, combat, and game state tracking.
-
-
-## Credits
-
-This cog was developed by **ZaidAli** as a **paid bounty** from **ClaraCrazy**.
-
-
-
-## Contributing
-
-Contributions and improvements are welcome! Feel free to fork the repository, submit issues, or suggest enhancements.
-
-## License
-
-This project follows the license terms of the **bounty-cogs** repository.
+## 📜 License
+This project is licensed under the MIT License. See the [LICENSE](../LICENSE) file for details.
 
 ---
-
-Enjoy playing Risk in your Discord server!
-
+🔹 **Author**: ZaidAli & Contributors  
+🔹 **Commissioned by**: ClaraCrazy  
+🔹 **Repository**: [Bounty Cogs](https://github.com/i-am-zaidali/bounty-cogs/tree/main/risk)
