@@ -25,7 +25,7 @@ class Risk(
     """A rendition of RISK, the board game, on discord in Red-DiscordBot"""
 
     __author__ = "crayyy_zee"
-    __version__ = "0.0.3"
+    __version__ = "0.0.4"
 
     def __init__(self, bot: Red):
         super().__init__()
@@ -49,13 +49,16 @@ class Risk(
     async def cog_load(self) -> None:
         asyncio.create_task(self.initialize())
 
+    async def cog_unload(self):
+        for view in self.cache.values():
+            view.stop()
+
     async def initialize(self) -> None:
         await self.bot.wait_until_red_ready()
         data = await self.config.db()
-        print(data)
         GuildSettings.cog = self
         self.db = await asyncio.to_thread(DB.model_validate, data)
-        print(self.db)
+        self.cache = {}
         log.info("Config loaded")
 
     def save(self) -> None:
