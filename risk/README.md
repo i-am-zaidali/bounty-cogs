@@ -23,10 +23,24 @@ A fully-featured implementation of the classic strategy game **Risk** for Red-Di
 5. **Win the Game**: Conquer all territories to claim victory!
 
 ## 🛠 Installation
-To install this cog, add it to your Red-DiscordBot instance:
-```sh
-[p]load risk
-```
+## Installation
+
+To install and use this cog with **Red-DiscordBot**, follow these steps:
+
+1. Ensure you have Red-DiscordBot set up.
+2. Add the bounty cogs repository:
+   ```sh
+   [p]repo add bounty-cogs https://github.com/i-am-zaidali/bounty-cogs
+   ```
+3. Install the Risk cog:
+   ```sh
+   [p]cog install bounty-cogs risk
+   ```
+4. Load the cog:
+   ```sh
+   [p]load risk
+   ```
+   
 Ensure dependencies are met, and you have the required permissions to run custom cogs.
 
 ## 💡 Development & Contribution
