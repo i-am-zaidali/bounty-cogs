@@ -9,7 +9,7 @@ A fully-featured implementation of the classic strategy game **Risk** for Red-Di
 - Fully interactive with maps, attacks, reinforcements, and fortifications.
 - Automated game flow and dice rolls for battles.
 - Engaging text-based interface with Discord embeds.
-- Territory and troop management commands.
+- Territory and troop management buttons.
 - Save and resume game functionality.
 
 ## 🎮 How to Play
@@ -25,8 +25,7 @@ A fully-featured implementation of the classic strategy game **Risk** for Red-Di
 ## 🛠 Installation
 To install this cog, add it to your Red-DiscordBot instance:
 ```sh
-[m!]
-load risk
+[p]load risk
 ```
 Ensure dependencies are met, and you have the required permissions to run custom cogs.
 
