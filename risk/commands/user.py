@@ -44,7 +44,7 @@ class User(MixinMeta):
 
             view.update_acc_to_state()
 
-            file = await state.format_embed(ctx)
+            file = await state.generate_risk_board_image(ctx)
             view.message = await ctx.send(
                 content=f"{state.turn_player.mention} it's your turn",
                 file=file,
@@ -55,6 +55,21 @@ class User(MixinMeta):
 
         view = JoinGame(ctx.author, ctx)
         await ctx.send(embed=view.format_embed(), view=view)
+
+    @risk.command(name="refresh")
+    async def risk_refresh(self, ctx: commands.Context):
+        """Refresh the game view."""
+        if ctx.channel.id not in self.cache:
+            await ctx.send("No game in progress.")
+            return
+
+        view = self.cache[ctx.channel.id]
+        view.update_acc_to_state()
+        if view.message:
+            await view.message.edit(view=view)
+            await ctx.send(f"Game view refreshed. {view.message.jump_url}")
+        else:
+            await ctx.send("No game in progress.")
 
     @risk.command(name="endgame")
     async def risk_endgame(self, ctx: commands.Context):

@@ -13,11 +13,9 @@ if typing.TYPE_CHECKING:
 
 class NumberedButtonsView(ViewDisableOnTimeout):
     def __init__(
-        self,
-        rng: range,
-        allowed_to_interact: list[int] = [],
+        self, rng: range, *, allowed_to_interact: list[int] = [], timeout: int = 90
     ):
-        super().__init__(timeout=300, allowed_to_interact=allowed_to_interact)
+        super().__init__(timeout=timeout, allowed_to_interact=allowed_to_interact)
         self.rng = rng
         if len(rng) > 25:
             raise ValueError("Range must be less than 25")
@@ -50,8 +48,9 @@ class SelectView(ViewDisableOnTimeout):
         *,
         max_selected: typing.Optional[int] = None,
         allowed_to_interact: list[int] = [],
+        timeout=90,
     ):
-        super().__init__(timeout=300, allowed_to_interact=allowed_to_interact)
+        super().__init__(timeout=timeout, allowed_to_interact=allowed_to_interact)
         self.select_placeholder = select_placeholder
         self.deselect_placeholder = deselect_placeholder
         self.options = set(options)

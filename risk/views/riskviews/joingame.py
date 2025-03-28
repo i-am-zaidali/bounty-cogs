@@ -52,9 +52,9 @@ class JoinGame(discord.ui.View):
                 return
 
         else:
-            color = random.choice(list(self.state.COLORS))
-            self.state.COLORS.remove(color)
-            players.append(Player(id=interaction.user.id, turn=0, color=color))
+            players.append(
+                Player(id=interaction.user.id, turn=0, color=self.state.COLORS.pop())
+            )
 
         await interaction.response.edit_message(embed=self.format_embed())
 
@@ -192,7 +192,7 @@ class JoinGame(discord.ui.View):
 
         view.update_acc_to_state()
 
-        file = await self.state.format_embed(interaction)
+        file = await self.state.generate_risk_board_image(interaction)
 
         view.message = await interaction.followup.send(
             f"{players[0].mention} has the first turn.\n\nThey have {players[0].armies} armies remaining.",

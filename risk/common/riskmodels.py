@@ -306,6 +306,7 @@ class RiskState(Base):
     turn_phase_completed: bool = False
     turn_armies_received: bool = False
     turn_territories_captured: int = 0
+    turn_attacks_completed: int = 0
     draw_pile: list[Card] = pydantic.Field(
         default_factory=lambda: sorted(cards.copy(), key=lambda _: random.random())
     )
@@ -313,7 +314,7 @@ class RiskState(Base):
     card_sets_traded: int = 0
 
     COLORS: set[tuple[int, int, int]] = pydantic.Field(
-        default_factory=lambda: set(color_names)
+        default_factory=lambda: set(color_names.keys())
     )
 
     @property
@@ -330,8 +331,11 @@ class RiskState(Base):
         self.turn_phase_completed = False
         self.turn_armies_received = False
         self.turn_territories_captured = 0
+        self.turn_attacks_completed = 0
 
-    async def format_embed(self, inter: discord.Interaction[Red]):
+    async def generate_risk_board_image(
+        self, inter: discord.Interaction[Red] | commands.Context
+    ):
         cog = (
             inter.cog
             if isinstance(inter, commands.Context)

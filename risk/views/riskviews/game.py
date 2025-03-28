@@ -1,4 +1,5 @@
 import asyncio
+import pprint
 import random
 import typing
 
@@ -21,7 +22,7 @@ from risk.views.viewdisableontimeout import disable_items
 if typing.TYPE_CHECKING:
     from ...main import Risk
 
-ALERT_MESSAGE_DELETE_DELAY = 15
+ALERT_MESSAGE_DELETE_DELAY = 25
 
 
 class GameView(discord.ui.View):
@@ -42,10 +43,15 @@ class GameView(discord.ui.View):
         self.show_raw_map.disabled = False
 
     def update_acc_to_state(self):
+        pprint.pprint(self.state)
         self.disable_except_essentials()
         if self.state.turn_phase is TurnPhase.INITIAL_ARMY_PLACEMENT:
-            if not self.state.turn_phase_completed:
+            if self.state.turn_phase_completed is False:
                 self.place_armies.disabled = False
+
+        elif self.state.turn_phase is TurnPhase.ATTACK:
+            if self.state.turn_attacks_completed < 3:
+                self.attack.disabled = False
 
         else:
             phase_button: discord.ui.Button = None
@@ -55,9 +61,6 @@ class GameView(discord.ui.View):
 
                 case TurnPhase.PLACE_ARMIES:
                     phase_button = self.place_armies
-
-                case TurnPhase.ATTACK:
-                    phase_button = self.attack
 
                 case TurnPhase.FORTIFY:
                     phase_button = self.fortify
@@ -214,7 +217,7 @@ class GameView(discord.ui.View):
                 range(1, min(26, self.state.turn_player.armies + 1))
             )
             await interaction.followup.send(
-                f"Select the amount of armies to place on {territory.name}",
+                f"Select the amount of armies to place on {territory.name.replace('_', ' ').title()}",
                 view=aview,
                 ephemeral=True,
             )
@@ -317,8 +320,9 @@ class GameView(discord.ui.View):
         ]
 
         if not options:
-            self.update_acc_to_state()
-            await interaction.edit_original_response(view=self)
+            if self.edit_task is not None and self.edit_task.done() is False:
+                self.edit_task.cancel()
+            self.edit_task = asyncio.create_task(self.show_updated_board(interaction))
             return await interaction.followup.send(
                 f"There are no territories accessible from {_from.name.replace('_', ' ').title()}",
                 ephemeral=True,
@@ -356,6 +360,7 @@ class GameView(discord.ui.View):
         self.state.turn_player.captured_territories[_from] -= view.result
         self.state.turn_player.captured_territories[to] += view.result
 
+        self.state.turn_phase_completed = True
         msg = await interaction.followup.send(
             f"Successfully moved {view.result} armies from {_from.name.replace('_', ' ').title()} to {to.name.replace('_', ' ').title()} by {interaction.user.mention}.",
             wait=True,
@@ -389,6 +394,7 @@ class GameView(discord.ui.View):
             await self.army_calculation_phase(interaction)
         if self.edit_task is not None and self.edit_task.done() is False:
             self.edit_task.cancel()
+        self.state.turn_phase_completed = False
         self.edit_task = asyncio.create_task(self.show_updated_board(interaction))
 
     async def end_turn_logic(self, interaction: discord.Interaction | None = None):
@@ -440,10 +446,11 @@ class GameView(discord.ui.View):
     async def army_calculation_phase(
         self, interaction: discord.Interaction | None = None
     ):
-        self.state.turn_player.armies += max(
-            3, len(self.state.turn_player.captured_territories) // 3
+        armies_given = max(3, len(self.state.turn_player.captured_territories) // 3)
+        self.state.turn_player.armies += armies_given
+        alert = (
+            f"- {self.state.turn_player.mention} has received {armies_given} armies\n"
         )
-        alert = f"- {self.state.turn_player.mention} has received {self.state.turn_player.armies} armies\n"
 
         # check if any of the territories the user has captured form a continent
 
@@ -540,7 +547,8 @@ class GameView(discord.ui.View):
         interaction: discord.Interaction,
         button: discord.ui.Button,
     ):
-        await interaction.response.send_message(
+        await interaction.response.defer()
+        await interaction.followup.send(
             "Here is the raw map",
             file=discord.File(
                 bundled_data_path(interaction.client.get_cog("Risk")) / "riskmap.png"
@@ -548,12 +556,19 @@ class GameView(discord.ui.View):
             ephemeral=True,
         )
 
-    @discord.ui.button(label="Force Skip", style=discord.ButtonStyle.red, row=3)
+    @discord.ui.button(
+        label="Force Skip", style=discord.ButtonStyle.red, row=3, custom_id="force_skip"
+    )
     async def force_skip(
         self,
         interaction: discord.Interaction,
         button: discord.ui.Button,
     ):
+        if interaction.user.id == self.state.turn_player.id:
+            return await interaction.response.send_message(
+                "Why are you so impatient? You can't force skip your own turn, If you're playing the game, just finish your turn.",
+                ephemeral=True,
+            )
         self.current_sip_votes += 1
         if self.current_sip_votes >= len(self.state.players) / 2:
             await self.end_turn_logic(interaction)
@@ -581,24 +596,25 @@ class GameView(discord.ui.View):
 
         return view.selected
 
-    async def show_updated_board(self, inter: discord.Interaction | None = None):
+    async def show_updated_board(self, inter: discord.Interaction):
         self.disable_except_essentials()
-        await getattr(inter, "edit_original_response", self.message.edit)(
+        await inter.edit_original_response(
             content="Please wait while the updated board is being generated...",
-            view=self,
-            embed=None,
+            view=None,
             attachments=[],
         )
-        file = await self.state.format_embed(inter)
+        file = await self.state.generate_risk_board_image(inter)
+        await inter.delete_original_response()
         self.update_acc_to_state()
         # for child in self.children:
         #     child = typing.cast("discord.ui.Button[GameView]", child)
         #     print(f"{child.label} -> {child.disabled = }")
 
-        await getattr(inter, "edit_original_response", self.message.edit)(
+        self.message = await inter.followup.send(
             content=f"{self.state.turn_player.mention} it's your turn\n\nThey have {self.state.turn_player.armies} armies remaining.",
-            attachments=[file],
+            files=[file],
             view=self,
+            wait=True,
         )
 
     async def attack_logic(self, inter: discord.Interaction):
@@ -695,7 +711,7 @@ class GameView(discord.ui.View):
                     attachments=[],
                 )
                 self.update_acc_to_state()
-                file = await self.state.format_embed(inter)
+                file = await self.state.generate_risk_board_image(inter)
                 await inter.edit_original_response(attachments=[file], view=self)
                 return await inter.followup.send(
                     "Why you take so long to respond bro?", ephemeral=True
@@ -709,7 +725,7 @@ class GameView(discord.ui.View):
             defender_dice = 1
 
         else:
-            view = NumberedButtonsView(drng)
+            view = NumberedButtonsView(drng, allowed_to_interact=[defender.id])
             await inter.followup.send(
                 f"{defender.mention} Select the amount of dice to roll to defend {to.name.replace('_', ' ').title()} from {_from.name.replace('_', ' ').title()}",
                 view=view,
@@ -723,7 +739,7 @@ class GameView(discord.ui.View):
                     attachments=[],
                 )
                 self.update_acc_to_state()
-                file = await self.state.format_embed(inter)
+                file = await self.state.generate_risk_board_image(inter)
                 await inter.edit_original_response(file=file, view=self)
                 return await inter.followup.send(
                     "Why you take so long to respond bro?", ephemeral=True
@@ -830,6 +846,7 @@ class GameView(discord.ui.View):
 
             self.state.turn_territories_captured += 1
 
+        self.state.turn_attacks_completed += 1
         self.state.turn_phase_completed = True
         if self.edit_task is not None and self.edit_task.done() is False:
             self.edit_task.cancel()
