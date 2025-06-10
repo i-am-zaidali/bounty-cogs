@@ -33,7 +33,9 @@ from .errors import SlashTagException
 from .objects import SlashTag
 from .utils import SLASH_NAME
 
-PASTEBIN_RE = re.compile(r"(?:https?://(?:www\.)?)?pastebin\.com/(?:raw/)?([a-zA-Z0-9]+)")
+PASTEBIN_RE = re.compile(
+    r"(?:https?://(?:www\.)?)?pastebin\.com/(?:raw/)?([a-zA-Z0-9]+)"
+)
 
 
 class TagSearcher:
@@ -46,7 +48,9 @@ class TagSearcher:
 
 
 class TagName(TagSearcher, commands.Converter):
-    def __init__(self, *, check_command: bool = True, check_regex: bool = True, **search_kwargs):
+    def __init__(
+        self, *, check_command: bool = True, check_regex: bool = True, **search_kwargs
+    ):
         self.check_command = check_command
         self.check_regex = check_regex
         super().__init__(**search_kwargs)
@@ -65,7 +69,9 @@ class TagName(TagSearcher, commands.Converter):
         else:
             name = argument
         if self.check_command and self.get_tag(ctx, name):
-            raise commands.BadArgument(f"A slash tag named `{name}` is already registered.")
+            raise commands.BadArgument(
+                f"A slash tag named `{name}` is already registered."
+            )
         return name
 
 
@@ -73,7 +79,9 @@ class TagConverter(TagSearcher, commands.Converter):
     async def convert(self, ctx: commands.Context, argument: str) -> SlashTag:
         tag = self.get_tag(ctx, argument)
         if not tag:
-            raise commands.BadArgument(f'Slash tag "{escape_mentions(argument)}" not found.')
+            raise commands.BadArgument(
+                f'Slash tag "{escape_mentions(argument)}" not found.'
+            )
         return tag
 
 
@@ -98,7 +106,9 @@ class PastebinConverter(TagScriptConverter):
         paste_id = match.group(1)
         async with ctx.cog.session.get(f"https://pastebin.com/raw/{paste_id}") as resp:
             if resp.status != 200:
-                raise commands.BadArgument(f"`{argument}` is not a valid Pastebin link.")
+                raise commands.BadArgument(
+                    f"`{argument}` is not a valid Pastebin link."
+                )
             tagscript = await resp.text()
         return await super().convert(ctx, tagscript)
 

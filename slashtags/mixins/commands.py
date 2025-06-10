@@ -24,12 +24,13 @@ SOFTWARE.
 """
 
 import asyncio
+import contextlib
 import logging
 import re
 import types
+import typing
 from collections import Counter
 from copy import copy
-import typing
 
 import discord
 from discord.app_commands.transformers import Choice, CommandParameter
@@ -305,8 +306,8 @@ class Commands(MixinMeta):
         ]
         name_pred = MessagePredicate.regex(ARGUMENT_NAME_DESCRIPTION, ctx)
         await self.send_and_query_response(ctx, "\n".join(name_desc), name_pred)
-        match = name_pred.result
-        name, description = match.group(1), match.group(2)
+        match = typing.cast("re.Match[str]", name_pred.result)
+        name, description = match.group(1).lower(), match.group(2)
         option_type = await OptionPickerView.pick(
             ctx, "What should the argument type be?"
         )
@@ -821,10 +822,8 @@ class Commands(MixinMeta):
         """Remove the slash eval command."""
         if not self.eval_command:
             return await ctx.send("The eval command hasn't been registered.")
-        try:
+        with contextlib.suppress(discord.HTTPException):
             await self.http.remove_slash_command(self.eval_command)
-        except discord.HTTPException:
-            pass
         await self.config.eval_command.clear()
         self.eval_command = None
         await ctx.send("`/eval` has been deleted.")

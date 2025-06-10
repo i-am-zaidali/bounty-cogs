@@ -27,7 +27,7 @@ import asyncio
 import logging
 from collections import defaultdict
 from functools import partial
-from typing import Coroutine, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Coroutine, Dict, Optional
 
 import aiohttp
 import discord
@@ -55,7 +55,7 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
     The TagScript documentation can be found [here](https://phen-cogs.readthedocs.io/en/latest/index.html).
     """
 
-    __version__ = "1.5.3"
+    __version__ = "1.5.4"
     __author__ = ("PhenoM4n4n", "crayyy_zee")
 
     def format_help_for_context(self, ctx: commands.Context):
