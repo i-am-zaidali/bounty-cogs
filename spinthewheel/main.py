@@ -56,7 +56,7 @@ class STW(commands.Cog):
         """Spin the wheel and win prizes"""
 
         if not wheel or not (
-            items := await self.config.guild(ctx.guild).wheels().get(wheel)
+            items := (await self.config.guild(ctx.guild).wheels()).get(wheel)
         ):
             await ctx.send(
                 "Please send a list of items below in the form: `itemName:rarity` or write `cancel` to end this.\n```py\nitem1:common\nitem2:rare\nitem3:legendary\n```"
