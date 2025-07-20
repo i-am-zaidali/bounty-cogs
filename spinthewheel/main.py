@@ -2,18 +2,18 @@ import asyncio
 import functools
 import logging
 import random
-from concurrent.futures import ProcessPoolExecutor
-from datetime import date, timedelta
 import re
 import typing
+from concurrent.futures import ProcessPoolExecutor
+from datetime import date, timedelta
 
 import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.data_manager import bundled_data_path
 
-from .wheel import draw_still_wheel, get_animated_wheel
 from .views import Paginator, WheelSource
+from .wheel import draw_still_wheel, get_animated_wheel
 
 log = logging.getLogger("red.bounty.stw")
 
@@ -82,14 +82,12 @@ class STW(commands.Cog):
             if msg.content.startswith("cancel"):
                 return await ctx.send("Cancelled")
 
-            items = dict(
-                map(
-                    lambda x: (x[0], RARITY_WEIGHTS[x[1]]),
-                    re.findall(
-                        r"(?P<name>\w+):(?P<rarity>common|rare|legendary)", msg.content
-                    ),
+            items = {
+                x[0]: RARITY_WEIGHTS[x[1]]
+                for x in re.findall(
+                    r"(?P<name>\w+):(?P<rarity>common|rare|legendary)", msg.content
                 )
-            )
+            }
 
         if not len(items) >= 2:
             return await ctx.send("There must be at least 2 items to spin the wheel")
@@ -231,7 +229,6 @@ class STW(commands.Cog):
             if item in items:
                 return await ctx.send("That item is already on the wheel")
 
-            
             items[item] = RARITY_WEIGHTS[rarity]
             await ctx.tick()
             max_name_length = max(len(item) for item in items)

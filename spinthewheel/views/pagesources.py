@@ -1,10 +1,10 @@
 import datetime
-import emoji
 import operator
 import random
 import typing
 
 import discord
+import emoji
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting as cf
 from redbot.vendored.discord.ext import menus
@@ -23,11 +23,7 @@ class WheelSource(menus.ListPageSource):
         super().__init__(list(wheels.items()), per_page=1)
 
         self.custom_indices = [
-            {
-                "label": f"{wheel} wheel",
-                "description": f"See the items for {wheel}",
-                "emoji": random.choice([*emoji.EMOJI_DATA.keys()]),
-            }
+            {"label": f"{wheel} wheel", "description": f"See the items for {wheel}"}
             for wheel in wheels
         ]
 

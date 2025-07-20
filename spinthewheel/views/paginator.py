@@ -23,7 +23,9 @@ __all__ = [
 
 
 class PaginatorButton(Button["Paginator"]):
-    def __init__(self, *, emoji=None, label=None, style=discord.ButtonStyle.green, disabled=False):
+    def __init__(
+        self, *, emoji=None, label=None, style=discord.ButtonStyle.green, disabled=False
+    ):
         super().__init__(style=style, label=label, emoji=emoji, disabled=disabled)
 
 
@@ -42,7 +44,9 @@ class CloseButton(Button["Paginator"]):
 
 class ForwardButton(PaginatorButton):
     def __init__(self):
-        super().__init__(emoji="\N{BLACK RIGHT-POINTING TRIANGLE}\N{VARIATION SELECTOR-16}")
+        super().__init__(
+            emoji="\N{BLACK RIGHT-POINTING TRIANGLE}\N{VARIATION SELECTOR-16}"
+        )
 
     async def callback(self, interaction: discord.Interaction):
         if self.view.current_page == (self.view.source.get_max_pages() - 1):
@@ -55,7 +59,9 @@ class ForwardButton(PaginatorButton):
 
 class BackwardButton(PaginatorButton):
     def __init__(self):
-        super().__init__(emoji="\N{BLACK LEFT-POINTING TRIANGLE}\N{VARIATION SELECTOR-16}")
+        super().__init__(
+            emoji="\N{BLACK LEFT-POINTING TRIANGLE}\N{VARIATION SELECTOR-16}"
+        )
 
     async def callback(self, interaction: discord.Interaction):
         if self.view.current_page == 0:
@@ -95,7 +101,9 @@ class PageButton(PaginatorButton):
         super().__init__(style=discord.ButtonStyle.gray, disabled=True)
 
     def _change_label(self):
-        self.label = f"Page {self.view.current_page+1}/{self.view.source.get_max_pages()}"
+        self.label = (
+            f"Page {self.view.current_page + 1}/{self.view.source.get_max_pages()}"
+        )
 
 
 class PaginatorSelect(Select["Paginator"]):
@@ -104,12 +112,14 @@ class PaginatorSelect(Select["Paginator"]):
         pages: int
         pages: int = view.source.get_max_pages() or 0
         if getattr(view.source, "custom_indices", None):
-            indices: list[dict[str, str]] = typing.cast(list, view.source.custom_indices)
+            indices: list[dict[str, str]] = typing.cast(
+                list, view.source.custom_indices
+            )
         else:
             indices = [
-                *map(
-                    lambda x: {"label": f"Page # {x}", "description": f"Go to page {x}"},
-                    range(1, pages + 1),
+                *(
+                    {"label": f"Page # {x}", "description": f"Go to page {x}"}
+                    for x in range(1, pages + 1)
                 )
             ]
 
@@ -127,7 +137,9 @@ class PaginatorSelect(Select["Paginator"]):
                 for i in range(minus_diff, plus_diff)
             ]
         else:
-            options = [discord.SelectOption(**indices[i], value=str(i)) for i in range(pages)]
+            options = [
+                discord.SelectOption(**indices[i], value=str(i)) for i in range(pages)
+            ]
 
         return cls(options=options, placeholder=placeholder, min_values=1, max_values=1)
 
@@ -137,7 +149,9 @@ class PaginatorSelect(Select["Paginator"]):
 
 
 class PaginatorSourceSelect(Select["Paginator"]):
-    def __init__(self, options: dict[discord.SelectOption, menus.PageSource], placeholder: str):
+    def __init__(
+        self, options: dict[discord.SelectOption, menus.PageSource], placeholder: str
+    ):
         self.sources = dict(map(lambda x: (x[0].value, x[1]), options.items()))
         _options = [*options.keys()]
         disabled = False
@@ -196,7 +210,9 @@ class Paginator(ViewDisableOnTimeout):
                 LastItemButton(),
             ]
             if pages > 2
-            else [BackwardButton(), PageButton(), ForwardButton()] if pages > 1 else []
+            else [BackwardButton(), PageButton(), ForwardButton()]
+            if pages > 1
+            else []
         )
         if self.use_select and pages > 1:
             buttons_to_add.append(await PaginatorSelect.with_pages(self))
@@ -218,7 +234,9 @@ class Paginator(ViewDisableOnTimeout):
                 i._change_label()
                 continue
 
-            elif self.current_page == self._start_from and isinstance(i, FirstItemButton):
+            elif self.current_page == self._start_from and isinstance(
+                i, FirstItemButton
+            ):
                 i.disabled = True
                 continue
 
@@ -263,7 +281,9 @@ class Paginator(ViewDisableOnTimeout):
         """
 
         if not isinstance(source, menus.PageSource):
-            raise TypeError("Expected {0!r} not {1.__class__!r}.".format(menus.PageSource, source))
+            raise TypeError(
+                "Expected {0!r} not {1.__class__!r}.".format(menus.PageSource, source)
+            )
 
         self._source = source
         self.current_page = self._start_from
