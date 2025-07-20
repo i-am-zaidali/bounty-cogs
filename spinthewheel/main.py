@@ -264,7 +264,7 @@ class STW(commands.Cog):
             if wheel not in wheels:
                 return await ctx.send("A wheel with this name does not exist.")
             items: dict[str, str] = wheels[wheel]
-            if not item in items:
+            if item not in items:
                 return await ctx.send("There are no items to remove")
             del items[item]
             await ctx.tick()
@@ -298,7 +298,7 @@ class STW(commands.Cog):
     ):
         """Preview the wheel"""
         wheels = await self.config.guild(ctx.guild).wheels()
-        if not wheel in wheels:
+        if wheel not in wheels:
             return await ctx.send("There are no wheels to preview")
         items = wheel.get(wheel)
         if not items:
@@ -333,7 +333,7 @@ class STW(commands.Cog):
     ):
         """List all the items on the wheel"""
         wheels: dict[str, dict[str, int]] = await self.config.guild(ctx.guild).wheels()
-        if not wheel in wheels:
+        if wheel not in wheels:
             return await ctx.send("There are no wheels to preview")
         wheel = {wheel: wheels[wheel]}
         source = WheelSource(wheel, WEIGHTS_RARITY)
