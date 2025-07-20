@@ -231,8 +231,7 @@ class STW(commands.Cog):
             if item in items:
                 return await ctx.send("That item is already on the wheel")
 
-            if len(items) < 2:
-                return
+            
             items[item] = RARITY_WEIGHTS[rarity]
             await ctx.tick()
             max_name_length = max(len(item) for item in items)
