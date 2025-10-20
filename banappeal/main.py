@@ -1,16 +1,18 @@
 import asyncio
 import contextlib
-import discord
-from discord import app_commands
-import discord.ui
 import itertools
-from redbot.core import commands, Config
-from redbot.core.bot import Red
-import typing
-from .views import BannedGuildsSelect, AcceptRejectButton, ViewDisableOnTimeout
-from discord.utils import maybe_coroutine
-from redbot.core.utils import chat_formatting as cf
 import logging
+import typing
+
+import discord
+import discord.ui
+from discord import app_commands
+from discord.utils import maybe_coroutine
+from redbot.core import Config, commands
+from redbot.core.bot import Red
+from redbot.core.utils import chat_formatting as cf
+
+from .views import AcceptRejectButton, BannedGuildsSelect, ViewDisableOnTimeout
 
 log = logging.getLogger("red.bounty.banappeal")
 
@@ -30,7 +32,7 @@ def catch(
     A wrapper function that catches exceptions and returns the result of the handler function
 
     Intended to be used in one liners, e.g.:
-    ```py
+    ```
     await catch(func, handler, exc_types)(*args, **kwargs)
     ```
 
@@ -82,8 +84,8 @@ class BanAppeal(commands.Cog):
             ban_message=(
                 "You have been banned from {guild_name}. "
                 "To appeal this ban, please "
-                f"[install the bot to your account](<https://discord.com/developers/docs/resources/application#installation-context>) "
-                "with the following link: <{user_install_link}> or by clicking the button below this embed.\n"
+                "[install the bot to your account](<https://discord.com/developers/docs/resources/application#installation-context>) "
+                f"with the following link: <{self.user_install_link}> or by clicking the button below this embed.\n"
                 "After installing, run the `/appeal` command and it will guide you through what to do."
             ),
         )
@@ -224,10 +226,8 @@ class BanAppeal(commands.Cog):
 
         banned_from: list[str]
         async with self.config.user(user).banned_from() as banned_from:
-            try:
+            with contextlib.suppress(ValueError):
                 banned_from.remove(guild.id)
-            except ValueError:
-                pass
 
         await self.config.member_from_ids(guild.id, user.id).has_appealed.set(False)
 
@@ -283,15 +283,14 @@ class BanAppeal(commands.Cog):
         Toggle ban appeal settings
         """
         current = await self.config.guild(ctx.guild).toggle()
-        if current == False:
-            if (
-                not await self.config.guild(ctx.guild).channel()
-                or not await self.config.guild(ctx.guild).questions()
-                and not await self.config.guild(ctx.guild).managers()
-            ):
-                return await ctx.send(
-                    "The channel and questions must be set before enabling ban appeals."
-                )
+        if not current and (
+            not await self.config.guild(ctx.guild).channel()
+            or not await self.config.guild(ctx.guild).questions()
+            and not await self.config.guild(ctx.guild).managers()
+        ):
+            return await ctx.send(
+                "The channel and questions must be set before enabling ban appeals."
+            )
         await self.config.guild(ctx.guild).toggle.set(not current)
         await ctx.send(
             f"{await self.config.guild(ctx.guild).toggle() and 'Enabled' or 'Disabled'} ban appeal settings"

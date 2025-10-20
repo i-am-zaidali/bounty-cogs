@@ -18,7 +18,7 @@
     ],
     "required_cogs": {},
     "requirements": [
-        "pydantic",
+        "pydantic>=2.11,<2.12",
         "matplotlib",
         "numpy",
         "pandas"

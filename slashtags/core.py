@@ -24,18 +24,17 @@ SOFTWARE.
 """
 
 import asyncio
+import contextlib
 import logging
 from collections import defaultdict
 from functools import partial
 from typing import TYPE_CHECKING, Coroutine, Dict, Optional
 
-import aiohttp
 import discord
 import TagScriptEngine as tse
 from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.config import Config
-from redbot.core.utils import AsyncIter
 from redbot.core.utils.chat_formatting import humanize_list
 
 from .abc import CompositeMetaClass
@@ -127,10 +126,8 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
             log.exception("An error occurred while unloading the cog.", exc_info=error)
 
     async def __unload(self):
-        try:
+        with contextlib.suppress(Exception):
             self.bot.remove_dev_env_value("st")
-        except Exception:
-            pass
 
         self.bot.tree.sync = self.old_sync
 
@@ -199,22 +196,22 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
             if not guild or not guild_data["tags"]:
                 continue
             all_commands = dict[int, SlashTag](
-                map(
-                    lambda x: (
+                (
+                    (
                         x,
                         SlashTag.from_dict(
                             self, guild_data["tags"][str(x)], guild_id=guild_id
                         ),
-                    ),
-                    map(int, guild_data["tags"].keys()),
+                    )
+                    for x in map(int, guild_data["tags"].keys())
                 )
             )
             commands_synced = dict[int, "APTD"](
-                map(
-                    lambda x: (int(x["id"]), x),
-                    await self.bot.http.get_guild_commands(
+                (
+                    (int(x["id"]), x)
+                    for x in await self.bot.http.get_guild_commands(
                         self.application_id, guild_id
-                    ),
+                    )
                 )
             )
 
@@ -233,7 +230,7 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
             synced = await self.bot.http.bulk_upsert_guild_commands(
                 self.application_id,
                 guild_id,
-                [*map(lambda x: x.command.to_request(), commands_not_synced.values())]
+                [*(x.command.to_request() for x in commands_not_synced.values())]
                 + [*commands_synced.values()],
             )
 
@@ -344,10 +341,8 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
 
     @staticmethod
     async def delete_quietly(message: discord.Message):
-        try:
+        with contextlib.suppress(discord.HTTPException):
             await message.delete()
-        except discord.HTTPException:
-            pass
 
     async def restore_tags(
         self, ctx: commands.Context, guild: Optional[discord.Guild] = None

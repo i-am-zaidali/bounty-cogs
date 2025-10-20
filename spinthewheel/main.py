@@ -22,6 +22,8 @@ WEIGHTS_RARITY = {5: "common", 2: "rare", 1: "legendary"}
 
 
 class STW(commands.Cog):
+    """Spin the wheel and win prizes"""
+
     def __init__(self, bot: Red):
         self.bot = bot
         self.tasks = []
@@ -59,7 +61,8 @@ class STW(commands.Cog):
             items := (await self.config.guild(ctx.guild).wheels()).get(wheel)
         ):
             await ctx.send(
-                "Please send a list of items below in the form: `itemName:rarity` or write `cancel` to end this.\n```py\nitem1:common\nitem2:rare\nitem3:legendary\n```"
+                (f"No wheel called **__{wheel}__** exists. " if wheel else "")
+                + "Please send a list of items below in the form: `itemName:rarity` or write `cancel` to end this.\n```py\nitem1:common\nitem2:rare\nitem3:legendary\n```"
             )
             try:
                 msg = await self.bot.wait_for(

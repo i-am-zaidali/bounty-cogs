@@ -15,7 +15,7 @@
     ],
     "required_cogs": {},
     "requirements": [
-        "pydantic",
+        "pydantic>=2.11,<2.12",
         "numpy",
         "git+https://github.com/astanin/python-tabulate.git@master",
         "fuzzywuzzy"
