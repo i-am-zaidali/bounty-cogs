@@ -236,7 +236,7 @@ class StoreLogos(enum.Enum):
     origin = "https://cdn.worldvectorlogo.com/logos/origin-4.svg"
     drm_free = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/DRM-free.svg/600px-DRM-free.svg.png"
     xbox_360 = xbox = xbox_one = xbox_series_xs = (
-        "https://cdn.brandfetch.io/xbox.com/w/512/h/512/symbol"
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Xbox_logo_%282019%29.svg/250px-Xbox_logo_%282019%29.svg.png"
     )
 
     humble = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Humble_Bundle_logo.svg/250px-Humble_Bundle_logo.svg.png"
