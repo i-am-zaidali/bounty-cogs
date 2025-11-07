@@ -59,21 +59,15 @@ class ServiceConfig(Base):
 
 
 class GamerPowerConfig(ServiceConfig):
-    stores_to_check: typing.Set[GamerPowerStores] = pydantic.Field(
-        default_factory=set
-    )
+    stores_to_check: typing.Set[GamerPowerStores] = pydantic.Field(default_factory=set)
 
 
 class FreeStuffConfig(ServiceConfig):
-    stores_to_check: typing.Set[FreeStuffStores] = pydantic.Field(
-        default_factory=set
-    )
+    stores_to_check: typing.Set[FreeStuffStores] = pydantic.Field(default_factory=set)
 
 
 class GuildSettings(Base):
-    gamerpower: GamerPowerConfig = pydantic.Field(
-        default_factory=GamerPowerConfig
-    )
+    gamerpower: GamerPowerConfig = pydantic.Field(default_factory=GamerPowerConfig)
     freestuff: FreeStuffConfig = pydantic.Field(default_factory=FreeStuffConfig)
     pingroles: typing.Set[int] = pydantic.Field(default_factory=set)
     pingusers: typing.Set[int] = pydantic.Field(default_factory=set)
@@ -181,12 +175,8 @@ class GameFlags(enum.IntEnum):
     THIRDPARTY = 1 << 1
 
 
-ProductKind = typing.Literal[
-    "game", "dlc", "software", "art", "ost", "book", "other"
-]
-AnnouncementType = typing.Literal[
-    "free", "weekend", "discount", "ad", "unknown"
-]
+ProductKind = typing.Literal["game", "dlc", "software", "art", "ost", "book", "other"]
+AnnouncementType = typing.Literal["free", "weekend", "discount", "ad", "unknown"]
 
 
 class FreeStuffGameInfo(Base):
@@ -222,32 +212,36 @@ class FreeStuffResponse(Base):
 class StoreLogos(enum.Enum):
     steam = "https://store.steampowered.com/favicon.ico"
     epic_games_store = epic = (
-        "https://cdn.brandfetch.io/epicgames.com/w/441/h/512/logo"
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Epic_Games_logo.svg/120px-Epic_Games_logo.svg.png"
     )
     ubisoft = uplay = (
-        "https://cdn.brandfetch.io/ubisoft.com/w/493/h/512/theme/light/symbol"
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Ubisoft_logo.svg/250px-Ubisoft_logo.svg.png"
     )
-    gog = "https://cdn.brandfetch.io/gogalaxy.com/w/400/h/400"
-    itchio = itch = "https://cdn.brandfetch.io/itch.io/w/316/h/316"
+    gog = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/GOG.com_logo.svg/75px-GOG.com_logo.svg.png"
+    itchio = itch = (
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Itch.io_logo.svg/250px-Itch.io_logo.svg.png"
+    )
     ps4 = ps5 = ps = (
-        "https://cdn.brandfetch.io/sonyentertainmentnetwork.com/w/400/h/400"
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/PlayStation_logo_and_wordmark.svg/250px-PlayStation_logo_and_wordmark.svg.png"
     )
-    switch = "https://cdn.brandfetch.io/nintendo.com/w/400/h/400"
+    switch = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Nintendo_Switch_logo.svg/250px-Nintendo_Switch_logo.svg.png"
     android = google = (
-        "https://cdn.brandfetch.io/android.com/w/512/h/289/symbol"
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Android_2023_3D_logo_and_wordmark.svg/330px-Android_2023_3D_logo_and_wordmark.svg.png"
     )
-    ios = apple = "https://cdn.brandfetch.io/apple.com/w/419/h/512/logo"
-    vr = "https://designbundles.net/xfankystore/1181849-vr-glasses-icon-logo-virtual-reality-concept-glass"
-    battlenet = "https://www.pngegg.com/en/search?q=Battle.net"
-    origin = "https://worldvectorlogo.com/logo/origin-4"
-    drm_free = "https://en.m.wikipedia.org/wiki/File:DRM-free.svg"
+    ios = apple = (
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/120px-Apple_logo_black.svg.png"
+    )
+    vr = "https://i.fbcd.co/products/resized/resized-750-500/bdd43339451c69679f9199209f394e9b1273d6cdd0ebb7488715918781ac5b32.webp"
+    battlenet = "https://upload.wikimedia.org/wikipedia/en/thumb/a/a8/Battlenet-logo.png/250px-Battlenet-logo.png"
+    origin = "https://cdn.worldvectorlogo.com/logos/origin-4.svg"
+    drm_free = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/DRM-free.svg/600px-DRM-free.svg.png"
     xbox_360 = xbox = xbox_one = xbox_series_xs = (
         "https://cdn.brandfetch.io/xbox.com/w/512/h/512/symbol"
     )
 
-    humble = "https://cdn.brandfetch.io/humblebundle.com/w/256/h/256"
-    twitch = "https://cdn.brandfetch.io/twitch.tv/w/439/h/512/symbol"
-    discord = "https://cdn.brandfetch.io/discord.com/w/512/h/397/symbol"
+    humble = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Humble_Bundle_logo.svg/250px-Humble_Bundle_logo.svg.png"
+    twitch = "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Twitch_logo_2019.svg/330px-Twitch_logo_2019.svg.png"
+    discord = "https://upload.wikimedia.org/wikipedia/en/thumb/9/98/Discord_logo.svg/330px-Discord_logo.svg.png"
     other = ""
 
     def __str__(self):
