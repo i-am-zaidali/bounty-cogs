@@ -12,7 +12,8 @@
     },
     "requirements": [
         "git+https://github.com/astanin/python-tabulate.git@master",
-        "dateparser"
+        "dateparser",
+        "pydantic>=2.11,<2.12"
     ],
     "tags": [
         "MissionChief",
