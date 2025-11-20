@@ -1,6 +1,6 @@
 {
-  "author": ["Vertyco"],
-  "description": "",
+  "author": ["crayyy_zee"],
+  "description": "A cog that suppresses discord's default poll end message and optionally replaces it with a custom message",
   "disabled": false,
   "end_user_data_statement": "",
   "hidden": false,
@@ -9,7 +9,7 @@
   "min_python_version": [3, 10, 0],
   "permissions": ["administrator"],
   "required_cogs": {},
-  "requirements": ["pydantic>=2.11,<2.12"],
+  "requirements": ["pydantic>=2.11,2.12"],
   "short": "",
   "tags": [],
   "type": "COG"
