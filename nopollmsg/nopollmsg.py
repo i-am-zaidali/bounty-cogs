@@ -4,7 +4,7 @@ import discord
 from redbot.core import Config, commands
 
 
-class NoPollMsg(commands.Cog):
+class NoPollMessage(commands.Cog):
     """A cog to suppress discord's built in poll end message and
     optionally replace with a custom message."""
 
