@@ -27,10 +27,10 @@ class Violation(Base):
     )
     timestamp: float
     channel: int
-    log_message_url: typing.Optional[str]
-    message: typing.Optional[int]
+    log_message_url: typing.Optional[str] = None
+    message: typing.Optional[int] = None
     violation_type: typing.Literal["filename", "filetype", "filesize"]
-    action_taken: typing.Optional[ActionTypes]
+    action_taken: typing.Optional[ActionTypes] = None
 
 
 class UserData(Base):
