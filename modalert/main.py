@@ -23,7 +23,7 @@ class ModAlert(commands.Cog):
     It also optionally timeouts the user who sent the original message."""
 
     __author__ = "crayyy_zee"
-    __version__ = "0.0.1"
+    __version__ = "0.0.2"
 
     def __init__(self, bot: Red):
         super().__init__()
@@ -42,7 +42,9 @@ class ModAlert(commands.Cog):
 
     def format_help_for_context(self, ctx: commands.Context):
         helpcmd = super().format_help_for_context(ctx)
-        txt = "Version: {}\nAuthor: {}".format(self.__version__, self.__author__)
+        txt = "Version: {}\nAuthor: {}".format(
+            self.__version__, self.__author__
+        )
         return f"{helpcmd}\n\n{txt}"
 
     async def red_delete_data_for_user(self, *, requester: str, user_id: int):
@@ -72,6 +74,14 @@ class ModAlert(commands.Cog):
         if not message.mentions and not message.role_mentions:
             return
 
+        msg_reference = message.reference.resolved
+
+        if msg_reference.is_system():
+            return
+
+        if msg_reference.author == message.author:
+            return
+
         guild_config = self.config.guild(message.guild)
         mod_role_ids: set[int] = set(await guild_config.mod_roles())
         mod_user_ids: set[int] = set(await guild_config.mod_users())
@@ -84,11 +94,13 @@ class ModAlert(commands.Cog):
             role.id for role in message.role_mentions
         }
 
-        mod_pinged = len(message_mentions.intersection(mod_user_ids, mod_role_ids)) > 0
+        mod_pinged = (
+            len(message_mentions.intersection(mod_user_ids, mod_role_ids)) > 0
+        )
         if not mod_pinged:
             return
 
-        msg_id = message.reference.message_id if message.reference else None
+        msg_id = msg_reference.id
         if msg_id not in self.reports:
             self.reports[msg_id] = (
                 AntiSpam(
@@ -112,7 +124,9 @@ class ModAlert(commands.Cog):
             user_timed_out = False
 
             original_message = message.reference.resolved
-            if original_message and isinstance(original_message, discord.Message):
+            if original_message and isinstance(
+                original_message, discord.Message
+            ):
                 try:
                     await original_message.delete()
                     message_deleted = True
@@ -143,7 +157,9 @@ class ModAlert(commands.Cog):
                         for user_id in set(alerted_user_ids)
                     ]
                     user_mentions = ", ".join(
-                        user.mention for user in alerted_users if user is not None
+                        user.mention
+                        for user in alerted_users
+                        if user is not None
                     )
                     await log_channel.send(
                         f"Message {message.reference.jump_url} was flagged because it was reported by {alert_threshold} users ({user_mentions}). "
@@ -198,7 +214,9 @@ class ModAlert(commands.Cog):
             await ctx.send("No mod roles have been set.")
             return
         roles = [ctx.guild.get_role(role_id) for role_id in current_roles]
-        role_mentions = ", ".join(role.mention for role in roles if role is not None)
+        role_mentions = ", ".join(
+            role.mention for role in roles if role is not None
+        )
         await ctx.send(
             f"Mod roles: {role_mentions}",
             allowed_mentions=discord.AllowedMentions.none(),
@@ -245,7 +263,9 @@ class ModAlert(commands.Cog):
             await ctx.send("No mod users have been set.")
             return
         users = [ctx.guild.get_member(user_id) for user_id in current_users]
-        user_mentions = ", ".join(user.mention for user in users if user is not None)
+        user_mentions = ", ".join(
+            user.mention for user in users if user is not None
+        )
         await ctx.send(
             f"Mod users: {user_mentions}",
             allowed_mentions=discord.AllowedMentions.none(),
@@ -303,7 +323,7 @@ class ModAlert(commands.Cog):
         )
         if duration:
             await ctx.send(
-                f"Set the timeout duration to {cf.humanize_timedelta(duration.total_seconds())}."
+                f"Set the timeout duration to {cf.humanize_timedelta(seconds=duration.total_seconds())}."
             )
         else:
             await ctx.send("Disabled timeouts for Mod Alert.")
@@ -327,7 +347,7 @@ class ModAlert(commands.Cog):
             int(timeframe.total_seconds())
         )
         await ctx.send(
-            f"Set the timeframe to {cf.humanize_timedelta(timeframe.total_seconds())} "
+            f"Set the timeframe to {cf.humanize_timedelta(seconds=timeframe.total_seconds())} "
             f"i.e if there are {await self.config.guild(ctx.guild).alert_threshold()} "
             "mod pings within this period, the message will be deleted and the user may be timed out."
         )
