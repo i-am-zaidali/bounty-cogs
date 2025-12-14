@@ -27,33 +27,33 @@ class MessageListeners(MixinMeta):
     async def on_message(self, message: discord.Message) -> None:
         guild = message.guild
         if not guild:
-            log.debug(f"Message {message.id} not in a guild, ignoring.")
+            # log.debug(f"Message {message.id} not in a guild, ignoring.")
             return
 
         conf = self.db.get_conf(guild.id)
         if not conf.is_enabled():
-            log.debug(
-                f"MediaMonitor is disabled in guild {guild.id}, ignoring message."
-            )
+            # log.debug(
+            #     f"MediaMonitor is disabled in guild {guild.id}, ignoring message."
+            # )
             return
 
         if message.channel.id not in conf.monitoring_channels:
-            log.debug(f"Message {message.id} not in monitoring channels, ignoring.")
+            # log.debug(f"Message {message.id} not in monitoring channels, ignoring.")
             return
 
         if not message.attachments:
-            log.debug(f"Message {message.id} has no attachments, ignoring.")
+            # log.debug(f"Message {message.id} has no attachments, ignoring.")
             return
 
         if message.author.id in conf.whitelisted_members:
-            log.debug(
-                f"Author {message.author.id} of message {message.id} is whitelisted, ignoring."
-            )
+            # log.debug(
+            #     f"Author {message.author.id} of message {message.id} is whitelisted, ignoring."
+            # )
             return
 
-        log.debug(
-            f"Message {message.id} in guild {guild.id} by {message.author.id} has passed all pre processing checks. Processing attachments."
-        )
+        # log.debug(
+        #     f"Message {message.id} in guild {guild.id} by {message.author.id} has passed all pre processing checks. Processing attachments."
+        # )
 
         attachments = message.attachments
         for attachment in attachments:
@@ -62,13 +62,16 @@ class MessageListeners(MixinMeta):
             )
             if violated is True:
                 self.bot.dispatch(
-                    "mediamonitor_violation", message, attachment, violation_type
+                    "mediamonitor_violation",
+                    message,
+                    attachment,
+                    violation_type,
                 )
 
-        else:
-            log.debug(
-                f"Message {message.id} in guild {guild.id} by {message.author.id} has no violating attachments."
-            )
+        # else:
+        # log.debug(
+        #     f"Message {message.id} in guild {guild.id} by {message.author.id} has no violating attachments."
+        # )
 
     @commands.Cog.listener()
     async def on_message_edit(
@@ -83,9 +86,9 @@ class MessageListeners(MixinMeta):
         attachment: discord.Attachment,
         violation_type: str,
     ) -> None:
-        log.debug(
-            f"Media violation detected in message {message.id} in guild {message.guild.id} by {message.author.id} for {violation_type}."
-        )
+        # log.debug(
+        #     f"Media violation detected in message {message.id} in guild {message.guild.id} by {message.author.id} for {violation_type}."
+        # )
         guild = message.guild
         if not guild:
             return
@@ -96,9 +99,9 @@ class MessageListeners(MixinMeta):
 
         if conf.delete_on_violation:
             try:
-                log.debug(
-                    f"Deleting message {message.id} in guild {guild.id} due to media violation."
-                )
+                # log.debug(
+                #     f"Deleting message {message.id} in guild {guild.id} due to media violation."
+                # )
                 await message.delete()
                 message_deleted = True
             except discord.Forbidden:
@@ -171,7 +174,9 @@ class MessageListeners(MixinMeta):
         conf: GuildSettings,
         attachment: discord.Attachment,
     ) -> typing.Union[
-        typing.Tuple[bool, typing.Literal["", "filesize", "filetype", "filename"]],
+        typing.Tuple[
+            bool, typing.Literal["", "filesize", "filetype", "filename"]
+        ],
     ]:
         """Check if an attachment violates the guild's media monitoring rules.
 
@@ -181,17 +186,17 @@ class MessageListeners(MixinMeta):
             conf.file_size_limit_bytes > 0
             and attachment.size > conf.file_size_limit_bytes
         ):
-            log.debug(
-                f"Attachment {attachment.id} in guild {guild.id} by {author.id} violates file size limit. {attachment.size=} > {conf.file_size_limit_bytes=}"
-            )
+            # log.debug(
+            #     f"Attachment {attachment.id} in guild {guild.id} by {author.id} violates file size limit. {attachment.size=} > {conf.file_size_limit_bytes=}"
+            # )
             return True, "filesize"
 
         if conf.blacklisted_file_types:
             filetype = attachment.filename.split(".")[-1].lower()
             if filetype in conf.blacklisted_file_types:
-                log.debug(
-                    f"Attachment {attachment.id} in guild {guild.id} by {author.id} violates file type blacklist. {filetype=} in {conf.blacklisted_file_types=}"
-                )
+                # log.debug(
+                #     f"Attachment {attachment.id} in guild {guild.id} by {author.id} violates file type blacklist. {filetype=} in {conf.blacklisted_file_types=}"
+                # )
                 return True, "filetype"
 
         if conf.filename_regex:
@@ -200,9 +205,9 @@ class MessageListeners(MixinMeta):
                 guild, author, pattern, attachment.filename
             )
             if safe and matches:
-                log.debug(
-                    f"Attachment {attachment.id} in guild {guild.id} by {author.id} violates filename regex. {attachment.filename=} matches {conf.filename_regex=}"
-                )
+                # log.debug(
+                #     f"Attachment {attachment.id} in guild {guild.id} by {author.id} violates filename regex. {attachment.filename=} matches {conf.filename_regex=}"
+                # )
                 return True, "filename"
 
             elif not safe:
@@ -232,7 +237,9 @@ class MessageListeners(MixinMeta):
             task = functools.partial(process.get, timeout=self.regex_timeout)
             loop = asyncio.get_running_loop()
             new_task = loop.run_in_executor(None, task)
-            search = await asyncio.wait_for(new_task, timeout=self.regex_timeout + 5)
+            search = await asyncio.wait_for(
+                new_task, timeout=self.regex_timeout + 5
+            )
         except mp.TimeoutError:
             log.warning(
                 "Filename Regex process timeout in guild %s (%s) Author %s Removing the regex",
@@ -331,9 +338,13 @@ class MessageListeners(MixinMeta):
             color=discord.Color.red(),
             timestamp=discord.utils.utcnow(),
         )
-        embed.add_field(name="User", value=f"{member} ({member.id})", inline=False)
         embed.add_field(
-            name="Violation Type", value=violation_type.capitalize(), inline=False
+            name="User", value=f"{member} ({member.id})", inline=False
+        )
+        embed.add_field(
+            name="Violation Type",
+            value=violation_type.capitalize(),
+            inline=False,
         )
         embed.add_field(
             name="Attachment",
@@ -341,7 +352,9 @@ class MessageListeners(MixinMeta):
             inline=False,
         )
         if not message_deleted:
-            embed.add_field(name="Message Link", value=f"[Jump to Message]({jump_url})")
+            embed.add_field(
+                name="Message Link", value=f"[Jump to Message]({jump_url})"
+            )
 
         if action_taken is not None:
             embed.add_field(
@@ -395,19 +408,19 @@ class MessageListeners(MixinMeta):
         """Take the specified action on the member."""
         try:
             if action == ActionTypes.MUTE:
-                log.debug(
-                    f"Muting member {member.id} in guild {guild.id} for {mute_duration} seconds."
-                )
+                # log.debug(
+                #     f"Muting member {member.id} in guild {guild.id} for {mute_duration} seconds."
+                # )
                 await member.timeout(
                     until=discord.utils.utcnow()
                     + datetime.timedelta(seconds=mute_duration),
                     reason=reason,
                 )
             elif action == ActionTypes.KICK:
-                log.debug(f"Kicking member {member.id} from guild {guild.id}.")
+                # log.debug(f"Kicking member {member.id} from guild {guild.id}.")
                 await member.kick(reason=reason)
             elif action == ActionTypes.BAN:
-                log.debug(f"Banning member {member.id} from guild {guild.id}.")
+                # log.debug(f"Banning member {member.id} from guild {guild.id}.")
                 await guild.ban(member, reason=reason)
 
             return True
@@ -442,15 +455,17 @@ class MessageListeners(MixinMeta):
         action: ActionTypes,
     ) -> None:
         """Log a failure to take action on a member."""
-        log.debug(
-            f"Logging action failure for {action.name} on member {member.id} in guild {guild.id}."
-        )
+        # log.debug(
+        #     f"Logging action failure for {action.name} on member {member.id} in guild {guild.id}."
+        # )
         embed = discord.Embed(
             title="Action Failure",
             color=discord.Color.dark_red(),
             timestamp=discord.utils.utcnow(),
         )
-        embed.add_field(name="User", value=f"{member} ({member.id})", inline=False)
+        embed.add_field(
+            name="User", value=f"{member} ({member.id})", inline=False
+        )
         embed.add_field(
             name="Action",
             value=action.name.capitalize(),
