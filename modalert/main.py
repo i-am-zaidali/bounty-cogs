@@ -76,6 +76,9 @@ class ModAlert(commands.Cog):
 
         msg_reference = message.reference.resolved
 
+        if not msg_reference:
+            return
+
         if msg_reference.is_system():
             return
 
