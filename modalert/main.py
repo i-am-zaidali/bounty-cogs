@@ -71,10 +71,18 @@ class ModAlert(commands.Cog):
         if not message.reference:
             return
 
+        if not message.type == discord.MessageType.reply:
+            return
+
         if not message.mentions and not message.role_mentions:
             return
 
         msg_reference = message.reference.resolved
+        if not msg_reference:
+            try:
+                msg_reference = await message.channel.fetch_message(message.reference.message_id)
+            except Exception as e:
+                return
 
         if not msg_reference:
             return
@@ -98,7 +106,7 @@ class ModAlert(commands.Cog):
         }
 
         mod_pinged = (
-            len(message_mentions.intersection(mod_user_ids, mod_role_ids)) > 0
+  len(message_mentions.intersection(mod_user_ids, mod_role_ids)) > 0
         )
         if not mod_pinged:
             return
