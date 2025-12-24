@@ -11,9 +11,16 @@ from redbot.core.utils.antispam import AntiSpam
 
 log = logging.getLogger("red.modalert")
 
-timedelta_converter = commands.get_timedelta_converter(
+timeout_timedelta_converter = commands.get_timedelta_converter(
     allowed_units=["days", "hours", "minutes", "seconds"],
     minimum=datetime.timedelta(seconds=30),
+    maximum=datetime.timedelta(days=28),
+)
+
+timeframe_timedelta_converter = commands.get_timedelta_converter(
+    allowed_units=["days", "hours", "minutes", "seconds"],
+    minimum=datetime.timedelta(seconds=30),
+    maximum=datetime.timedelta(days=1),
 )
 
 
@@ -36,6 +43,7 @@ class ModAlert(commands.Cog):
             alert_threshold=3,
             timeout_duration=None,
             timeframe_seconds=300,
+            ignore_mods=True,
         )
         # a dict mapping message ids to a tuple of (AntiSpam instance, list of user ids who alerted)
         self.reports: dict[int, tuple[AntiSpam, list[int]]] = {}
@@ -67,20 +75,27 @@ class ModAlert(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot or not message.guild:
-            return
-        if not message.reference:
+            log.debug("ModAlert: Ignoring bot or non-guild message")
             return
 
-        if not message.type == discord.MessageType.reply:
+        if message.type != discord.MessageType.reply:
+            return
+
+        if not message.reference:
+            log.debug("ModAlert: Message is not a reply")
             return
 
         if not message.mentions and not message.role_mentions:
+            log.debug("ModAlert: Message does not mention any users or roles")
             return
 
         msg_reference = message.reference.resolved
+
         if not msg_reference:
             try:
-                msg_reference = await message.channel.fetch_message(message.reference.message_id)
+                msg_reference = await message.channel.fetch_message(
+                    message.reference.message_id
+                )
             except Exception as e:
                 return
 
@@ -88,9 +103,13 @@ class ModAlert(commands.Cog):
             return
 
         if msg_reference.is_system():
+            log.debug("ModAlert: Message is a system message")
             return
 
         if msg_reference.author == message.author:
+            log.debug(
+                "ModAlert: Message author is the same as the original message author"
+            )
             return
 
         guild_config = self.config.guild(message.guild)
@@ -100,19 +119,44 @@ class ModAlert(commands.Cog):
         alert_threshold = await guild_config.alert_threshold()
         timeout_duration = await guild_config.timeout_duration()
         timeframe_seconds = await guild_config.timeframe_seconds()
+        ignoremods = await guild_config.ignore_mods()
 
-        message_mentions = {user.id for user in message.mentions} | {
+        message_mentions = set(message.raw_mentions) | {
             role.id for role in message.role_mentions
         }
-
-        mod_pinged = (
-  len(message_mentions.intersection(mod_user_ids, mod_role_ids)) > 0
+        mods = {*mod_user_ids, *mod_role_ids}
+        log.debug(
+            f"ModAlert: Message mentions user/role IDs {message_mentions}"
         )
+
+        mod_pinged = len(message_mentions.intersection(mods)) > 0
+        log.debug(f"ModAlert: Mod pinged: {mod_pinged}")
+        log.debug(f"ModAlert: Mod user IDs: {mod_user_ids}")
+        log.debug(f"ModAlert: Mod role IDs: {mod_role_ids}")
         if not mod_pinged:
+            log.debug(
+                "ModAlert: No mod roles or users were pinged in the message"
+            )
             return
+
+        if {msg_reference.author.id, *msg_reference.author._roles}.intersection(
+            mods
+        ):
+            if ignoremods:
+                log.debug(
+                    "ModAlert: Message author is a mod user or has a mod role"
+                )
+                return
+            else:
+                log.debug(
+                    "ModAlert: Message author is a mod user or has a mod role, but ignore_mods is False"
+                )
 
         msg_id = msg_reference.id
         if msg_id not in self.reports:
+            log.debug(
+                f"ModAlert: Creating new report entry for message ID {msg_id}"
+            )
             self.reports[msg_id] = (
                 AntiSpam(
                     [
@@ -126,11 +170,17 @@ class ModAlert(commands.Cog):
             )
         antispam, alerted_user_ids = self.reports[msg_id]
         if message.author.id in alerted_user_ids:
+            log.debug(
+                f"ModAlert: User {message.author.id} has already reported message ID {msg_id}"
+            )
             return
         antispam.stamp()
         alerted_user_ids.append(message.author.id)
 
         if antispam.spammy:
+            log.info(
+                f"ModAlert: Message ID {msg_id} has reached the alert threshold in guild {message.guild.id}"
+            )
             message_deleted = False
             user_timed_out = False
 
@@ -138,6 +188,9 @@ class ModAlert(commands.Cog):
             if original_message and isinstance(
                 original_message, discord.Message
             ):
+                log.debug(
+                    f"ModAlert: Deleting original message ID {msg_id} in guild {message.guild.id}"
+                )
                 try:
                     await original_message.delete()
                     message_deleted = True
@@ -151,9 +204,12 @@ class ModAlert(commands.Cog):
                 )
             if timeout_duration:
                 try:
-                    await message.author.timeout(
+                    await msg_reference.author.timeout(
                         datetime.timedelta(seconds=timeout_duration),
                         reason=f"Mod Alert: Message reported by {alert_threshold} users within {cf.humanize_timedelta(seconds=timeframe_seconds)}",
+                    )
+                    log.debug(
+                        f"ModAlert: Timed out user {msg_reference.author.id} in guild {message.guild.id}"
                     )
                     user_timed_out = True
                 except discord.Forbidden:
@@ -173,9 +229,9 @@ class ModAlert(commands.Cog):
                         if user is not None
                     )
                     await log_channel.send(
-                        f"Message {message.reference.jump_url} was flagged because it was reported by {alert_threshold} users ({user_mentions}). "
-                        f"{'The message was deleted' if message_deleted else 'Failed to delete the message'}"
-                        f"{f'and the user was timed out for {cf.humanize_timedelta(seconds=timeout_duration)}' if user_timed_out else ''}."
+                        f"Message {message.reference.jump_url} was flagged because it was reported by **{alert_threshold}** users ({user_mentions}). "
+                        f"{'The message was deleted' if message_deleted else 'Failed to delete the message'} "
+                        f"{f' and the user was timed out for **{cf.humanize_timedelta(seconds=timeout_duration)}**' if user_timed_out else ''}."
                     )
 
             self.reports.pop(msg_id, None)
@@ -319,7 +375,7 @@ class ModAlert(commands.Cog):
         self,
         ctx: commands.Context,
         duration: typing.Optional[datetime.timedelta] = commands.param(
-            converter=timedelta_converter, default=None
+            converter=timeout_timedelta_converter, default=None
         ),
     ):
         """Set the timeout duration for Mod Alert. Use no duration to disable timeouts.
@@ -334,7 +390,7 @@ class ModAlert(commands.Cog):
         )
         if duration:
             await ctx.send(
-                f"Set the timeout duration to {cf.humanize_timedelta(seconds=duration.total_seconds())}."
+                f"Set the timeout duration to {cf.humanize_timedelta(timedelta=duration)}."
             )
         else:
             await ctx.send("Disabled timeouts for Mod Alert.")
@@ -344,7 +400,8 @@ class ModAlert(commands.Cog):
         self,
         ctx: commands.Context,
         timeframe: datetime.timedelta = commands.param(
-            converter=timedelta_converter, default=datetime.timedelta(minutes=5)
+            converter=timeframe_timedelta_converter,
+            default=datetime.timedelta(minutes=5),
         ),
     ):
         """Set the timeframe for Mod Alert.
@@ -358,7 +415,88 @@ class ModAlert(commands.Cog):
             int(timeframe.total_seconds())
         )
         await ctx.send(
-            f"Set the timeframe to {cf.humanize_timedelta(seconds=timeframe.total_seconds())} "
+            f"Set the timeframe to {cf.humanize_timedelta(timedelta=timeframe)} "
             f"i.e if there are {await self.config.guild(ctx.guild).alert_threshold()} "
             "mod pings within this period, the message will be deleted and the user may be timed out."
         )
+
+    @modalert_group.command(name="ignoremods")
+    async def ignoremods_set(
+        self,
+        ctx: commands.Context,
+        ignore: bool,
+    ):
+        """Set whether ping reports against users added as mod users or with mod roles are ignored."""
+        await self.config.guild(ctx.guild).ignore_mods.set(ignore)
+        if ignore:
+            await ctx.send(
+                "Messages from mod users or users with mod roles will be ignored."
+            )
+        else:
+            await ctx.send(
+                "Messages from mod users or users with mod roles will not be ignored."
+            )
+
+    @modalert_group.command(name="showsettings", aliases=["settings", "ss"])
+    async def showsettings(self, ctx: commands.Context):
+        """Show the current Mod Alert settings."""
+        guild_config = self.config.guild(ctx.guild)
+        mod_role_ids = await guild_config.mod_roles()
+        mod_user_ids = await guild_config.mod_users()
+        log_channel_id = await guild_config.log_channel()
+        alert_threshold = await guild_config.alert_threshold()
+        timeout_duration = await guild_config.timeout_duration()
+        timeframe_seconds = await guild_config.timeframe_seconds()
+        ignore_mods = await guild_config.ignore_mods()
+
+        mod_roles = [ctx.guild.get_role(role_id) for role_id in mod_role_ids]
+        mod_role_mentions = (
+            ", ".join(role.mention for role in mod_roles if role is not None)
+            if mod_roles
+            else "None"
+        )
+
+        mod_users = [ctx.guild.get_member(user_id) for user_id in mod_user_ids]
+        mod_user_mentions = (
+            ", ".join(user.mention for user in mod_users if user is not None)
+            if mod_users
+            else "None"
+        )
+
+        log_channel = (
+            ctx.guild.get_channel(log_channel_id) if log_channel_id else None
+        )
+
+        timeout_str = (
+            cf.humanize_timedelta(seconds=timeout_duration)
+            if timeout_duration
+            else "Disabled"
+        )
+
+        timeframe_str = cf.humanize_timedelta(seconds=timeframe_seconds)
+
+        embed = discord.Embed(
+            title="Mod Alert Settings",
+            color=await ctx.embed_color(),
+        )
+        embed.add_field(name="Mod Roles", value=mod_role_mentions, inline=False)
+        embed.add_field(name="Mod Users", value=mod_user_mentions, inline=False)
+        embed.add_field(
+            name="Log Channel",
+            value=log_channel.mention if log_channel else "Not Set",
+            inline=False,
+        )
+        embed.add_field(
+            name="Alert Threshold", value=str(alert_threshold), inline=False
+        )
+        embed.add_field(
+            name="Timeout Duration", value=timeout_str, inline=False
+        )
+        embed.add_field(name="Timeframe", value=timeframe_str, inline=False)
+        embed.add_field(
+            name="Ignore Mods",
+            value="Yes" if ignore_mods else "No",
+            inline=False,
+        )
+
+        await ctx.send(embed=embed)
