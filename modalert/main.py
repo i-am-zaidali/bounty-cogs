@@ -162,7 +162,7 @@ class ModAlert(commands.Cog):
                     [
                         (
                             datetime.timedelta(seconds=timeframe_seconds),
-                            alert_threshold - 1,
+                            alert_threshold,
                         )
                     ]
                 ),
