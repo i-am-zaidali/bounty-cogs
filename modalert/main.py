@@ -139,7 +139,8 @@ class ModAlert(commands.Cog):
             )
             return
 
-        if {msg_reference.author.id, *msg_reference.author._roles}.intersection(
+        # check their roles but sometimes the author could have left the server
+        if {msg_reference.author.id, *getattr(msg_reference.author, "_roles", [])}.intersection(
             mods
         ):
             if ignoremods:
@@ -202,7 +203,7 @@ class ModAlert(commands.Cog):
                 log.warning(
                     f"ModAlert: Could not resolve original message {msg_id} in guild {message.guild.id}"
                 )
-            if timeout_duration:
+            if timeout_duration and isinstance(msg_reference.author, discord.Member):
                 try:
                     await msg_reference.author.timeout(
                         datetime.timedelta(seconds=timeout_duration),
