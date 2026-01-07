@@ -30,6 +30,7 @@ from collections import defaultdict
 from functools import partial
 from typing import TYPE_CHECKING, Coroutine, Dict, Optional
 
+import aiohttp
 import discord
 import TagScriptEngine as tse
 from redbot.core import commands
@@ -54,7 +55,7 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
     The TagScript documentation can be found [here](https://phen-cogs.readthedocs.io/en/latest/index.html).
     """
 
-    __version__ = "1.5.4"
+    __version__ = "1.5.5"
     __author__ = ("PhenoM4n4n", "crayyy_zee")
 
     def format_help_for_context(self, ctx: commands.Context):
@@ -101,6 +102,8 @@ class SlashTags(Commands, Processor, commands.Cog, metaclass=CompositeMetaClass)
             log.exception(
                 "Failed to add `slashtags` in the dev environment", exc_info=Exception
             )
+
+        self.session = aiohttp.ClientSession()
 
         super().__init__()
 
