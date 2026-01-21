@@ -76,24 +76,30 @@ class RoleSync(commands.Cog):
 
     @rs.command(name="remove")
     async def rs_remove(self, ctx: commands.Context, role: discord.Role):
+        """Remove a role from being synced between guilds."""
         async with self.config.guild(ctx.guild).roles() as roles:
-            if str(role.id) not in roles:
+            role_id_str = str(role.id)
+            if role_id_str not in roles:
                 return await ctx.send("This role is not synced to any guilds.")
 
-            for gid in roles[str(role.id)]:
+            for gid in roles[role_id_str]:
                 guild = self.bot.get_guild(gid)
                 if guild is None:
                     continue
 
                 async with self.config.guild(guild).synced_roles() as synced_roles:
-                    if str(role.id) in synced_roles:
-                        sr = guild.get_role(synced_roles[str(role.id)])
-                        if sr is None:
-                            continue
-                        await sr.delete(reason=f"Unsynced from {ctx.guild.name}")
+                    if role_id_str in synced_roles:
+                        sr = guild.get_role(synced_roles[role_id_str])
+                        if sr is not None:
+                            await sr.delete(reason=f"Unsynced from {ctx.guild.name}")
+                        # Remove the role from the synced_roles in this guild
+                        del synced_roles[role_id_str]
 
-            await ctx.tick()
-            return await ctx.send(f"Removed {role.mention} from sync")
+            # Remove the role from the original guild's roles list
+            del roles[role_id_str]
+
+        await ctx.tick()
+        return await ctx.send(f"Removed {role.mention} from sync")
 
     @rs.command(name="list")
     async def rs_list(self, ctx: commands.Context):
@@ -102,27 +108,42 @@ class RoleSync(commands.Cog):
         if not roles:
             return await ctx.send("No roles are synced in this guild.")
 
-        msg = ""
+        messages = []
+        current_message = ""
+
         for role_id, guilds in roles.items():
             role = ctx.guild.get_role(int(role_id))
             if role is None:
                 continue
 
-            msg += f"- {role.mention} synced in {len(guilds)} guilds\n"
+            role_info = f"- {role.mention} synced in {len(guilds)} guilds\n"
             for gid in guilds:
                 guild = self.bot.get_guild(gid)
                 if guild is None:
                     continue
-                role = guild.get_role(
-                    await self.config.guild(guild).synced_roles.get_raw(role_id)
-                )
-                if not role:
+                synced_role_id = await self.config.guild(guild).synced_roles.get_raw(role_id, default=None)
+                if synced_role_id is None:
                     continue
-                msg += f"\t- {guild.name}: {role.id}\n"
+                synced_role = guild.get_role(synced_role_id)
+                if not synced_role:
+                    continue
+                role_info += f"\t- {guild.name}: {synced_role.id}\n"
 
-            msg += "\n"
+            role_info += "\n"
 
-        await ctx.send(msg)
+            # Check if adding this role info would exceed the 2000 character limit
+            if len(current_message) + len(role_info) > 2000:
+                messages.append(current_message)
+                current_message = role_info
+            else:
+                current_message += role_info
+
+        # Append the last message if it contains any content
+        if current_message:
+            messages.append(current_message)
+
+        for message in messages:
+            await ctx.send(message)
 
     @rs.command(name="forcesync", aliases=["fsync"])
     async def rs_fsync(self, ctx: commands.Context):
@@ -132,6 +153,9 @@ class RoleSync(commands.Cog):
 
         for role_id, guilds in roles.items():
             role = ctx.guild.get_role(int(role_id))
+            if role is None:
+                continue
+
             role1 = {
                 "name": role.name,
                 "permissions": role.permissions,
@@ -139,18 +163,21 @@ class RoleSync(commands.Cog):
                 "hoist": role.hoist,
                 "mentionable": role.mentionable,
             }
-            if role is None:
-                continue
 
             for gid in guilds:
                 guild = self.bot.get_guild(gid)
                 if guild is None:
                     continue
-                r = guild.get_role(
-                    await self.config.guild(guild).synced_roles.get_raw(str(role_id))
-                )
-                if not role:
+
+                synced_role_id = await self.config.guild(guild).synced_roles.get_raw(str(role_id), default=None)
+                if synced_role_id is None:
                     continue
+
+                r = guild.get_role(synced_role_id)
+                if r is None:
+                    await ctx.send(f"Role with ID {synced_role_id} not found in guild {guild.name}.")
+                    continue
+
                 role2 = {
                     "name": r.name,
                     "permissions": r.permissions,
@@ -158,8 +185,9 @@ class RoleSync(commands.Cog):
                     "hoist": r.hoist,
                     "mentionable": r.mentionable,
                 }
+
                 if role1 != role2:
-                    await role.edit(
+                    await r.edit(
                         name=role.name,
                         permissions=role.permissions,
                         colour=role.colour,
