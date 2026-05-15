@@ -225,11 +225,11 @@ class Settings(MixinMeta):
                 f"- [**FreeStuffAPI**](https://docs.freestuffbot.xyz)\n"
                 f"  - Toggle: {'On' if conf.freestuff.toggle else 'Off'}\n"
                 f"  - Channel to post in: {getattr(ctx.guild.get_channel(conf.freestuff.channel), 'mention', 'Not set')}\n"
-                f"  - Stores to check: {cf.humanize_list(conf.freestuff.stores_to_check) or 'All of them'}\n\n"
+                f"  - Stores to check: {cf.humanize_list(list(conf.freestuff.stores_to_check)) or 'All of them'}\n\n"
                 f"- [**GamerPowerAPI**](https://www.gamerpower.com/api-read)\n"
                 f"  - Toggle: {'On' if conf.gamerpower.toggle else 'Off'}\n"
                 f"  - Channel to post in: {getattr(ctx.guild.get_channel(conf.gamerpower.channel), 'mention', 'Not set')}\n"
-                f"  - Stores to check: {cf.humanize_list(conf.gamerpower.stores_to_check) or 'All of them'}\n\n",
+                f"  - Stores to check: {cf.humanize_list(list(conf.gamerpower.stores_to_check)) or 'All of them'}\n\n",
             )
         )
 
