@@ -412,7 +412,7 @@ class MessageListeners(MixinMeta):
                 #     f"Muting member {member.id} in guild {guild.id} for {mute_duration} seconds."
                 # )
                 await member.timeout(
-                    until=discord.utils.utcnow()
+                    discord.utils.utcnow()
                     + datetime.timedelta(seconds=mute_duration),
                     reason=reason,
                 )
