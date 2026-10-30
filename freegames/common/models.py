@@ -154,7 +154,7 @@ class Price(Base):
     eur: float
     gbp: float
     brl: float
-    bgn: float
+    bgn: float = 0.0
     pln: float
     huf: float
     btc: float
