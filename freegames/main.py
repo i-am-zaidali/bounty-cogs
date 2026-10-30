@@ -158,7 +158,26 @@ class FreeGames(Commands, commands.Cog, metaclass=CompositeMetaClass):
                             continue
 
                         json_data = await resp2.json()
-                        results.extend(json_data["data"].values())
+                        for entry in json_data["data"].values():
+                            # The API moved the game payload under "data"; the
+                            # top level only carries database metadata now.
+                            inner = entry.get("data") if isinstance(entry, dict) else None
+                            if not isinstance(inner, dict):
+                                continue
+                            merged = dict(inner)
+                            merged.setdefault("id", entry.get("id") or entry.get("_id"))
+                            # description is a list of localized texts now
+                            desc = merged.get("description")
+                            if isinstance(desc, list):
+                                merged["description"] = next(
+                                    (
+                                        d.get("text")
+                                        for d in desc
+                                        if isinstance(d, dict) and d.get("text")
+                                    ),
+                                    "",
+                                )
+                            results.append(merged)
                 try:
                     return FreeStuffResponse(
                     games=filter(
